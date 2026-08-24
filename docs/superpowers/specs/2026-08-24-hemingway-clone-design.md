@@ -76,6 +76,12 @@ Tách câu bằng regex có xử lý viết tắt (`Mr., e.g., U.S.`) và số t
 
 Bộ từ điển complex words / participles biên soạn lại thành data file TS, lấy cảm hứng từ các bản open-source clone Hemingway (hemingway-js và tương tự).
 
+### Ràng buộc module (deep module discipline)
+
+- **Package chỉ export `analyze()` + các type của `AnalysisResult`.** `Rule` là **internal seam**: dùng cho unit test từng rule bên trong package, không export ra ngoài. Caller học đúng một hàm, nhận string, trả kết quả — không cần biết tokenizer, rules hay ARI.
+- **Pure function, không side effect, không dependency ngoài.** Test chạy qua đúng interface mà caller dùng.
+- **Highlight plugin (web) không biết rule nào sinh ra highlight** — chỉ đọc `type` để chọn màu. Thêm rule mới về sau là thêm data, không sửa plugin. Phần mapping Lexical nodes ↔ plain-text offsets nằm trong implementation của plugin, không rò rỉ ra component khác.
+
 ## 4. Frontend (`apps/web`)
 
 **Stack:** React 18 + Vite + TypeScript, Lexical editor, TanStack Query, React Router, Zustand, Tailwind.
@@ -187,6 +193,10 @@ Email + password (bcrypt). JWT access token 15 phút + refresh token 7 ngày (ht
 - Prompt theo `issueType`: passive → active voice; very-hard → split/simplify; complex → simpler words. Ràng buộc: giữ nghĩa, giữ tone, chỉ trả text kết quả.
 - Rate limit: 20 req/phút/user. Timeout 15s. Lỗi OpenRouter (hết credit, timeout) → message rõ ràng cho client, không crash.
 - Không set `OPENROUTER_API_KEY` → `/ai/status` trả tắt → client ẩn nút Fix with AI.
+
+### Ràng buộc module
+
+**Không dựng abstraction `LLMProvider`.** OpenRouter là provider duy nhất — một adapter chỉ là seam giả định. AiModule gọi thẳng OpenRouter; `AI_MODEL` là config, không phải seam. Khi nào thực sự có provider thứ hai mới tách seam; lúc đó refactor rẻ vì mọi thứ còn nằm một chỗ.
 
 ## 7. Testing
 
