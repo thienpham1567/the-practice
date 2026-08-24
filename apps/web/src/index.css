@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — hướng Editorial / Literary.
+ * Bảng đầy đủ (palette giấy ngà, 5 màu highlight, thang typography) được xây
+ * ở milestone 4.1; đây là bộ tối thiểu để scaffold có đúng tông ngay từ đầu.
+ */
+@theme {
+  --color-paper: #faf6ef;
+  --color-ink: #1c1a17;
+  --color-vermilion: #c8442a;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
