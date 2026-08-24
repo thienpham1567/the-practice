@@ -1,0 +1,67 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`analyze > giữ nguyên kết quả cho một đoạn văn chuẩn 1`] = `
+{
+  "counts": {
+    "adverbs": 1,
+    "complexPhrases": 2,
+    "hardSentences": 0,
+    "passives": 2,
+    "qualifiers": 2,
+    "veryHardSentences": 0,
+  },
+  "goals": {
+    "adverbs": 1,
+    "passives": 1,
+  },
+  "grade": 7,
+  "gradeLabel": "Good",
+  "highlights": [
+    {
+      "end": 22,
+      "start": 11,
+      "type": "passive",
+    },
+    {
+      "end": 52,
+      "start": 44,
+      "suggestion": "used",
+      "type": "complex-phrase",
+    },
+    {
+      "end": 61,
+      "start": 53,
+      "suggestion": "many",
+      "type": "complex-phrase",
+    },
+    {
+      "end": 104,
+      "start": 81,
+      "type": "passive",
+    },
+    {
+      "end": 95,
+      "start": 86,
+      "type": "adverb",
+    },
+    {
+      "end": 113,
+      "start": 106,
+      "type": "qualifier",
+    },
+    {
+      "end": 143,
+      "start": 139,
+      "type": "qualifier",
+    },
+  ],
+  "stats": {
+    "characters": 168,
+    "letters": 139,
+    "paragraphs": 1,
+    "readingTimeSeconds": 6,
+    "sentences": 3,
+    "words": 27,
+  },
+}
+`;

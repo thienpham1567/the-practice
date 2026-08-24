@@ -46,8 +46,9 @@ writing-helper/
 analyze(text: string): AnalysisResult
 
 interface AnalysisResult {
-  highlights: Highlight[];      // { start, end, type } — offset ký tự trên text gốc
+  highlights: Highlight[];      // { start, end, type, suggestion? } — offset ký tự trên text gốc
   counts: { veryHardSentences; hardSentences; adverbs; passives; qualifiers; complexPhrases };
+  goals: { adverbs; passives };  // ngưỡng chấp nhận được theo độ dài văn bản
   stats: { words; sentences; paragraphs; characters; letters; readingTimeSeconds };
   grade: number;                // readability grade level
   gradeLabel: string;           // "Good" | "OK" | "Poor" theo ngưỡng Hemingway
@@ -62,7 +63,7 @@ interface AnalysisResult {
 | 2 | Very hard sentence | Đỏ | Câu ≥ 14 từ và grade ≥ 14. Câu < 14 từ không bao giờ bị đánh dấu |
 | 3 | Passive voice | Xanh lá | To-be verb (`is/are/was/were/be/been/being`) + past participle (từ điển participle bất quy tắc + đuôi `-ed`), bỏ qua adjective phổ biến |
 | 4 | Adverb | Xanh dương | Từ đuôi `-ly` trừ whitelist (`family, only, supply...`). Ngưỡng mục tiêu ~1 adverb/100 từ |
-| 5 | Complex phrase / qualifier | Tím | Từ điển tĩnh ~1000 cụm phức tạp kèm gợi ý thay thế (`utilize → use`) + danh sách qualifier (`I think, perhaps, maybe...`) |
+| 5 | Complex phrase / qualifier | Tím | Từ điển tĩnh cụm phức tạp kèm gợi ý thay thế (`utilize → use`) + danh sách qualifier (`I think, perhaps, maybe...`). Bắt đầu ở 192 mục, mở rộng dần — thêm mục là thêm một dòng data, không sửa rule. Qualifier cố ý không chứa từ `-ly` để không trùng với rule adverb |
 
 ### Grade level
 
@@ -70,7 +71,11 @@ interface AnalysisResult {
 
 ### Tokenizer
 
-Tách câu bằng regex có xử lý viết tắt (`Mr., e.g., U.S.`) và số thập phân; tách từ; đếm âm tiết bằng heuristic vowel-groups (chỉ dùng cho thống kê phụ).
+Tách câu có xử lý viết tắt (`Mr., e.g., U.S.`), số thập phân, tên viết tắt một chữ cái (`J. R. R. Tolkien`) và chuỗi dấu kết thúc (`?!`, `...`); tách từ giữ nguyên dấu nháy và gạch nối.
+
+Viết tắt chia hai nhóm: nhóm chỉ tính khi **viết hoa** (`Mr, Dr, Sat, No, Co`) và nhóm nhận cả khi viết thường (`e.g, i.e, etc, vs`). Nếu bỏ qua chữ hoa thì câu "The cat sat." sẽ không bao giờ được tách, vì `sat` trùng viết tắt của Saturday.
+
+Không đếm âm tiết: ARI chỉ cần số ký tự, và `AnalysisResult` không có trường nào dùng tới âm tiết.
 
 ### Nguồn từ điển
 

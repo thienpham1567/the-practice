@@ -45,9 +45,21 @@ export interface TextStats {
 /** Nhãn đánh giá độ dễ đọc, theo ngưỡng của Hemingway. */
 export type GradeLabel = "Good" | "OK" | "Poor";
 
+/**
+ * Ngưỡng "bao nhiêu là chấp nhận được" cho văn bản có độ dài này, dùng cho các
+ * dòng kiểu "3 adverbs, meeting the goal of 3 or fewer".
+ *
+ * Nằm ở đây thay vì ở UI vì đây là luật văn phong, không phải chuyện hiển thị.
+ */
+export interface IssueGoals {
+  adverbs: number;
+  passives: number;
+}
+
 export interface AnalysisResult {
   highlights: Highlight[];
   counts: IssueCounts;
+  goals: IssueGoals;
   stats: TextStats;
   /** Grade level theo Automated Readability Index, đã làm tròn. */
   grade: number;
