@@ -139,6 +139,17 @@ model User {
   passwordHash String
   createdAt    DateTime   @default(now())
   documents    Document[]
+  refreshTokens RefreshToken[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique   // SHA-256 của chuỗi gốc
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?           // logout và rotation đều set trường này
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Document {
@@ -156,7 +167,11 @@ model Document {
 
 ### Auth
 
-Email + password (bcrypt). JWT access token 15 phút + refresh token 7 ngày (httpOnly cookie, có rotate). NestJS guards bảo vệ mọi route document; mọi query filter theo `ownerId`.
+Email + password (bcrypt, 12 rounds). JWT access token 15 phút + refresh token 7 ngày (httpOnly cookie, path `/auth`, có rotate).
+
+**Refresh token không phải JWT**: nó là chuỗi ngẫu nhiên 32 byte, DB lưu **hash SHA-256** trong bảng `RefreshToken`. JWT không thu hồi được, mà spec yêu cầu logout và rotation phải thật sự vô hiệu hóa phiên cũ. Lưu hash thay vì chuỗi gốc để rò rỉ DB không đồng nghĩa rò rỉ phiên đăng nhập.
+
+Đăng nhập sai email và sai mật khẩu trả về **cùng một thông báo**, để không tiết lộ email nào đã đăng ký. NestJS guards bảo vệ mọi route document; mọi query filter theo `ownerId`.
 
 ### Endpoints
 

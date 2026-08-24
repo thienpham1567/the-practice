@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  documents     Document[]
+  refreshTokens RefreshToken[]
+}
+
+/// Refresh token được lưu dạng hash để logout và rotation thật sự thu hồi được
+/// phiên cũ. Giữ nguyên chuỗi gốc trong DB thì rò rỉ DB là rò rỉ luôn phiên.
+model RefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  title     String   @default("Untitled")
+  /// Lexical editor state, giữ nguyên formatting.
+  content   Json
+  /// Bản text thuần để hiện preview mà không phải dựng lại editor state.
+  plainText String
+  /// Grade tại lần lưu cuối, chỉ dùng để hiển thị ở danh sách.
+  grade     Int?
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, updatedAt])
+}
