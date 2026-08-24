@@ -80,6 +80,16 @@ Bộ từ điển complex words / participles biên soạn lại thành data fil
 
 **Stack:** React 18 + Vite + TypeScript, Lexical editor, TanStack Query, React Router, Zustand, Tailwind.
 
+### UI/UX direction: Editorial / Literary — "Bàn viết của nhà văn"
+
+Chức năng và bố cục theo Hemingway, nhưng diện mạo có bản sắc riêng (theo skill frontend-design):
+
+- **Cảm giác**: tạp chí văn học, giấy ấm, mực đậm — gợi di sản typewriter của Hemingway.
+- **Palette**: nền kem/giấy ngà (`#faf6ef`), chữ mực than, accent đỏ son (màu bút đỏ biên tập viên). 5 màu highlight tinh chỉnh thành tông "bút dạ quang trên giấy" hài hòa với nền ấm. Toàn bộ khai báo bằng CSS variables.
+- **Typography**: Fraunces (display, optical sizing) cho heading/brand; Newsreader hoặc Source Serif cho văn bản editor; IBM Plex Mono cho số liệu thống kê.
+- **Chi tiết**: texture giấy nhẹ, sidebar như lề ghi chú của biên tập viên, grade hiển thị như con dấu; micro-interactions tiết chế (staggered reveal khi load, hover tinh tế).
+- **Điểm nhớ**: trang bản thảo được biên tập viên chấm bút — không phải một web tool generic.
+
 ### Layout (bắt chước Hemingway)
 
 - **Giữa:** editor lớn, nền trắng, font serif. Format: bold, italic, H1–H3, bullet/numbered list, quote, link.
