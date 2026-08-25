@@ -20,6 +20,9 @@ apps/api/prisma.config.js
 npm-debug.log*
 pnpm-debug.log*
 
+.worktrees/
+worktrees/
+
 .vite/
 .idea/
 .vscode/*
