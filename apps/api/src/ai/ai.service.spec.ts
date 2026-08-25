@@ -125,4 +125,75 @@ describe("AiService", () => {
       );
     });
   });
+
+  describe("complete", () => {
+    it("gửi prompt, maxTokens và không kèm response_format khi không có schema", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "hello" } }] }));
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const result = await service.complete<string>({ prompt: "Say hi", maxTokens: 80 });
+
+      expect(result).toBe("hello");
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const body = JSON.parse(init!.body as string) as {
+        messages: { content: string }[];
+        max_tokens: number;
+        response_format?: unknown;
+      };
+      expect(body.messages[0]?.content).toBe("Say hi");
+      expect(body.max_tokens).toBe(80);
+      expect(body.response_format).toBeUndefined();
+    });
+
+    it("gắn json_schema vào request và parse JSON trả về đúng kiểu", async () => {
+      const fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue(
+        jsonResponse({
+          choices: [{ message: { content: '{"prompt":"Write about tea","ideas":["aroma"]}' } }],
+        }),
+      );
+
+      const schema = {
+        name: "practice_prompt",
+        schema: {
+          type: "object",
+          properties: { prompt: { type: "string" }, ideas: { type: "array" } },
+        },
+      };
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const result = await service.complete<{ prompt: string; ideas: string[] }>({
+        prompt: "Generate a task",
+        maxTokens: 400,
+        schema,
+      });
+
+      expect(result).toEqual({ prompt: "Write about tea", ideas: ["aroma"] });
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const body = JSON.parse(init!.body as string) as {
+        response_format: { type: string; json_schema: { name: string; schema: unknown } };
+      };
+      expect(body.response_format.type).toBe("json_schema");
+      expect(body.response_format.json_schema.name).toBe("practice_prompt");
+      expect(body.response_format.json_schema.schema).toEqual(schema.schema);
+    });
+
+    it("gỡ markdown fence nếu mô hình không trả JSON thuần", async () => {
+      jest.spyOn(global, "fetch").mockResolvedValue(
+        jsonResponse({
+          choices: [{ message: { content: '```json\n{"ok":true}\n```' } }],
+        }),
+      );
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const result = await service.complete<{ ok: boolean }>({
+        prompt: "x",
+        maxTokens: 20,
+        schema: { name: "ok", schema: { type: "object" } },
+      });
+
+      expect(result).toEqual({ ok: true });
+    });
+  });
 });
