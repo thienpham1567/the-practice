@@ -28,7 +28,9 @@ describe("API (e2e)", () => {
   });
 
   beforeEach(async () => {
-    await prisma.$executeRawUnsafe('TRUNCATE TABLE "Document", "RefreshToken", "User" CASCADE');
+    await prisma.$executeRawUnsafe(
+      'TRUNCATE TABLE "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
+    );
   });
 
   afterAll(async () => {
@@ -317,6 +319,167 @@ describe("API (e2e)", () => {
         .expect(503);
 
       expect(response.body.message).toContain("insufficient credits");
+    });
+  });
+
+  describe("practice", () => {
+    const generated = {
+      prompt: "Write to your English teacher about a school trip.",
+      ideas: ["where you went", "who went with you", "what you did", "how you felt"],
+      vocabulary: [
+        { word: "memorable", meaning: "worth remembering", example: "It was a memorable day." },
+      ],
+    };
+
+    const graded = {
+      scores: {
+        taskResponse: 6,
+        coherenceCohesion: 6,
+        lexicalResource: 6,
+        grammaticalRange: 5,
+      },
+      feedback: {
+        taskResponse: "You covered the bullet points.",
+        coherenceCohesion: "The order is clear.",
+        lexicalResource: "Simple but accurate words.",
+        grammaticalRange: "Mostly simple sentences.",
+        overview: "A fair A2 email.",
+        nextFocus: "Try one longer sentence next time.",
+      },
+    };
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    function mockPracticeAi() {
+      return jest.spyOn(global, "fetch").mockImplementation(async (_url, init) => {
+        const body = JSON.parse(String((init as RequestInit).body)) as {
+          response_format?: { json_schema?: { name?: string } };
+        };
+        const content =
+          body.response_format?.json_schema?.name === "practice_grade"
+            ? JSON.stringify(graded)
+            : JSON.stringify(generated);
+
+        return {
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ choices: [{ message: { content } }] }),
+        } as Response;
+      });
+    }
+
+    it("chặn khi chưa đăng nhập", async () => {
+      await server().get("/practice/attempts").expect(401);
+      await server().post("/practice/attempts").send({ level: "A2" }).expect(401);
+    });
+
+    it("từ chối DTO sai", async () => {
+      const { accessToken } = await registerUser("practice-validate@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      await server().post("/practice/attempts").set(auth).send({}).expect(400);
+      await server().post("/practice/attempts").set(auth).send({ level: "Z9" }).expect(400);
+      await server()
+        .post("/practice/attempts")
+        .set(auth)
+        .send({ level: "A2", taskType: "report" })
+        .expect(400);
+    });
+
+    it("user khác nhận 404 với mọi route trên bài của mình", async () => {
+      mockPracticeAi();
+      const alice = await registerUser("practice-alice@example.com");
+      const bob = await registerUser("practice-bob@example.com");
+      const bobAuth = { Authorization: `Bearer ${bob.accessToken}` };
+
+      const created = await server()
+        .post("/practice/attempts")
+        .set({ Authorization: `Bearer ${alice.accessToken}` })
+        .send({ level: "A2", taskType: "email" })
+        .expect(201);
+      const id = created.body.id as string;
+
+      await server().get(`/practice/attempts/${id}`).set(bobAuth).expect(404);
+      await server()
+        .patch(`/practice/attempts/${id}`)
+        .set(bobAuth)
+        .send({ plainText: "hijacked" })
+        .expect(404);
+      await server()
+        .post(`/practice/attempts/${id}/submit`)
+        .set(bobAuth)
+        .send({ styleSnapshot: {} })
+        .expect(404);
+    });
+
+    it("tạo, autosave, nộp, rồi xem lại — band do server tính", async () => {
+      mockPracticeAi();
+      const { accessToken } = await registerUser("practice-flow@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const created = await server()
+        .post("/practice/attempts")
+        .set(auth)
+        .send({ level: "A2", taskType: "email" })
+        .expect(201);
+
+      expect(created.body.taskType).toBe("email");
+      expect(created.body.prompt).toContain(generated.prompt);
+      expect(created.body.prompt).toContain("Write an email to a specific person");
+      expect(created.body.ideas).toEqual(generated.ideas);
+      expect(created.body.vocabulary).toEqual(generated.vocabulary);
+      expect(created.body.startedAt).toEqual(expect.any(String));
+      expect(created.body.submittedAt).toBeNull();
+
+      const id = created.body.id as string;
+      const content = { root: { children: [] } };
+
+      const saved = await server()
+        .patch(`/practice/attempts/${id}`)
+        .set(auth)
+        .send({
+          content,
+          plainText: "Dear Ms Lee, I went on a school trip to the museum.",
+          wordCount: 12,
+          hintsOpened: true,
+        })
+        .expect(200);
+      expect(saved.body.plainText).toContain("Dear Ms Lee");
+      expect(saved.body.hintsOpened).toBe(true);
+
+      const submitted = await server()
+        .post(`/practice/attempts/${id}/submit`)
+        .set(auth)
+        .send({
+          styleSnapshot: { counts: { passives: 0 } },
+          plainText: "Dear Ms Lee, I went on a school trip to the museum.",
+          wordCount: 12,
+        })
+        .expect(201);
+
+      expect(submitted.body.band).toBe(6);
+      expect(submitted.body.scores).toEqual(graded.scores);
+      expect(submitted.body.feedback.nextFocus).toContain("longer sentence");
+      expect(submitted.body.styleSnapshot).toEqual({ counts: { passives: 0 } });
+      expect(submitted.body.submittedAt).toEqual(expect.any(String));
+
+      const listed = await server().get("/practice/attempts").set(auth).expect(200);
+      expect(listed.body).toHaveLength(1);
+      expect(listed.body[0].content).toBeUndefined();
+      expect(listed.body[0].ideas).toBeUndefined();
+      expect(listed.body[0].band).toBe(6);
+
+      const fetched = await server().get(`/practice/attempts/${id}`).set(auth).expect(200);
+      expect(fetched.body.content).toEqual(content);
+      expect(fetched.body.band).toBe(6);
+
+      await server()
+        .post(`/practice/attempts/${id}/submit`)
+        .set(auth)
+        .send({ styleSnapshot: {} })
+        .expect(409);
     });
   });
 

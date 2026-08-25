@@ -8,6 +8,6 @@ import { UserThrottlerGuard } from "./user-throttler.guard";
   imports: [AuthModule],
   controllers: [AiController],
   providers: [AiService, UserThrottlerGuard],
-  exports: [AiService],
+  exports: [AiService, UserThrottlerGuard],
 })
 export class AiModule {}

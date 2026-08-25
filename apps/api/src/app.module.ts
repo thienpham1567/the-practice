@@ -6,6 +6,7 @@ import { AiModule } from "./ai/ai.module";
 import { AuthModule } from "./auth/auth.module";
 import { DocumentsModule } from "./documents/documents.module";
 import { HealthController } from "./health.controller";
+import { PracticeModule } from "./practice/practice.module";
 import { PrismaModule } from "./prisma/prisma.module";
 
 @Module({
@@ -28,6 +29,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     PrismaModule,
     AuthModule,
     DocumentsModule,
+    PracticeModule,
     AiModule,
   ],
   controllers: [HealthController],

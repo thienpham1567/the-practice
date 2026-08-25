@@ -19,7 +19,9 @@ describe("Rate limiting (e2e)", () => {
 
     await app
       .get(PrismaService)
-      .$executeRawUnsafe('TRUNCATE TABLE "Document", "RefreshToken", "User" CASCADE');
+      .$executeRawUnsafe(
+        'TRUNCATE TABLE "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
+      );
   });
 
   afterAll(async () => {

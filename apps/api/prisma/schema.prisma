@@ -14,6 +14,7 @@ model User {
 
   documents     Document[]
   refreshTokens RefreshToken[]
+  practiceAttempts PracticeAttempt[]
 }
 
 /// Refresh token được lưu dạng hash để logout và rotation thật sự thu hồi được
@@ -47,4 +48,37 @@ model Document {
   owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   @@index([ownerId, updatedAt])
+}
+
+model PracticeAttempt {
+  id       String @id @default(cuid())
+  userId   String
+  level    String
+  taskType String
+
+  /// Đề bài do AI sinh, đã ghép instruction cố định của dạng bài.
+  prompt     String
+  ideas      Json
+  vocabulary Json
+  /// Người dùng có mở gợi ý không — ảnh hưởng cách đọc điểm.
+  hintsOpened Boolean @default(false)
+
+  content    Json?
+  plainText  String   @default("")
+  wordCount  Int      @default(0)
+
+  /// Mốc cho đồng hồ đếm ngược. Đặt ở server nên F5 không reset được.
+  startedAt      DateTime  @default(now())
+  submittedAt    DateTime?
+  elapsedSeconds Int?
+
+  band          Float?
+  scores        Json?
+  feedback      Json?
+  /// counts từ analyze() tại thời điểm nộp, để xem lại mà không phải chạy lại.
+  styleSnapshot Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, submittedAt])
 }
