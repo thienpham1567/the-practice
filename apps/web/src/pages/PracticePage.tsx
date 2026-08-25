@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../api/auth-store";
 import { apiFetch } from "../api/client";
 import { createAttempt, listAttempts } from "../api/practice";
+import { AppMark } from "../AppMark";
 import { BandChart } from "../practice/BandChart";
 import { BandStamp } from "../practice/BandStamp";
 import { StreakStrip } from "../practice/StreakStrip";
@@ -41,7 +42,10 @@ export function PracticePage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
       <header className="animate-fade-up flex items-baseline justify-between border-b border-rule pb-5">
-        <h1 className="font-display text-3xl font-semibold">Practice</h1>
+        <h1 className="flex items-center gap-3 font-display text-3xl font-semibold">
+          <AppMark className="h-8 w-8 text-vermilion" />
+          Practice
+        </h1>
         <div className="flex items-center gap-4 text-sm">
           <Link
             to="/docs"

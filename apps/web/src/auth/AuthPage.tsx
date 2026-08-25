@@ -2,6 +2,8 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiJson, ApiError } from "../api/client";
 import { useAuthStore, type SessionUser } from "../api/auth-store";
+import { AppMark } from "../AppMark";
+import { BrandLockup } from "../BrandLockup";
 import { hasStashedDraft } from "../pages/draft-stash";
 
 interface AuthPageProps {
@@ -11,7 +13,7 @@ interface AuthPageProps {
 const COPY = {
   login: {
     heading: "Welcome back",
-    lede: "Pick up the draft where you left it.",
+    lede: "Sit the next paper, or pick up a draft.",
     action: "Sign in",
     path: "/auth/login",
     switchText: "No account yet?",
@@ -19,8 +21,8 @@ const COPY = {
     switchTo: "/register",
   },
   register: {
-    heading: "Start a draft",
-    lede: "An account keeps your work across devices.",
+    heading: "Begin practice",
+    lede: "An account keeps your papers and drafts.",
     action: "Create account",
     path: "/auth/register",
     switchText: "Already have an account?",
@@ -65,14 +67,10 @@ export function AuthPage({ mode }: AuthPageProps) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
       <div className="animate-fade-up relative" style={{ animationDelay: "40ms" }}>
-        {/* Dấu ngoặc kép khổ lớn, mờ, kiểu mở đầu bài xã luận — neo theo khối tiêu đề, không theo cả trang, để không bị trôi lên khỏi màn hình khi nội dung căn giữa dọc. */}
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -left-3 -top-14 font-display text-[8rem] leading-none text-rule select-none"
-        >
-          “
-        </span>
-        <h1 className="relative font-display text-4xl font-semibold">{copy.heading}</h1>
+        {/* Con dấu khổ lớn, mờ — neo theo khối tiêu đề, không theo cả trang. */}
+        <AppMark className="pointer-events-none absolute -left-4 -top-16 h-28 w-28 text-rule select-none" />
+        <BrandLockup size="lg" />
+        <h1 className="relative mt-6 font-display text-4xl font-semibold">{copy.heading}</h1>
         <p className="relative mt-2 text-ink-soft">{copy.lede}</p>
       </div>
 

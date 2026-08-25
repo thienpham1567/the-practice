@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { analyze } from "@writing-helper/analysis";
 import { TASK_CATALOG, type TaskSpec } from "@writing-helper/practice";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { BrandLockup } from "../BrandLockup";
 import { getAttempt, submitAttempt, updateAttempt, type PracticeAttemptDetail } from "../api/practice";
 import { Editor, type EditorChange } from "../editor/Editor";
 import { BandStamp } from "../practice/BandStamp";
@@ -122,9 +123,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center gap-4 border-b border-rule px-6 py-3">
-        <Link to="/practice" className="font-display text-lg font-semibold tracking-tight hover:text-vermilion">
-          Practice
-        </Link>
+        <BrandLockup to="/practice" />
         <span
           className={`font-mono text-sm tabular-nums ${timedOut ? "text-vermilion" : "text-ink"}`}
           aria-label="Time remaining"
@@ -246,9 +245,7 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center gap-4 border-b border-rule px-6 py-3">
-        <Link to="/practice" className="font-display text-lg font-semibold tracking-tight hover:text-vermilion">
-          Practice
-        </Link>
+        <BrandLockup to="/practice" />
         <span className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
           {spec.label}
         </span>

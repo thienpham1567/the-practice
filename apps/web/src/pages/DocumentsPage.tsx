@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../api/auth-store";
 import { apiFetch } from "../api/client";
 import { deleteDocument, listDocuments } from "../api/documents";
+import { AppMark } from "../AppMark";
 import { GradeStamp } from "../sidebar/GradeStamp";
 
 export function DocumentsPage() {
@@ -27,7 +28,10 @@ export function DocumentsPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
       <header className="animate-fade-up flex items-baseline justify-between border-b border-rule pb-5">
-        <h1 className="font-display text-3xl font-semibold">Drafts</h1>
+        <h1 className="flex items-center gap-3 font-display text-3xl font-semibold">
+          <AppMark className="h-8 w-8 text-vermilion" />
+          Drafts
+        </h1>
 
         <div className="flex items-center gap-4 text-sm">
           <Link

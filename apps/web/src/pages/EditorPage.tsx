@@ -6,6 +6,7 @@ import { useAuthStore } from "../api/auth-store";
 import { createDocument, getDocument, updateDocument, type DocumentInput } from "../api/documents";
 import { Editor, type EditorChange, type EditorMode } from "../editor/Editor";
 import { Sidebar } from "../sidebar/Sidebar";
+import { BrandLockup } from "../BrandLockup";
 import { stashDraft, takeStashedDraft } from "./draft-stash";
 
 const AUTOSAVE_DELAY_MS = 2000;
@@ -93,12 +94,7 @@ export function EditorPage() {
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center gap-4 border-b border-rule px-6 py-3">
-        <Link
-          to="/docs"
-          className="font-display text-lg font-semibold tracking-tight hover:text-vermilion"
-        >
-          Writing Helper
-        </Link>
+        <BrandLockup to="/docs" />
         <Link
           to="/practice"
           className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion"
