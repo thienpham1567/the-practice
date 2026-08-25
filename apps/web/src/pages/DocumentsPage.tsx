@@ -36,6 +36,12 @@ export function DocumentsPage() {
           >
             New draft
           </Link>
+          <Link
+            to="/practice"
+            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
+          >
+            Practice
+          </Link>
           {user && (
             <button
               type="button"

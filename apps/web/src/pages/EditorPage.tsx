@@ -99,6 +99,12 @@ export function EditorPage() {
         >
           Writing Helper
         </Link>
+        <Link
+          to="/practice"
+          className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion"
+        >
+          Practice
+        </Link>
 
         <input
           value={title}

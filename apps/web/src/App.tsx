@@ -6,6 +6,8 @@ import { tryRefreshSession } from "./api/client";
 import { AuthPage } from "./auth/AuthPage";
 import { DocumentsPage } from "./pages/DocumentsPage";
 import { EditorPage } from "./pages/EditorPage";
+import { PracticeAttemptPage } from "./pages/PracticeAttemptPage";
+import { PracticePage } from "./pages/PracticePage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -51,6 +53,22 @@ export function App() {
             element={
               <RequireAuth>
                 <DocumentsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/practice"
+            element={
+              <RequireAuth>
+                <PracticePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/practice/:id"
+            element={
+              <RequireAuth>
+                <PracticeAttemptPage />
               </RequireAuth>
             }
           />

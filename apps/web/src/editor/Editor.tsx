@@ -12,7 +12,7 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { useQuery } from "@tanstack/react-query";
 import type { AnalysisResult, Highlight } from "@writing-helper/analysis";
 import { $getRoot, type SerializedEditorState } from "lexical";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getAiStatus } from "../api/ai";
 import { shouldFlipBelow } from "./anchor-position";
 import {
@@ -26,7 +26,8 @@ import { AnalysisPlugin } from "./plugins/AnalysisPlugin";
 import { ToolbarPlugin } from "./plugins/ToolbarPlugin";
 import { replaceTextRange } from "./replace-range";
 import { RewritePopover, type RewriteTarget } from "./RewritePopover";
-import { offsetOf, type TextIndex } from "./text-index";
+import { clearHighlights, paintHighlights } from "./highlight-painter";
+import { offsetOf, type TextIndex, buildTextIndex } from "./text-index";
 import { editorTheme } from "./theme";
 
 export type EditorMode = "write" | "edit";
@@ -42,6 +43,10 @@ interface EditorProps {
   initialEditorState?: SerializedEditorState | null;
   onChange: (change: EditorChange) => void;
   onAnalysis: (result: AnalysisResult | null) => void;
+  readOnly?: boolean;
+  /** Paint stored highlights instead of running live analysis (results view). */
+  savedResult?: AnalysisResult | null;
+  placeholder?: string;
 }
 
 interface HoverState {
@@ -63,12 +68,21 @@ interface SelectionTrigger {
  * Caller chỉ cần biết chế độ hiện tại, nội dung ban đầu và hai callback — mọi
  * chuyện về Lexical, offset và tô màu nằm gọn bên trong.
  */
-export function Editor({ mode, initialEditorState, onChange, onAnalysis }: EditorProps) {
+export function Editor({
+  mode,
+  initialEditorState,
+  onChange,
+  onAnalysis,
+  readOnly = false,
+  savedResult = null,
+  placeholder,
+}: EditorProps) {
   return (
     <LexicalComposer
       initialConfig={{
         namespace: "writing-helper",
         theme: editorTheme,
+        editable: !readOnly,
         nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode],
         editorState: initialEditorState ? JSON.stringify(initialEditorState) : null,
         onError: (error) => {
@@ -76,7 +90,14 @@ export function Editor({ mode, initialEditorState, onChange, onAnalysis }: Edito
         },
       }}
     >
-      <EditorBody mode={mode} onChange={onChange} onAnalysis={onAnalysis} />
+      <EditorBody
+        mode={mode}
+        onChange={onChange}
+        onAnalysis={onAnalysis}
+        readOnly={readOnly}
+        savedResult={savedResult}
+        placeholder={placeholder}
+      />
     </LexicalComposer>
   );
 }
@@ -85,9 +106,19 @@ interface EditorBodyProps {
   mode: EditorMode;
   onChange: (change: EditorChange) => void;
   onAnalysis: (result: AnalysisResult | null) => void;
+  readOnly: boolean;
+  savedResult: AnalysisResult | null;
+  placeholder?: string;
 }
 
-function EditorBody({ mode, onChange, onAnalysis }: EditorBodyProps) {
+function EditorBody({
+  mode,
+  onChange,
+  onAnalysis,
+  readOnly,
+  savedResult,
+  placeholder,
+}: EditorBodyProps) {
   const [editor] = useLexicalComposerContext();
   const containerRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<{ index: TextIndex | null; highlights: Highlight[] }>({
@@ -152,7 +183,7 @@ function EditorBody({ mode, onChange, onAnalysis }: EditorBodyProps) {
   };
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (!aiEnabled) return;
+    if (readOnly || !aiEnabled) return;
     const { index, highlights } = stateRef.current;
     if (!index) return;
 
@@ -169,7 +200,7 @@ function EditorBody({ mode, onChange, onAnalysis }: EditorBodyProps) {
   };
 
   const handleMouseUp = () => {
-    if (!aiEnabled) return;
+    if (readOnly || !aiEnabled) return;
     const { index } = stateRef.current;
     const selection = window.getSelection();
 
@@ -248,7 +279,7 @@ function EditorBody({ mode, onChange, onAnalysis }: EditorBodyProps) {
             }
             placeholder={
               <p className="pointer-events-none absolute top-12 text-[1.15rem] text-ink-faint">
-                Write something worth editing.
+                {placeholder ?? "Write something worth editing."}
               </p>
             }
             ErrorBoundary={LexicalErrorBoundary}
@@ -257,7 +288,7 @@ function EditorBody({ mode, onChange, onAnalysis }: EditorBodyProps) {
 
         {hover && !popover && <HighlightTooltip hover={hover} />}
 
-        {selectionTrigger && !popover && (
+        {selectionTrigger && !popover && !readOnly && (
           <button
             type="button"
             onClick={(event) => {
@@ -271,14 +302,15 @@ function EditorBody({ mode, onChange, onAnalysis }: EditorBodyProps) {
           </button>
         )}
 
-        {popover && (
+        {popover && !readOnly && (
           <RewritePopover target={popover} onApply={handleApply} onClose={closePopover} />
         )}
       </div>
 
       <HistoryPlugin />
       <ListPlugin />
-      <AnalysisPlugin enabled={mode === "edit"} onResult={handleResult} />
+      <AnalysisPlugin enabled={mode === "edit" && !readOnly && !savedResult} onResult={handleResult} />
+      {savedResult && <SavedHighlightsPlugin result={savedResult} onReady={handleResult} />}
       <OnChangePlugin
         ignoreSelectionChange
         onChange={(editorState) => {
@@ -310,4 +342,38 @@ function HighlightTooltip({ hover }: { hover: HoverState }) {
       {advice && <p className="mt-1 text-sm leading-snug text-ink-soft">{advice}</p>}
     </div>
   );
+}
+
+function SavedHighlightsPlugin({
+  result,
+  onReady,
+}: {
+  result: AnalysisResult;
+  onReady: (result: AnalysisResult | null, index: TextIndex | null) => void;
+}) {
+  const [editor] = useLexicalComposerContext();
+  const onReadyRef = useRef(onReady);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  useEffect(() => {
+    const paint = () => {
+      const root = editor.getRootElement();
+      if (!root) return;
+      const index = buildTextIndex(root);
+      paintHighlights(index, result.highlights);
+      onReadyRef.current(result, index);
+    };
+
+    paint();
+    const unregister = editor.registerUpdateListener(paint);
+    return () => {
+      unregister();
+      clearHighlights();
+    };
+  }, [editor, result]);
+
+  return null;
 }
