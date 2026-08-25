@@ -7,15 +7,25 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
+import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
+import { useQuery } from "@tanstack/react-query";
 import type { AnalysisResult, Highlight } from "@writing-helper/analysis";
 import { $getRoot, type SerializedEditorState } from "lexical";
 import { useCallback, useRef, useState } from "react";
+import { getAiStatus } from "../api/ai";
+import {
+  buildRewriteRequest,
+  buildSelectionRewriteRequest,
+  type RewriteRequestSpan,
+} from "./build-rewrite-request";
 import { describeHighlight } from "./highlight-copy";
 import { findHighlightAtOffset, offsetAtPoint } from "./highlight-hit";
 import { AnalysisPlugin } from "./plugins/AnalysisPlugin";
 import { ToolbarPlugin } from "./plugins/ToolbarPlugin";
-import type { TextIndex } from "./text-index";
+import { replaceTextRange } from "./replace-range";
+import { RewritePopover, type RewriteTarget } from "./RewritePopover";
+import { offsetOf, type TextIndex } from "./text-index";
 import { editorTheme } from "./theme";
 
 export type EditorMode = "write" | "edit";
@@ -39,6 +49,13 @@ interface HoverState {
   y: number;
 }
 
+interface SelectionTrigger {
+  x: number;
+  y: number;
+  start: number;
+  end: number;
+}
+
 /**
  * Vùng soạn thảo: rich text, phân tích realtime, tô màu và tooltip.
  *
@@ -46,45 +63,6 @@ interface HoverState {
  * chuyện về Lexical, offset và tô màu nằm gọn bên trong.
  */
 export function Editor({ mode, initialEditorState, onChange, onAnalysis }: EditorProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef<{ index: TextIndex | null; highlights: Highlight[] }>({
-    index: null,
-    highlights: [],
-  });
-  const [hover, setHover] = useState<HoverState | null>(null);
-
-  const handleResult = useCallback(
-    (result: AnalysisResult | null, index: TextIndex | null) => {
-      stateRef.current = { index, highlights: result?.highlights ?? [] };
-      if (!result) setHover(null);
-      onAnalysis(result);
-    },
-    [onAnalysis],
-  );
-
-  const handlePointerMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    const { index, highlights } = stateRef.current;
-    if (!index || highlights.length === 0) {
-      if (hover) setHover(null);
-      return;
-    }
-
-    const offset = offsetAtPoint(index, event.clientX, event.clientY);
-    const found = offset === null ? null : findHighlightAtOffset(highlights, offset);
-
-    if (!found) {
-      if (hover) setHover(null);
-      return;
-    }
-
-    const bounds = containerRef.current?.getBoundingClientRect();
-    setHover({
-      highlight: found,
-      x: event.clientX - (bounds?.left ?? 0),
-      y: event.clientY - (bounds?.top ?? 0),
-    });
-  };
-
   return (
     <LexicalComposer
       initialConfig={{
@@ -97,6 +75,154 @@ export function Editor({ mode, initialEditorState, onChange, onAnalysis }: Edito
         },
       }}
     >
+      <EditorBody mode={mode} onChange={onChange} onAnalysis={onAnalysis} />
+    </LexicalComposer>
+  );
+}
+
+interface EditorBodyProps {
+  mode: EditorMode;
+  onChange: (change: EditorChange) => void;
+  onAnalysis: (result: AnalysisResult | null) => void;
+}
+
+function EditorBody({ mode, onChange, onAnalysis }: EditorBodyProps) {
+  const [editor] = useLexicalComposerContext();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const stateRef = useRef<{ index: TextIndex | null; highlights: Highlight[] }>({
+    index: null,
+    highlights: [],
+  });
+
+  const [hover, setHover] = useState<HoverState | null>(null);
+  const [selectionTrigger, setSelectionTrigger] = useState<SelectionTrigger | null>(null);
+  const [popover, setPopover] = useState<RewriteTarget | null>(null);
+
+  // Đọc một lần và cache toàn phiên: bật/tắt tính năng AI không đổi giữa chừng.
+  const aiStatus = useQuery({
+    queryKey: ["ai-status"],
+    queryFn: getAiStatus,
+    staleTime: Infinity,
+  });
+  const aiEnabled = aiStatus.data?.enabled ?? false;
+
+  const closeOverlays = useCallback(() => {
+    setHover(null);
+    setSelectionTrigger(null);
+    setPopover(null);
+  }, []);
+
+  const handleResult = useCallback(
+    (result: AnalysisResult | null, index: TextIndex | null) => {
+      stateRef.current = { index, highlights: result?.highlights ?? [] };
+      if (!result) closeOverlays();
+      onAnalysis(result);
+    },
+    [onAnalysis, closeOverlays],
+  );
+
+  const containerPoint = (clientX: number, clientY: number) => {
+    const bounds = containerRef.current?.getBoundingClientRect();
+    return { x: clientX - (bounds?.left ?? 0), y: clientY - (bounds?.top ?? 0) };
+  };
+
+  const handlePointerMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const { index, highlights } = stateRef.current;
+    if (!index || highlights.length === 0 || popover) {
+      if (hover) setHover(null);
+      return;
+    }
+
+    const offset = offsetAtPoint(index, event.clientX, event.clientY);
+    const found = offset === null ? null : findHighlightAtOffset(highlights, offset);
+
+    if (!found) {
+      if (hover) setHover(null);
+      return;
+    }
+
+    setHover({ highlight: found, ...containerPoint(event.clientX, event.clientY) });
+  };
+
+  const openPopover = (span: RewriteRequestSpan, point: { x: number; y: number }, highlight?: Highlight) => {
+    setHover(null);
+    setSelectionTrigger(null);
+    setPopover({ span, x: point.x, y: point.y, highlight });
+  };
+
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!aiEnabled) return;
+    const { index, highlights } = stateRef.current;
+    if (!index) return;
+
+    const offset = offsetAtPoint(index, event.clientX, event.clientY);
+    const found = offset === null ? null : findHighlightAtOffset(highlights, offset);
+
+    if (!found) {
+      if (popover) setPopover(null);
+      return;
+    }
+
+    const span = buildRewriteRequest(index.text, found);
+    if (span) openPopover(span, containerPoint(event.clientX, event.clientY), found);
+  };
+
+  const handleMouseUp = () => {
+    if (!aiEnabled) return;
+    const { index } = stateRef.current;
+    const selection = window.getSelection();
+
+    if (!index || !selection || selection.isCollapsed || selection.rangeCount === 0) {
+      setSelectionTrigger(null);
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!containerRef.current?.contains(range.commonAncestorContainer)) {
+      setSelectionTrigger(null);
+      return;
+    }
+
+    const start = offsetOf(index, range.startContainer, range.startOffset);
+    const end = offsetOf(index, range.endContainer, range.endOffset);
+    if (start === null || end === null || end <= start) {
+      setSelectionTrigger(null);
+      return;
+    }
+
+    const rect = range.getBoundingClientRect();
+    setSelectionTrigger({ ...containerPoint(rect.right, rect.bottom), start, end });
+  };
+
+  const handleFixSelection = () => {
+    if (!selectionTrigger) return;
+    const { index } = stateRef.current;
+    if (!index) return;
+
+    const span = buildSelectionRewriteRequest(index.text, selectionTrigger.start, selectionTrigger.end);
+    if (span) openPopover(span, { x: selectionTrigger.x, y: selectionTrigger.y });
+  };
+
+  /**
+   * Dùng chung cho Apply và Dismiss. Cả hai đều là click bên trong container,
+   * và nếu popover được mở từ "Fix selection" thì browser selection cũ vẫn
+   * còn active — không xoá thì onMouseUp của chính cú click này sẽ đọc lại
+   * đúng selection đó và hiện lại nút "Fix with AI" ngay chỗ vừa xử lý xong.
+   */
+  const closePopover = () => {
+    window.getSelection()?.removeAllRanges();
+    setSelectionTrigger(null);
+    setPopover(null);
+  };
+
+  const handleApply = (replacement: string) => {
+    const { index } = stateRef.current;
+    if (index && popover) replaceTextRange(editor, index, popover.span.start, popover.span.end, replacement);
+    closePopover();
+  };
+
+  return (
+    <>
       <div className="border-b border-rule bg-paper/80 px-6 py-2 backdrop-blur">
         <div className="mx-auto max-w-[46rem]">
           <ToolbarPlugin />
@@ -108,6 +234,8 @@ export function Editor({ mode, initialEditorState, onChange, onAnalysis }: Edito
         className="relative flex-1 overflow-y-auto"
         onMouseMove={handlePointerMove}
         onMouseLeave={() => setHover(null)}
+        onClick={handleClick}
+        onMouseUp={handleMouseUp}
       >
         <div className="mx-auto max-w-[46rem] px-6 py-12">
           <RichTextPlugin
@@ -126,7 +254,25 @@ export function Editor({ mode, initialEditorState, onChange, onAnalysis }: Edito
           />
         </div>
 
-        {hover && <HighlightTooltip hover={hover} />}
+        {hover && !popover && <HighlightTooltip hover={hover} />}
+
+        {selectionTrigger && !popover && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleFixSelection();
+            }}
+            className="absolute z-20 -translate-y-full bg-ink px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper hover:bg-vermilion"
+            style={{ left: selectionTrigger.x, top: selectionTrigger.y - 6 }}
+          >
+            Fix with AI
+          </button>
+        )}
+
+        {popover && (
+          <RewritePopover target={popover} onApply={handleApply} onClose={closePopover} />
+        )}
       </div>
 
       <HistoryPlugin />
@@ -141,7 +287,7 @@ export function Editor({ mode, initialEditorState, onChange, onAnalysis }: Edito
           });
         }}
       />
-    </LexicalComposer>
+    </>
   );
 }
 

@@ -83,7 +83,9 @@ Bộ từ điển complex words / participles biên soạn lại thành data fil
 
 ### Ràng buộc module (deep module discipline)
 
-- **Package chỉ export `analyze()` + các type của `AnalysisResult`.** `Rule` là **internal seam**: dùng cho unit test từng rule bên trong package, không export ra ngoài. Caller học đúng một hàm, nhận string, trả kết quả — không cần biết tokenizer, rules hay ARI.
+- **Package export `analyze()` và `locateSentence()`, cùng các type liên quan.** `Rule` và `splitSentences`/`splitWords` là **internal seam**: dùng cho unit test bên trong package, không export ra ngoài.
+  - `analyze(text)` — interface chính, dùng cho highlight và sidebar.
+  - `locateSentence(text, offset)` — thêm ở Milestone 5 cho tính năng AI rewrite: sửa một trạng từ hay cụm từ mà tách rời khỏi câu chứa nó thì vô nghĩa, nên caller cần biết ranh giới câu quanh một offset bất kỳ — kể cả câu chưa từng bị đánh dấu hard/very-hard. Đây không phải rò rỉ cơ chế `Rule` nội bộ, mà một khả năng hẹp có caller thật thứ hai ngoài `analyze()`.
 - **Pure function, không side effect, không dependency ngoài.** Test chạy qua đúng interface mà caller dùng.
 - **Highlight plugin (web) không biết rule nào sinh ra highlight** — chỉ đọc `type` để chọn màu. Thêm rule mới về sau là thêm data, không sửa plugin. Phần mapping Lexical nodes ↔ plain-text offsets nằm trong implementation của plugin, không rò rỉ ra component khác.
 
@@ -201,17 +203,17 @@ Email + password (bcrypt, 12 rounds). JWT access token 15 phút + refresh token 
 
 ### UX
 
-- Click vào highlight → popover: mô tả vấn đề + nút **"Fix with AI"**.
-- Bấm → loading → 1–2 phương án viết lại kèm diff được tô → **Apply** (thay vào editor, undo bằng Ctrl+Z) hoặc **Dismiss**.
-- Chọn nhiều câu → "Fix selection" gửi cả đoạn.
+- Click vào highlight → popover: mô tả vấn đề + nút **"Fix with AI"**. Luôn gửi nguyên câu chứa highlight (qua `locateSentence()`), không phải chỉ đúng đoạn bị đánh dấu — sửa một mình từ "quickly" tách rời khỏi câu là vô nghĩa.
+- Bấm → loading → 1–2 phương án viết lại kèm **diff theo từ** (LCS, chỉ tô phần AI thật sự đổi) → **Apply** (thay vào editor qua Lexical selection API — không sửa DOM tay để khỏi lệch EditorState — undo được bằng Ctrl+Z) hoặc **Dismiss**.
+- Bôi đen văn bản → nút nổi **"Fix selection"** ở cuối vùng chọn, dùng issueType riêng `"selection"` (nằm ngoài `HighlightType` của package analysis — AI rewrite được phép có vốn từ rộng hơn rule engine một chút).
 
 ### Backend
 
-- `POST /ai/rewrite` — body `{ text, issueType, context }` (context = 1 câu trước/sau). Yêu cầu đăng nhập.
+- `POST /ai/rewrite` — body `{ text, issueType, context }` (context = 1 câu trước/sau, gộp lại thành một chuỗi). Yêu cầu đăng nhập. `issueType` là `RewriteIssueType = HighlightType | "selection"` — rộng hơn taxonomy của rule engine.
 - `OPENROUTER_API_KEY` trong `.env` của api, không bao giờ ra client.
 - Model qua env `AI_MODEL` (mặc định `anthropic/claude-haiku-4.5`), đổi không cần sửa code.
-- Prompt theo `issueType`: passive → active voice; very-hard → split/simplify; complex → simpler words. Ràng buộc: giữ nghĩa, giữ tone, chỉ trả text kết quả.
-- Rate limit: 20 req/phút/user. Timeout 15s. Lỗi OpenRouter (hết credit, timeout) → message rõ ràng cho client, không crash.
+- Prompt theo `issueType`, mỗi loại một chỉ dẫn cụ thể (`prompts.ts`); `selection` dùng chỉ dẫn chung "clearer and more concise". Yêu cầu mô hình trả đúng 2 phương án, mỗi dòng một câu, không đánh số/ngoặc kép — có làm sạch lại phía server phòng khi mô hình không theo đúng.
+- Rate limit: 20 req/phút/**user** (không phải theo IP — `UserThrottlerGuard` riêng, vì route đã yêu cầu đăng nhập và giới hạn theo IP sẽ gộp nhầm nhiều user sau cùng NAT/proxy). Timeout 15s (`AbortController`). Lỗi OpenRouter (hết credit, timeout, nội dung rỗng) → message rõ ràng cho client, không crash.
 - Không set `OPENROUTER_API_KEY` → `/ai/status` trả tắt → client ẩn nút Fix with AI.
 
 ### Ràng buộc module

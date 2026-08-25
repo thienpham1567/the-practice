@@ -56,6 +56,19 @@ export interface IssueGoals {
   passives: number;
 }
 
+/** Câu, cắt gọn còn đúng những gì caller ngoài package cần: vị trí và nội dung. */
+export interface SentenceSpan {
+  text: string;
+  start: number;
+  end: number;
+}
+
+export interface SentenceContext {
+  sentence: SentenceSpan;
+  previous: SentenceSpan | null;
+  next: SentenceSpan | null;
+}
+
 export interface AnalysisResult {
   highlights: Highlight[];
   counts: IssueCounts;

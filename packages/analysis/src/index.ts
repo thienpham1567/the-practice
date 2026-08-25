@@ -6,11 +6,15 @@
  * unit test bên trong package, không rò rỉ ra caller.
  */
 export { analyze } from "./analyze.js";
+export { locateSentence } from "./sentence-lookup.js";
 export type {
   AnalysisResult,
   GradeLabel,
   Highlight,
   HighlightType,
   IssueCounts,
+  IssueGoals,
+  SentenceContext,
+  SentenceSpan,
   TextStats,
 } from "./types.js";

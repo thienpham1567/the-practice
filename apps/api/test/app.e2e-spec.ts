@@ -252,6 +252,74 @@ describe("API (e2e)", () => {
     });
   });
 
+  describe("ai", () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    function mockOpenRouter(content: string) {
+      return jest.spyOn(global, "fetch").mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ choices: [{ message: { content } }] }),
+      } as Response);
+    }
+
+    it("báo bật khi có OPENROUTER_API_KEY, không cần đăng nhập", async () => {
+      await server().get("/ai/status").expect(200, { enabled: true });
+    });
+
+    it("chặn rewrite khi chưa đăng nhập", async () => {
+      await server()
+        .post("/ai/rewrite")
+        .send({ text: "It was done.", issueType: "passive" })
+        .expect(401);
+    });
+
+    it("từ chối issueType không hợp lệ", async () => {
+      const { accessToken } = await registerUser("ai-validate@example.com");
+
+      await server()
+        .post("/ai/rewrite")
+        .set({ Authorization: `Bearer ${accessToken}` })
+        .send({ text: "It was done.", issueType: "not-a-real-type" })
+        .expect(400);
+    });
+
+    it("trả về gợi ý đã phân tích từ OpenRouter", async () => {
+      mockOpenRouter("They finished the report.\nThe team finished it.");
+      const { accessToken } = await registerUser("ai-rewrite@example.com");
+
+      const response = await server()
+        .post("/ai/rewrite")
+        .set({ Authorization: `Bearer ${accessToken}` })
+        .send({ text: "The report was finished by them.", issueType: "passive" })
+        .expect(201);
+
+      expect(response.body.suggestions).toEqual([
+        "They finished the report.",
+        "The team finished it.",
+      ]);
+    });
+
+    it("trả lỗi rõ ràng khi OpenRouter báo lỗi", async () => {
+      jest.spyOn(global, "fetch").mockResolvedValue({
+        ok: false,
+        status: 402,
+        json: () => Promise.resolve({ error: { message: "insufficient credits" } }),
+      } as Response);
+      const { accessToken } = await registerUser("ai-failure@example.com");
+
+      const response = await server()
+        .post("/ai/rewrite")
+        .set({ Authorization: `Bearer ${accessToken}` })
+        .send({ text: "It was done.", issueType: "passive" })
+        .expect(503);
+
+      expect(response.body.message).toContain("insufficient credits");
+    });
+  });
+
   describe("health", () => {
     it("trả về ok", async () => {
       await server().get("/health").expect(200, { status: "ok" });
