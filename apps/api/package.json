@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter @writing-helper/practice build && nest start --watch",
-    "build": "pnpm --filter @writing-helper/practice build && nest build",
+    "build": "pnpm --filter @writing-helper/practice build && prisma generate && nest build",
     "start": "node dist/main.js",
     "test": "jest --passWithNoTests && jest --config ./test/jest-e2e.json --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",

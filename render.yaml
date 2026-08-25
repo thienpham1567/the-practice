@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: writing-helper-api
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: .
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @writing-helper/api build
+    startCommand: pnpm --filter @writing-helper/api exec prisma migrate deploy && node apps/api/dist/main.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: anthropic/claude-haiku-4.5
+      - key: WEB_ORIGIN
+        value: https://writing-helper-web.onrender.com
+
+  - type: web
+    name: writing-helper-web
+    runtime: static
+    plan: free
+    rootDir: .
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @writing-helper/web build
+    staticPublishPath: apps/web/dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://writing-helper-api.onrender.com/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
