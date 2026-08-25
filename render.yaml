@@ -5,7 +5,7 @@ services:
     plan: free
     region: singapore
     rootDir: .
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @writing-helper/api build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @writing-helper/api build
     startCommand: pnpm --filter @writing-helper/api exec prisma migrate deploy && node apps/api/dist/main.js
     healthCheckPath: /health
     envVars:
@@ -26,7 +26,7 @@ services:
     name: writing-helper-web
     runtime: static
     rootDir: .
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @writing-helper/web build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @writing-helper/web build
     staticPublishPath: apps/web/dist
     routes:
       - type: rewrite
