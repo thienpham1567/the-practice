@@ -57,8 +57,13 @@ export class AuthService {
     return { user: { id: user.id, email: user.email }, ...(await this.issueTokens(user.id)) };
   }
 
-  /** Đổi refresh token lấy cặp mới; token cũ bị thu hồi ngay (rotation). */
-  async refresh(rawToken: string | undefined): Promise<AuthTokens> {
+  /**
+   * Đổi refresh token lấy cặp mới; token cũ bị thu hồi ngay (rotation).
+   *
+   * Trả về cả `user` vì đây cũng là lúc web khôi phục phiên sau khi tải lại
+   * trang: chỉ có token thì app biết mình đã đăng nhập mà không biết là ai.
+   */
+  async refresh(rawToken: string | undefined): Promise<AuthResult> {
     const stored = await this.findValidRefreshToken(rawToken);
 
     await this.prisma.refreshToken.update({
@@ -66,7 +71,10 @@ export class AuthService {
       data: { revokedAt: new Date() },
     });
 
-    return this.issueTokens(stored.userId);
+    const user = await this.prisma.user.findUnique({ where: { id: stored.userId } });
+    if (!user) throw new UnauthorizedException("Invalid refresh token");
+
+    return { user: { id: user.id, email: user.email }, ...(await this.issueTokens(user.id)) };
   }
 
   async logout(rawToken: string | undefined): Promise<void> {

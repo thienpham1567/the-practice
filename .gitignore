@@ -5,6 +5,12 @@ coverage/
 .turbo/
 *.tsbuildinfo
 
+# Sản phẩm biên dịch lọt ra ngoài dist/ khi tsconfig bị cấu hình sai
+apps/api/test/*.js
+apps/api/test/*.d.ts
+apps/api/test/*.js.map
+apps/api/prisma.config.js
+
 .env
 .env.local
 .env.*.local

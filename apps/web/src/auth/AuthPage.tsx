@@ -1,0 +1,147 @@
+import { useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { apiJson, ApiError } from "../api/client";
+import { useAuthStore, type SessionUser } from "../api/auth-store";
+import { hasStashedDraft } from "../pages/draft-stash";
+
+interface AuthPageProps {
+  mode: "login" | "register";
+}
+
+const COPY = {
+  login: {
+    heading: "Welcome back",
+    lede: "Pick up the draft where you left it.",
+    action: "Sign in",
+    path: "/auth/login",
+    switchText: "No account yet?",
+    switchLabel: "Create one",
+    switchTo: "/register",
+  },
+  register: {
+    heading: "Start a draft",
+    lede: "An account keeps your work across devices.",
+    action: "Create account",
+    path: "/auth/register",
+    switchText: "Already have an account?",
+    switchLabel: "Sign in",
+    switchTo: "/login",
+  },
+} as const;
+
+export function AuthPage({ mode }: AuthPageProps) {
+  const copy = COPY[mode];
+  const navigate = useNavigate();
+  const setSession = useAuthStore((state) => state.setSession);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+
+    try {
+      const result = await apiJson<{ accessToken: string; user: SessionUser }>(
+        copy.path,
+        "POST",
+        { email, password },
+      );
+
+      setSession(result.accessToken, result.user);
+      // Nếu người dùng bị đưa tới đây giữa chừng lúc đang viết, trả họ về đúng
+      // bản nháp đó thay vì danh sách.
+      void navigate(hasStashedDraft() ? "/" : "/docs");
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "Something went wrong");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
+      <h1 className="font-display text-4xl font-semibold">{copy.heading}</h1>
+      <p className="mt-2 text-ink-soft">{copy.lede}</p>
+
+      <form onSubmit={(event) => void submit(event)} className="mt-8 space-y-4">
+        <Field
+          label="Email"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          autoComplete="email"
+        />
+        <Field
+          label="Password"
+          type="password"
+          value={password}
+          onChange={setPassword}
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
+          hint={mode === "register" ? "At least 8 characters." : undefined}
+        />
+
+        {error && (
+          <p role="alert" className="text-sm text-vermilion">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={pending}
+          className="w-full bg-ink px-4 py-2.5 font-mono text-sm uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-50"
+        >
+          {pending ? "Working…" : copy.action}
+        </button>
+      </form>
+
+      <p className="mt-6 text-sm text-ink-soft">
+        {copy.switchText}{" "}
+        <Link to={copy.switchTo} className="text-vermilion underline underline-offset-2">
+          {copy.switchLabel}
+        </Link>
+      </p>
+
+      <Link to="/" className="mt-10 text-sm text-ink-faint underline underline-offset-2">
+        Back to the editor
+      </Link>
+    </main>
+  );
+}
+
+function Field({
+  label,
+  type,
+  value,
+  onChange,
+  autoComplete,
+  hint,
+}: {
+  label: string;
+  type: string;
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: string;
+  hint?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+        {label}
+      </span>
+      <input
+        type={type}
+        value={value}
+        required
+        autoComplete={autoComplete}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full border border-rule bg-paper px-3 py-2 outline-none focus:border-vermilion"
+      />
+      {hint && <span className="mt-1 block text-xs text-ink-faint">{hint}</span>}
+    </label>
+  );
+}

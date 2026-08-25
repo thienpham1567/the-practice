@@ -1,17 +1,77 @@
 @import "tailwindcss";
 
 /*
- * Design tokens — hướng Editorial / Literary.
- * Bảng đầy đủ (palette giấy ngà, 5 màu highlight, thang typography) được xây
- * ở milestone 4.1; đây là bộ tối thiểu để scaffold có đúng tông ngay từ đầu.
+ * Hướng thẩm mỹ: Editorial / Literary — "bàn viết của nhà văn".
+ * Giấy ngà, mực than, một điểm đỏ son của bút biên tập viên.
  */
 @theme {
+  /* Giấy và mực */
   --color-paper: #faf6ef;
-  --color-ink: #1c1a17;
-  --color-vermilion: #c8442a;
+  --color-paper-deep: #f3ece0;
+  --color-paper-edge: #ece2d2;
+  --color-ink: #1f1c18;
+  --color-ink-soft: #6b6255;
+  --color-ink-faint: #9c9284;
+  --color-rule: #e2d8c7;
+  --color-vermilion: #c14324;
+  --color-vermilion-soft: #e8d3cb;
+
+  /*
+   * Năm màu highlight, chỉnh theo nền giấy ấm thay vì màu web mặc định.
+   * Đủ đậm để phân biệt, đủ nhạt để đọc chữ đen bên trên không mỏi mắt.
+   */
+  --color-mark-very-hard: #f4bfae;
+  --color-mark-hard: #f7e3a4;
+  --color-mark-passive: #c3dcb6;
+  --color-mark-adverb: #b9d0e2;
+  --color-mark-qualifier: #dcc9e6;
+  --color-mark-complex: #dcc9e6;
+
+  /* Chữ */
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-body: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  color-scheme: light;
 }
 
 body {
   background-color: var(--color-paper);
   color: var(--color-ink);
+  font-family: var(--font-body);
+  /* Vân giấy: hai lớp gradient rất nhạt, đủ để mặt phẳng bớt chết. */
+  background-image:
+    radial-gradient(circle at 15% 12%, rgba(193, 67, 36, 0.035), transparent 42%),
+    radial-gradient(circle at 85% 8%, rgba(107, 98, 85, 0.05), transparent 38%);
+  background-attachment: fixed;
+}
+
+/*
+ * Highlight vẽ bằng CSS Custom Highlight API — không chèn thẻ vào DOM của
+ * editor, nên không đụng vào undo history hay editor state.
+ * Câu (hard/very-hard) có priority thấp hơn để highlight từ nằm đè lên trên.
+ */
+::highlight(wh-very-hard-sentence) {
+  background-color: var(--color-mark-very-hard);
+}
+::highlight(wh-hard-sentence) {
+  background-color: var(--color-mark-hard);
+}
+::highlight(wh-passive) {
+  background-color: var(--color-mark-passive);
+}
+::highlight(wh-adverb) {
+  background-color: var(--color-mark-adverb);
+}
+::highlight(wh-qualifier) {
+  background-color: var(--color-mark-qualifier);
+}
+::highlight(wh-complex-phrase) {
+  background-color: var(--color-mark-complex);
+}
+
+::selection {
+  background-color: var(--color-vermilion-soft);
 }

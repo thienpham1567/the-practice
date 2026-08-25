@@ -7,10 +7,12 @@
     "emitDecoratorMetadata": true,
     "target": "ES2023",
     "lib": ["ES2023"],
-    "rootDir": "./src",
     "outDir": "./dist",
     "noEmit": false,
     "baseUrl": "./"
   },
-  "include": ["src/**/*", "test/**/*"]
+  // Bao cả test để editor và `pnpm typecheck` thấy chúng. Bản build thật dùng
+  // tsconfig.build.json (nest CLI tự đọc) và loại test ra, nên rootDir chỉ được
+  // đặt ở đó — đặt ở đây sẽ làm `nest start --watch` gãy vì test nằm ngoài src.
+  "include": ["src/**/*", "test/**/*", "prisma.config.ts"]
 }

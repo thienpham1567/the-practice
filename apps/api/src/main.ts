@@ -25,7 +25,10 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
-  await app.listen(Number(process.env.PORT ?? 3000));
+  // Cố tình không dùng tên `PORT`: tiến trình cha (vd dev server của web) hay
+  // đặt sẵn biến đó, mà dotenv không ghi đè biến môi trường đã tồn tại — API sẽ
+  // im lặng chiếm nhầm cổng của web.
+  await app.listen(Number(process.env.API_PORT ?? 3000));
 }
 
 void bootstrap();

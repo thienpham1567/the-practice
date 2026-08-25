@@ -112,6 +112,8 @@ describe("API (e2e)", () => {
 
       const first = await server().post("/auth/refresh").set("Cookie", cookies).expect(200);
       expect(first.body.accessToken).toEqual(expect.any(String));
+      // Web dựa vào đây để biết ai đang đăng nhập sau khi tải lại trang.
+      expect(first.body.user).toMatchObject({ email: "rotate@example.com" });
 
       // Cookie cũ đã bị xoay vòng nên không dùng lại được.
       await server().post("/auth/refresh").set("Cookie", cookies).expect(401);

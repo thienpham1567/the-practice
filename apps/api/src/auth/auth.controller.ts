@@ -2,10 +2,19 @@ import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/
 import { ConfigService } from "@nestjs/config";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
-import { AuthService, REFRESH_TOKEN_TTL_MS, type AuthTokens } from "./auth.service";
+import { AuthService, REFRESH_TOKEN_TTL_MS } from "./auth.service";
 import { LoginDto, RegisterDto } from "./dto/credentials.dto";
 
 const REFRESH_COOKIE = "refresh_token";
+
+/**
+ * Phạm vi hẹp hơn (ví dụ "/auth") nghe có vẻ chặt hơn, nhưng nó giả định API
+ * nằm ngay gốc domain. Ở dev, web gọi qua proxy tại "/api/auth/..." nên đường
+ * dẫn không khớp và trình duyệt lặng lẽ không gửi cookie — phiên đăng nhập mất
+ * sau mỗi lần tải lại trang. Sau reverse proxy ở production cũng vậy.
+ * httpOnly + sameSite mới là thứ thật sự bảo vệ cookie này.
+ */
+const COOKIE_PATH = "/";
 
 /** 10 request mỗi phút cho mọi route auth. */
 @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -42,17 +51,17 @@ export class AuthController {
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ accessToken: string }> {
-    const tokens: AuthTokens = await this.auth.refresh(readRefreshCookie(req));
-    this.setRefreshCookie(res, tokens.refreshToken);
-    return { accessToken: tokens.accessToken };
+  ): Promise<{ accessToken: string; user: { id: string; email: string } }> {
+    const { refreshToken, ...rest } = await this.auth.refresh(readRefreshCookie(req));
+    this.setRefreshCookie(res, refreshToken);
+    return rest;
   }
 
   @Post("logout")
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.auth.logout(readRefreshCookie(req));
-    res.clearCookie(REFRESH_COOKIE, { path: "/auth" });
+    res.clearCookie(REFRESH_COOKIE, { path: COOKIE_PATH });
   }
 
   private setRefreshCookie(res: Response, token: string): void {
@@ -60,8 +69,7 @@ export class AuthController {
       httpOnly: true,
       sameSite: "lax",
       secure: this.config.get<string>("NODE_ENV") === "production",
-      // Cookie chỉ được gửi tới các route auth, không kèm theo mọi request khác.
-      path: "/auth",
+      path: COOKIE_PATH,
       maxAge: REFRESH_TOKEN_TTL_MS,
     });
   }
