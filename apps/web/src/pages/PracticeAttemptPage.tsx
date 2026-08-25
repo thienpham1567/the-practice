@@ -190,7 +190,7 @@ function PromptPane({
   onOpenHints: () => void;
 }) {
   return (
-    <aside className="w-80 shrink-0 overflow-y-auto border-r border-rule bg-paper-deep px-6 py-8">
+    <aside className="prompt-scroll w-96 shrink-0 overflow-y-auto border-r border-rule bg-paper-deep px-6 py-8">
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">{spec.label}</p>
       <p className="mt-3 text-sm leading-relaxed">{attempt.prompt}</p>
       <p className="mt-4 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">

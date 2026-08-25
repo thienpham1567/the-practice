@@ -129,6 +129,27 @@ body::before {
   background-color: var(--color-ink-faint);
 }
 
+/* Panel bên trái (prompt/hints): thanh cuộn chỉ hiện khi hover hoặc focus vào, tránh ồn nền lúc không dùng đến. */
+.prompt-scroll {
+  scrollbar-color: transparent transparent;
+}
+.prompt-scroll:hover,
+.prompt-scroll:focus-within {
+  scrollbar-color: var(--color-rule) transparent;
+}
+.prompt-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-color: transparent;
+}
+.prompt-scroll:hover::-webkit-scrollbar-thumb,
+.prompt-scroll:focus-within::-webkit-scrollbar-thumb {
+  background-color: var(--color-rule);
+  border-color: var(--color-paper);
+}
+.prompt-scroll:hover::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ink-faint);
+}
+
 /*
  * Không đặt outline focus chung kiểu box cho toàn trang: input đã có gạch chân
  * riêng, editor (contentEditable) không cần viền vì đang gõ đã là tín hiệu rõ
