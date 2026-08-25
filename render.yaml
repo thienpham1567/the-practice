@@ -25,7 +25,6 @@ services:
   - type: web
     name: writing-helper-web
     runtime: static
-    plan: free
     rootDir: .
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @writing-helper/web build
     staticPublishPath: apps/web/dist
