@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ApiError } from "../api/client";
 import { requestRewrite } from "../api/ai";
+import { shouldFlipBelow } from "./anchor-position";
 import type { RewriteRequestSpan } from "./build-rewrite-request";
 import { describeHighlight } from "./highlight-copy";
 import { diffWords } from "./word-diff";
@@ -26,13 +27,10 @@ interface RewritePopoverProps {
   onClose: () => void;
 }
 
-/** Dưới ngưỡng này thì không đủ chỗ phía trên điểm neo — lật popover xuống dưới. */
-const FLIP_THRESHOLD_PX = 160;
-
 export function RewritePopover({ target, onApply, onClose }: RewritePopoverProps) {
   const [stage, setStage] = useState<Stage>({ name: "idle" });
   const copy = target.highlight ? describeHighlight(target.highlight) : null;
-  const flipBelow = target.y < FLIP_THRESHOLD_PX;
+  const flipBelow = shouldFlipBelow(target.y);
 
   const runFix = async () => {
     setStage({ name: "loading" });

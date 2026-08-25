@@ -14,6 +14,7 @@ import type { AnalysisResult, Highlight } from "@writing-helper/analysis";
 import { $getRoot, type SerializedEditorState } from "lexical";
 import { useCallback, useRef, useState } from "react";
 import { getAiStatus } from "../api/ai";
+import { shouldFlipBelow } from "./anchor-position";
 import {
   buildRewriteRequest,
   buildSelectionRewriteRequest,
@@ -293,12 +294,17 @@ function EditorBody({ mode, onChange, onAnalysis }: EditorBodyProps) {
 
 function HighlightTooltip({ hover }: { hover: HoverState }) {
   const { label, advice } = describeHighlight(hover.highlight);
+  // Highlight nằm sát đỉnh khung (ngay dưới toolbar) thì bung lên trên sẽ bị
+  // toolbar che mất — lật xuống dưới điểm hover thay vào đó.
+  const flipBelow = shouldFlipBelow(hover.y);
 
   return (
     <div
       role="tooltip"
-      className="pointer-events-none absolute z-20 max-w-64 -translate-x-1/2 -translate-y-full rounded-sm border border-rule bg-paper px-3 py-2 shadow-[0_6px_20px_-8px_rgba(31,28,24,0.4)]"
-      style={{ left: hover.x, top: hover.y - 10 }}
+      className={`pointer-events-none absolute z-20 max-w-64 -translate-x-1/2 rounded-sm border border-rule bg-paper px-3 py-2 shadow-[0_6px_20px_-8px_rgba(31,28,24,0.4)] ${
+        flipBelow ? "" : "-translate-y-full"
+      }`}
+      style={{ left: hover.x, top: hover.y + (flipBelow ? 14 : -10) }}
     >
       <p className="font-mono text-[0.7rem] uppercase tracking-wider text-vermilion">{label}</p>
       {advice && <p className="mt-1 text-sm leading-snug text-ink-soft">{advice}</p>}
