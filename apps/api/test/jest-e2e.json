@@ -7,7 +7,7 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
-    "^@writing-helper/practice$": "<rootDir>/../packages/practice/src/index.ts",
+    "^@writing-helper/practice$": "<rootDir>/../../packages/practice/src/index.ts",
     "^(\\.{1,2}/.*)\\.js$": "$1"
   },
   "globalSetup": "<rootDir>/test/global-setup.ts",
