@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: writing-helper-api
+    name: the-practice-api
     runtime: node
     plan: free
     region: singapore
@@ -20,10 +20,10 @@ services:
       - key: AI_MODEL
         value: anthropic/claude-haiku-4.5
       - key: WEB_ORIGIN
-        value: https://writing-helper-web.onrender.com
+        value: https://the-practice.onrender.com
 
   - type: web
-    name: writing-helper-web
+    name: the-practice
     runtime: static
     rootDir: .
     buildCommand: pnpm install --frozen-lockfile && pnpm --filter @writing-helper/web build
@@ -31,7 +31,7 @@ services:
     routes:
       - type: rewrite
         source: /api/*
-        destination: https://writing-helper-api.onrender.com/*
+        destination: https://the-practice-api.onrender.com/*
       - type: rewrite
         source: /*
         destination: /index.html
