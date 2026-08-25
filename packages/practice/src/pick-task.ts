@@ -1,5 +1,5 @@
-import { tasksForLevel } from "./task-catalog.js";
-import type { Level, TaskSpec, TaskType } from "./types.js";
+import { tasksForLevel } from "./task-catalog";
+import type { Level, TaskSpec, TaskType } from "./types";
 
 /**
  * Rotate through the types available at this level, skipping ones the writer

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bandToCefr } from "./band-to-cefr.js";
+import { bandToCefr } from "./band-to-cefr";
 
 describe("bandToCefr", () => {
   it("maps band boundaries onto CEFR levels", () => {

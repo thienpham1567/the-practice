@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { overallBand } from "./overall-band.js";
-import type { CriterionScores } from "./types.js";
+import { overallBand } from "./overall-band";
+import type { CriterionScores } from "./types";
 
 function scores(
   taskResponse: number,

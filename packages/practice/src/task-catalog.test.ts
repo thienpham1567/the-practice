@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { TASK_CATALOG, tasksForLevel } from "./task-catalog.js";
-import type { Level } from "./types.js";
+import { TASK_CATALOG, tasksForLevel } from "./task-catalog";
+import type { Level } from "./types";
 
 const LEVELS: Level[] = ["A2", "B1", "B2", "C1"];
 

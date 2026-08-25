@@ -1,4 +1,4 @@
-import type { CriterionScores } from "./types.js";
+import type { CriterionScores } from "./types";
 
 const CRITERIA: (keyof CriterionScores)[] = [
   "taskResponse",

@@ -5,10 +5,10 @@ export type {
   TaskSpec,
   TaskType,
   VocabularyItem,
-} from "./types.js";
+} from "./types";
 
-export { TASK_CATALOG, tasksForLevel } from "./task-catalog.js";
-export { pickTask } from "./pick-task.js";
-export { overallBand } from "./overall-band.js";
-export { bandToCefr } from "./band-to-cefr.js";
-export { computeStreak, type Streak } from "./compute-streak.js";
+export { TASK_CATALOG, tasksForLevel } from "./task-catalog";
+export { pickTask } from "./pick-task";
+export { overallBand } from "./overall-band";
+export { bandToCefr } from "./band-to-cefr";
+export { computeStreak, type Streak } from "./compute-streak";

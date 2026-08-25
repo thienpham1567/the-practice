@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { pickTask } from "./pick-task.js";
-import { tasksForLevel } from "./task-catalog.js";
+import { pickTask } from "./pick-task";
+import { tasksForLevel } from "./task-catalog";
 
 describe("pickTask", () => {
   it("does not return a recently used type when another type is available", () => {

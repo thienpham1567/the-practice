@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
-    "build": "nest build",
+    "dev": "pnpm --filter @writing-helper/practice build && nest start --watch",
+    "build": "pnpm --filter @writing-helper/practice build && nest build",
     "start": "node dist/main.js",
     "test": "jest --passWithNoTests && jest --config ./test/jest-e2e.json --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
@@ -62,6 +62,7 @@
     },
     "testEnvironment": "node",
     "moduleNameMapper": {
+      "^@writing-helper/practice$": "<rootDir>/../../../packages/practice/src/index.ts",
       "^(\\.{1,2}/.*)\\.js$": "$1"
     }
   }

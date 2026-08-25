@@ -1,4 +1,4 @@
-import type { Level } from "./types.js";
+import type { Level } from "./types";
 
 export function bandToCefr(band: number): Level {
   if (band < 4) return "A2";

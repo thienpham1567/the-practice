@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeStreak } from "./compute-streak.js";
+import { computeStreak } from "./compute-streak";
 
 function daysAgo(n: number, now: Date): Date {
   const date = new Date(now);

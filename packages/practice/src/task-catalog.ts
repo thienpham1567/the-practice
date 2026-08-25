@@ -1,4 +1,4 @@
-import type { Level, TaskSpec } from "./types.js";
+import type { Level, TaskSpec } from "./types";
 
 export const TASK_CATALOG: TaskSpec[] = [
   {
