@@ -1,5 +1,6 @@
 import type { AnalysisResult, HighlightType } from "@writing-helper/analysis";
 import { useState } from "react";
+import { GradeStamp } from "./GradeStamp";
 import { formatReadingTime, issueRows } from "./issue-rows";
 
 /** Chấm màu của mỗi dòng khớp đúng màu highlight trong văn bản. */
@@ -12,12 +13,6 @@ const SWATCH: Record<HighlightType, string> = {
   "complex-phrase": "bg-mark-complex",
 };
 
-const GRADE_TONE = {
-  Good: "text-ink",
-  OK: "text-ink",
-  Poor: "text-vermilion",
-} as const;
-
 interface SidebarProps {
   result: AnalysisResult | null;
 }
@@ -26,7 +21,7 @@ export function Sidebar({ result }: SidebarProps) {
   if (!result) {
     return (
       <aside className="w-80 shrink-0 border-l border-rule bg-paper-deep px-6 py-10">
-        <p className="text-sm italic text-ink-faint">
+        <p className="animate-fade-up text-sm italic text-ink-faint">
           Write mode hides the marks so you can get the words down. Switch to Edit when you are
           ready to cut.
         </p>
@@ -45,21 +40,13 @@ export function Sidebar({ result }: SidebarProps) {
 
 function ReadabilityCard({ result }: { result: AnalysisResult }) {
   return (
-    <section>
+    <section className="animate-fade-up" style={{ animationDelay: "0ms" }}>
       <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
         Readability
       </h2>
 
-      {/* Con dấu của biên tập viên: khung đôi, chữ display, đóng hơi nghiêng. */}
-      <div className="mt-3 inline-flex -rotate-1 flex-col items-center border-2 border-double border-vermilion px-5 py-3">
-        <span className="font-display text-3xl font-semibold leading-none">
-          Grade {result.grade}
-        </span>
-        <span
-          className={`mt-1 font-mono text-[0.7rem] uppercase tracking-[0.2em] ${GRADE_TONE[result.gradeLabel]}`}
-        >
-          {result.gradeLabel}
-        </span>
+      <div className="mt-3">
+        <GradeStamp grade={result.grade} label={result.gradeLabel} />
       </div>
     </section>
   );
@@ -67,10 +54,16 @@ function ReadabilityCard({ result }: { result: AnalysisResult }) {
 
 function IssueList({ result }: { result: AnalysisResult }) {
   return (
-    <section className="mt-9 border-t border-rule pt-6">
-      <ul className="space-y-3">
+    <section
+      className="animate-fade-up mt-9 border-t border-rule pt-6"
+      style={{ animationDelay: "60ms" }}
+    >
+      <ul className="space-y-1">
         {issueRows(result).map((row) => (
-          <li key={row.type} className="flex gap-3">
+          <li
+            key={row.type}
+            className="-mx-2 flex gap-3 rounded-sm px-2 py-1.5 transition-colors hover:bg-paper-edge/70"
+          >
             <span
               aria-hidden="true"
               className={`mt-1.5 h-3 w-3 shrink-0 rounded-[2px] ${SWATCH[row.type]} ${
@@ -99,20 +92,38 @@ function CountsPanel({ result }: { result: AnalysisResult }) {
   const view = COUNT_VIEWS[viewIndex]!;
 
   return (
-    <section className="mt-9 border-t border-rule pt-6">
+    <section
+      className="animate-fade-up mt-9 border-t border-rule pt-6"
+      style={{ animationDelay: "120ms" }}
+    >
       <button
         type="button"
         onClick={() => setViewIndex((current) => (current + 1) % COUNT_VIEWS.length)}
         className="group text-left"
         title="Click to cycle counts"
       >
-        <span className="font-mono text-2xl">{result.stats[view].toLocaleString()}</span>
+        <span className="font-mono text-2xl tabular-nums">
+          {result.stats[view].toLocaleString()}
+        </span>
         <span className="ml-2 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint group-hover:text-vermilion">
           {view}
         </span>
+
+        {/* Chấm chỉ vị trí, như số trang ở chân sách — báo còn mấy chỉ số nữa để xem. */}
+        <span className="mt-1.5 flex gap-1">
+          {COUNT_VIEWS.map((candidate, index) => (
+            <span
+              key={candidate}
+              aria-hidden="true"
+              className={`h-1 w-1 rounded-full transition-colors ${
+                index === viewIndex ? "bg-vermilion" : "bg-rule group-hover:bg-ink-faint"
+              }`}
+            />
+          ))}
+        </span>
       </button>
 
-      <p className="mt-2 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+      <p className="mt-3 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
         {formatReadingTime(result.stats.readingTimeSeconds)} to read
       </p>
     </section>

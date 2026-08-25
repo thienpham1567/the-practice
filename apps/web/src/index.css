@@ -31,6 +31,43 @@
   --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
   --font-body: "Newsreader", "Iowan Old Style", Georgia, serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-pop-in: pop-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-stamp-in: stamp-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: rotate(-2deg) scale(1.4);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-2deg) scale(1);
+  }
 }
 
 :root {
@@ -41,12 +78,62 @@ body {
   background-color: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-body);
-  /* Vân giấy: hai lớp gradient rất nhạt, đủ để mặt phẳng bớt chết. */
+  font-optical-sizing: auto;
+  position: relative;
+  /* Vân giấy: gradient rất nhạt để mặt phẳng bớt chết, cộng noise thật bên dưới. */
   background-image:
     radial-gradient(circle at 15% 12%, rgba(193, 67, 36, 0.035), transparent 42%),
     radial-gradient(circle at 85% 8%, rgba(107, 98, 85, 0.05), transparent 38%);
   background-attachment: fixed;
 }
+
+/*
+ * Vân giấy thật, không phải gradient: nhiễu fractal SVG phủ toàn trang, mờ đến
+ * mức chỉ cảm nhận được chứ không nhìn thấy trực tiếp — đúng cảm giác giấy có
+ * thớ chứ không phẳng lì như màn hình.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.11  0 0 0 0 0.10  0 0 0 0 0.09  0 0 0 0.02 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+/* Thanh cuộn mảnh, cùng tông giấy — thanh cuộn mặc định của hệ điều hành phá vỡ cảm giác trang giấy. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--color-rule);
+  border-radius: 999px;
+  border: 2px solid var(--color-paper);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ink-faint);
+}
+
+/*
+ * Không đặt outline focus chung kiểu box cho toàn trang: input đã có gạch chân
+ * riêng, editor (contentEditable) không cần viền vì đang gõ đã là tín hiệu rõ
+ * ràng nhất rồi. Một outline chung sẽ đè lên và phá cả hai.
+ */
 
 /*
  * Highlight vẽ bằng CSS Custom Highlight API — không chèn thẻ vào DOM của
@@ -74,4 +161,18 @@ body {
 
 ::selection {
   background-color: var(--color-vermilion-soft);
+}
+
+/* Texture nhiễu nhẹ đặc tả riêng cho con dấu grade — như mực dấu cao su lem một chút. */
+.stamp {
+  position: relative;
+}
+.stamp::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.76  0 0 0 0 0.26  0 0 0 0 0.14  0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+  pointer-events: none;
 }

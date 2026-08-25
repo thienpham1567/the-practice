@@ -3,7 +3,11 @@ import type { GradeLabel } from "./types.js";
 /**
  * Độ dễ đọc theo Automated Readability Index — công thức dựa trên ký tự thay vì
  * âm tiết, cùng họ với thang Hemingway dùng.
- * Internal — không nằm trong interface công khai của package.
+ *
+ * `countLetters`/`automatedReadabilityIndex` là internal, chỉ `analyze()` dùng.
+ * `gradeLabelFor` được export riêng: web cần map một con số grade đã lưu
+ * (không có lại text gốc) sang nhãn, ví dụ ở danh sách document — lặp lại
+ * ngưỡng 10/14 ở đó sẽ lệch nếu sau này đổi ở đây mà quên sửa chỗ kia.
  */
 
 /** Đếm chữ cái và chữ số, bỏ khoảng trắng và dấu câu. */

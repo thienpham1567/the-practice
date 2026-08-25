@@ -64,10 +64,23 @@ export function AuthPage({ mode }: AuthPageProps) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
-      <h1 className="font-display text-4xl font-semibold">{copy.heading}</h1>
-      <p className="mt-2 text-ink-soft">{copy.lede}</p>
+      <div className="animate-fade-up relative" style={{ animationDelay: "40ms" }}>
+        {/* Dấu ngoặc kép khổ lớn, mờ, kiểu mở đầu bài xã luận — neo theo khối tiêu đề, không theo cả trang, để không bị trôi lên khỏi màn hình khi nội dung căn giữa dọc. */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-3 -top-14 font-display text-[8rem] leading-none text-rule select-none"
+        >
+          “
+        </span>
+        <h1 className="relative font-display text-4xl font-semibold">{copy.heading}</h1>
+        <p className="relative mt-2 text-ink-soft">{copy.lede}</p>
+      </div>
 
-      <form onSubmit={(event) => void submit(event)} className="mt-8 space-y-4">
+      <form
+        onSubmit={(event) => void submit(event)}
+        className="animate-fade-up relative mt-8 space-y-5"
+        style={{ animationDelay: "90ms" }}
+      >
         <Field
           label="Email"
           type="email"
@@ -85,7 +98,8 @@ export function AuthPage({ mode }: AuthPageProps) {
         />
 
         {error && (
-          <p role="alert" className="text-sm text-vermilion">
+          <p role="alert" className="flex items-baseline gap-1.5 text-sm text-vermilion">
+            <span aria-hidden="true">—</span>
             {error}
           </p>
         )}
@@ -93,20 +107,27 @@ export function AuthPage({ mode }: AuthPageProps) {
         <button
           type="submit"
           disabled={pending}
-          className="w-full bg-ink px-4 py-2.5 font-mono text-sm uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-50"
+          className="w-full bg-ink px-4 py-2.5 font-mono text-sm uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion active:scale-[0.99] disabled:opacity-50"
         >
           {pending ? "Working…" : copy.action}
         </button>
       </form>
 
-      <p className="mt-6 text-sm text-ink-soft">
+      <p
+        className="animate-fade-up relative mt-6 text-sm text-ink-soft"
+        style={{ animationDelay: "130ms" }}
+      >
         {copy.switchText}{" "}
         <Link to={copy.switchTo} className="text-vermilion underline underline-offset-2">
           {copy.switchLabel}
         </Link>
       </p>
 
-      <Link to="/" className="mt-10 text-sm text-ink-faint underline underline-offset-2">
+      <Link
+        to="/"
+        className="animate-fade-up relative mt-10 text-sm text-ink-faint underline underline-offset-2 hover:text-ink"
+        style={{ animationDelay: "160ms" }}
+      >
         Back to the editor
       </Link>
     </main>
@@ -129,18 +150,23 @@ function Field({
   hint?: string;
 }) {
   return (
-    <label className="block">
+    <label className="group block">
       <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
         {label}
       </span>
-      <input
-        type={type}
-        value={value}
-        required
-        autoComplete={autoComplete}
-        onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full border border-rule bg-paper px-3 py-2 outline-none focus:border-vermilion"
-      />
+      <div className="relative mt-1">
+        <input
+          type={type}
+          value={value}
+          required
+          autoComplete={autoComplete}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full bg-transparent px-1 py-2 outline-none"
+        />
+        {/* Gạch chân trồi từ giữa ra khi focus, thay vì border đổi màu tức thì. */}
+        <span className="absolute inset-x-0 bottom-0 h-px bg-rule" />
+        <span className="absolute inset-x-0 bottom-0 h-px origin-center scale-x-0 bg-vermilion transition-transform duration-300 group-focus-within:scale-x-100" />
+      </div>
       {hint && <span className="mt-1 block text-xs text-ink-faint">{hint}</span>}
     </label>
   );

@@ -32,9 +32,11 @@ function ToolButton({
       onClick={onClick}
       title={label}
       aria-label={label}
-      className="h-8 min-w-8 rounded-sm px-2 text-sm text-ink-soft transition-colors hover:bg-paper-edge hover:text-ink"
+      className="group relative h-8 min-w-8 px-2 text-sm text-ink-soft transition-colors duration-150 hover:text-ink active:scale-90"
     >
       {children}
+      {/* Gạch chân đỏ son trồi lên khi hover, thay vì fill nền — cảm giác bút biên tập gạch dưới, không phải nút web. */}
+      <span className="absolute inset-x-1.5 bottom-1 h-px scale-x-0 bg-vermilion transition-transform duration-200 group-hover:scale-x-100" />
     </button>
   );
 }

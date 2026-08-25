@@ -45,9 +45,7 @@ describe("AiService", () => {
     it("gửi đúng model cấu hình và trả về gợi ý đã phân tích", async () => {
       const fetchSpy = jest
         .spyOn(global, "fetch")
-        .mockResolvedValue(
-          jsonResponse({ choices: [{ message: { content: "One.\nTwo." } }] }),
-        );
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "One.\nTwo." } }] }));
 
       const service = new AiService(
         fakeConfig({ OPENROUTER_API_KEY: "key", AI_MODEL: "some/model" }),
@@ -83,9 +81,9 @@ describe("AiService", () => {
 
       const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
 
-      await expect(
-        service.rewrite({ text: "x", issueType: "passive" }),
-      ).rejects.toMatchObject({ message: expect.stringContaining("insufficient credits") });
+      await expect(service.rewrite({ text: "x", issueType: "passive" })).rejects.toMatchObject({
+        message: expect.stringContaining("insufficient credits"),
+      });
     });
 
     it("báo timeout riêng biệt khi request bị abort", async () => {
@@ -105,9 +103,9 @@ describe("AiService", () => {
       // Gắn assertion ngay lập tức: nếu chờ đến sau `advanceTimersByTimeAsync`
       // mới gắn, promise đã reject mà chưa có handler và Jest báo lỗi ngoài ý
       // muốn (unhandled rejection) trước khi kịp assert.
-      const assertion = expect(service.rewrite({ text: "x", issueType: "passive" })).rejects.toBeInstanceOf(
-        GatewayTimeoutException,
-      );
+      const assertion = expect(
+        service.rewrite({ text: "x", issueType: "passive" }),
+      ).rejects.toBeInstanceOf(GatewayTimeoutException);
 
       await jest.advanceTimersByTimeAsync(15_000);
       await assertion;
@@ -122,9 +120,9 @@ describe("AiService", () => {
 
       const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
 
-      await expect(
-        service.rewrite({ text: "x", issueType: "passive" }),
-      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      await expect(service.rewrite({ text: "x", issueType: "passive" })).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
     });
   });
 });

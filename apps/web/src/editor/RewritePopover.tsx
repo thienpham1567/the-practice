@@ -55,11 +55,25 @@ export function RewritePopover({ target, onApply, onClose }: RewritePopoverProps
       // highlight nào ở đúng toạ độ đó (vì đang che bởi popover), rồi tự đóng
       // popover ngay sau khi vừa mở/vừa xử lý xong.
       onClick={(event) => event.stopPropagation()}
-      className={`absolute z-30 w-80 -translate-x-1/2 rounded-sm border border-rule bg-paper p-4 shadow-[0_12px_32px_-12px_rgba(31,28,24,0.45)] ${
+      className={`animate-pop-in absolute z-30 w-80 -translate-x-1/2 rounded-sm border border-rule bg-paper p-4 shadow-[0_16px_40px_-14px_rgba(31,28,24,0.5)] ${
         flipBelow ? "" : "-translate-y-full"
       }`}
-      style={{ left: target.x, top: target.y + (flipBelow ? 16 : -12) }}
+      style={{
+        left: target.x,
+        top: target.y + (flipBelow ? 16 : -12),
+        transformOrigin: flipBelow ? "top center" : "bottom center",
+      }}
     >
+      {/* Mũi neo trỏ về đúng điểm click, để popover không trôi nổi vô can. */}
+      <span
+        aria-hidden="true"
+        className="absolute left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-rule bg-paper"
+        style={
+          flipBelow
+            ? { top: -6, borderLeft: "1px solid", borderTop: "1px solid" }
+            : { bottom: -6, borderRight: "1px solid", borderBottom: "1px solid" }
+        }
+      />
       {copy && (
         <div className="mb-3 border-b border-rule pb-3">
           <p className="font-mono text-[0.7rem] uppercase tracking-wider text-vermilion">
@@ -85,16 +99,22 @@ export function RewritePopover({ target, onApply, onClose }: RewritePopoverProps
       )}
 
       {stage.name === "loading" && (
-        <p className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
-          Thinking…
+        <p className="flex items-center gap-1 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+          Thinking
+          <span className="inline-flex gap-0.5">
+            <span className="h-1 w-1 animate-bounce rounded-full bg-ink-faint [animation-delay:-0.2s]" />
+            <span className="h-1 w-1 animate-bounce rounded-full bg-ink-faint [animation-delay:-0.1s]" />
+            <span className="h-1 w-1 animate-bounce rounded-full bg-ink-faint" />
+          </span>
         </p>
       )}
 
       {stage.name === "done" && (
         <div className="space-y-2">
-          {stage.suggestions.map((suggestion) => (
+          {stage.suggestions.map((suggestion, index) => (
             <SuggestionCard
               key={suggestion}
+              index={index}
               original={target.span.input.text}
               suggestion={suggestion}
               onApply={() => onApply(suggestion)}
@@ -131,11 +151,15 @@ export function RewritePopover({ target, onApply, onClose }: RewritePopoverProps
   );
 }
 
+const ROMAN = ["I", "II", "III"];
+
 function SuggestionCard({
+  index,
   original,
   suggestion,
   onApply,
 }: {
+  index: number;
   original: string;
   suggestion: string;
   onApply: () => void;
@@ -143,22 +167,25 @@ function SuggestionCard({
   const tokens = diffWords(original, suggestion);
 
   return (
-    <div className="border border-rule bg-paper-deep p-3">
-      <p className="font-body text-sm leading-snug">
-        {tokens.map((token, index) => (
-          <span key={index}>
-            {index > 0 && " "}
-            <span className={token.changed ? "bg-mark-adverb" : undefined}>{token.text}</span>
-          </span>
-        ))}
-      </p>
-      <button
-        type="button"
-        onClick={onApply}
-        className="mt-2 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-vermilion hover:underline"
-      >
-        Apply
-      </button>
+    <div className="group flex gap-2.5 border border-rule bg-paper-deep p-3 transition-colors hover:border-vermilion/50">
+      <span className="font-display text-xs italic text-ink-faint">{ROMAN[index] ?? index + 1}.</span>
+      <div className="min-w-0 flex-1">
+        <p className="font-body text-sm leading-snug">
+          {tokens.map((token, tokenIndex) => (
+            <span key={tokenIndex}>
+              {tokenIndex > 0 && " "}
+              <span className={token.changed ? "bg-mark-adverb" : undefined}>{token.text}</span>
+            </span>
+          ))}
+        </p>
+        <button
+          type="button"
+          onClick={onApply}
+          className="mt-2 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-vermilion opacity-70 transition-opacity hover:underline group-hover:opacity-100"
+        >
+          Apply →
+        </button>
+      </div>
     </div>
   );
 }

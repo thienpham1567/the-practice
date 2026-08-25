@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { gradeLabelFor } from "@writing-helper/analysis";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../api/auth-store";
 import { apiFetch } from "../api/client";
 import { deleteDocument, listDocuments } from "../api/documents";
+import { GradeStamp } from "../sidebar/GradeStamp";
 
 export function DocumentsPage() {
   const navigate = useNavigate();
@@ -24,11 +26,14 @@ export function DocumentsPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
-      <header className="flex items-baseline justify-between border-b border-rule pb-5">
+      <header className="animate-fade-up flex items-baseline justify-between border-b border-rule pb-5">
         <h1 className="font-display text-3xl font-semibold">Drafts</h1>
 
         <div className="flex items-center gap-4 text-sm">
-          <Link to="/" className="text-vermilion underline underline-offset-2">
+          <Link
+            to="/"
+            className="text-vermilion decoration-vermilion/40 underline-offset-4 hover:underline"
+          >
             New draft
           </Link>
           {user && (
@@ -43,10 +48,14 @@ export function DocumentsPage() {
         </div>
       </header>
 
-      {documents.isLoading && <p className="mt-8 text-ink-soft">Fetching your drafts…</p>}
+      {documents.isLoading && (
+        <p className="animate-fade-up mt-8 font-mono text-xs uppercase tracking-[0.18em] text-ink-faint">
+          Fetching your drafts…
+        </p>
+      )}
 
       {documents.isError && (
-        <p className="mt-8 text-ink-soft">
+        <p className="animate-fade-up mt-8 text-ink-soft">
           Could not load your drafts.{" "}
           <Link to="/login" className="text-vermilion underline underline-offset-2">
             Sign in
@@ -55,21 +64,17 @@ export function DocumentsPage() {
         </p>
       )}
 
-      {documents.data?.length === 0 && (
-        <p className="mt-8 text-ink-soft">
-          Nothing here yet.{" "}
-          <Link to="/" className="text-vermilion underline underline-offset-2">
-            Start writing
-          </Link>
-          .
-        </p>
-      )}
+      {documents.data?.length === 0 && <EmptyState />}
 
       <ul className="divide-y divide-rule">
-        {documents.data?.map((document) => (
-          <li key={document.id} className="group flex items-baseline gap-4 py-4">
+        {documents.data?.map((document, index) => (
+          <li
+            key={document.id}
+            className="animate-fade-up group flex items-center gap-4 py-4 transition-colors"
+            style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+          >
             <Link to={`/doc/${document.id}`} className="min-w-0 flex-1">
-              <span className="font-display text-lg group-hover:text-vermilion">
+              <span className="font-display text-lg transition-colors group-hover:text-vermilion">
                 {document.title}
               </span>
               <span className="ml-3 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
@@ -82,9 +87,7 @@ export function DocumentsPage() {
             </Link>
 
             {document.grade !== null && (
-              <span className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
-                Grade {document.grade}
-              </span>
+              <GradeStamp grade={document.grade} label={gradeLabelFor(document.grade)} size="sm" />
             )}
 
             <button
@@ -98,5 +101,20 @@ export function DocumentsPage() {
         ))}
       </ul>
     </main>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="animate-fade-up mt-14 flex flex-col items-center text-center">
+      <span className="font-display text-6xl leading-none text-rule">¶</span>
+      <p className="mt-4 text-ink-soft">Nothing here yet.</p>
+      <Link
+        to="/"
+        className="mt-1 text-vermilion decoration-vermilion/40 underline-offset-4 hover:underline"
+      >
+        Start writing
+      </Link>
+    </div>
   );
 }
