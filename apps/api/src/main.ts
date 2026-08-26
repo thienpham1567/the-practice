@@ -25,6 +25,9 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
+  // Cho phép PrismaService.onModuleDestroy chạy khi SIGTERM (Render restart).
+  app.enableShutdownHooks();
+
   // Cố tình không dùng tên `PORT`: tiến trình cha (vd dev server của web) hay
   // đặt sẵn biến đó, mà dotenv không ghi đè biến môi trường đã tồn tại — API sẽ
   // im lặng chiếm nhầm cổng của web.
