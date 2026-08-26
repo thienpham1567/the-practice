@@ -6,5 +6,8 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
   const header = req.header("x-request-id")?.trim();
   const requestId = header && header.length > 0 ? header : randomUUID();
   res.setHeader("x-request-id", requestId);
-  requestContext.run({ requestId }, () => next());
+  // enterWith (not run): Express next() returns before async Nest handlers finish,
+  // so run() would exit the store too early and logs would lose the request id.
+  requestContext.enterWith({ requestId });
+  next();
 }
