@@ -29,7 +29,7 @@ describe("API (e2e)", () => {
 
   beforeEach(async () => {
     await prisma.$executeRawUnsafe(
-      'TRUNCATE TABLE "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
+      'TRUNCATE TABLE "AuthNonce", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
     );
   });
 

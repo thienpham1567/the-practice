@@ -9,12 +9,25 @@ datasource db {
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String
+  passwordHash String?
+  googleId     String?  @unique
   createdAt    DateTime @default(now())
 
   documents     Document[]
   refreshTokens RefreshToken[]
   practiceAttempts PracticeAttempt[]
+}
+
+/// Nonce dùng một lần cho luồng Google. Lưu hash chứ không lưu chuỗi gốc —
+/// cùng lý do với RefreshToken.
+model AuthNonce {
+  id        String    @id @default(cuid())
+  nonceHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([expiresAt])
 }
 
 /// Refresh token được lưu dạng hash để logout và rotation thật sự thu hồi được

@@ -18,6 +18,8 @@ export interface AuthResult extends AuthTokens {
 const ACCESS_TOKEN_TTL = "15m";
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const BCRYPT_ROUNDS = 12;
+/** Hash bcrypt 12 vòng có sẵn — compare giả trên tài khoản không mật khẩu. */
+const DUMMY_PASSWORD_HASH = "$2b$12$STQLKxA9lHiYSl2l8ndHruB6AdLtW4sEehasvTdK.78QAYW1vchh6";
 
 @Injectable()
 export class AuthService {
@@ -48,9 +50,16 @@ export class AuthService {
       where: { email: email.trim().toLowerCase() },
     });
 
-    // Cùng một thông báo cho email sai và mật khẩu sai, để không tiết lộ
-    // email nào đã đăng ký.
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+    // Cùng một thông báo cho email sai, mật khẩu sai, và tài khoản chỉ có
+    // Google — để không tiết lộ email nào đã đăng ký hay dùng Google.
+    // Email chưa đăng ký vẫn trả về ngay (như trước). Nhánh hash null chạy
+    // bcrypt.compare giả để thời gian phản hồi không lộ tài khoản Google.
+    if (!user) {
+      throw new UnauthorizedException("Invalid email or password");
+    }
+
+    const matches = await bcrypt.compare(password, user.passwordHash ?? DUMMY_PASSWORD_HASH);
+    if (user.passwordHash === null || !matches) {
       throw new UnauthorizedException("Invalid email or password");
     }
 
