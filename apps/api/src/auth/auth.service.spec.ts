@@ -39,29 +39,38 @@ function googleService(options: { users?: StoredUser[]; createError?: Error } = 
           return null;
         },
       ),
-      create: jest.fn(async ({ data }: { data: { email: string; googleId: string; passwordHash: string | null } }) => {
-        if (options.createError) throw options.createError;
-        const user: StoredUser = {
-          id: "new-google-user",
-          email: data.email,
-          googleId: data.googleId,
-          passwordHash: data.passwordHash,
-        };
-        users.push(user);
-        return user;
-      }),
-      update: jest.fn(
+      create: jest.fn(
+        async ({
+          data,
+        }: {
+          data: { email: string; googleId: string; passwordHash: string | null };
+        }) => {
+          if (options.createError) throw options.createError;
+          const user: StoredUser = {
+            id: "new-google-user",
+            email: data.email,
+            googleId: data.googleId,
+            passwordHash: data.passwordHash,
+          };
+          users.push(user);
+          return user;
+        },
+      ),
+      update: jest.fn(),
+      updateMany: jest.fn(
         async ({
           where,
           data,
         }: {
-          where: { id: string };
+          where: { id: string; googleId: null };
           data: { googleId: string };
         }) => {
-          const user = users.find((candidate) => candidate.id === where.id);
-          if (!user) throw new Error("user not found");
+          const user = users.find(
+            (candidate) => candidate.id === where.id && candidate.googleId === where.googleId,
+          );
+          if (!user) return { count: 0 };
           Object.assign(user, data);
-          return user;
+          return { count: 1 };
         },
       ),
     },
@@ -87,7 +96,9 @@ function googleService(options: { users?: StoredUser[]; createError?: Error } = 
   return { service, prisma, users };
 }
 
-function verifiedProfile(overrides: Partial<{ googleId: string; email: string; emailVerified: boolean }> = {}) {
+function verifiedProfile(
+  overrides: Partial<{ googleId: string; email: string; emailVerified: boolean }> = {},
+) {
   return {
     googleId: "google-sub-1",
     email: "writer@example.com",
@@ -97,7 +108,10 @@ function verifiedProfile(overrides: Partial<{ googleId: string; email: string; e
 }
 
 function loggedText(): string {
-  return [...(Logger.prototype.log as jest.Mock).mock.calls, ...(Logger.prototype.warn as jest.Mock).mock.calls]
+  return [
+    ...(Logger.prototype.log as jest.Mock).mock.calls,
+    ...(Logger.prototype.warn as jest.Mock).mock.calls,
+  ]
     .flat()
     .map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg)))
     .join(" ");
@@ -254,6 +268,7 @@ describe("AuthService", () => {
       expect(prisma.user.findUnique).not.toHaveBeenCalled();
       expect(prisma.user.create).not.toHaveBeenCalled();
       expect(prisma.user.update).not.toHaveBeenCalled();
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
       expect(prisma.refreshToken.create).not.toHaveBeenCalled();
       expect(loggedText()).toContain("google_denied");
       expect(loggedText()).toContain("unverified_email");
@@ -319,8 +334,8 @@ describe("AuthService", () => {
       expect(users[0]?.passwordHash).toBe("existing-bcrypt-hash");
       expect(users[0]?.googleId).toBe("google-sub-1");
       expect(prisma.user.create).not.toHaveBeenCalled();
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: "password-user" },
+      expect(prisma.user.updateMany).toHaveBeenCalledWith({
+        where: { id: "password-user", googleId: null },
         data: { googleId: "google-sub-1" },
       });
       expect(loggedText()).toContain("google_link");
@@ -344,6 +359,7 @@ describe("AuthService", () => {
       expect(error).toBeInstanceOf(UnauthorizedException);
       expect((error as UnauthorizedException).message).toBe("Invalid Google credential");
       expect(prisma.user.update).not.toHaveBeenCalled();
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
       expect(prisma.user.create).not.toHaveBeenCalled();
       expect(users[0]?.googleId).toBe("original-google-sub");
       expect(loggedText()).toContain("google_denied");
@@ -373,6 +389,58 @@ describe("AuthService", () => {
       expect(result.refreshToken).toEqual(expect.any(String));
       expect(loggedText()).toContain("p2002_recovered");
       expect(loggedText()).toContain("winner");
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("links googleId when P2002 recovery finds an email user without googleId", async () => {
+      const raced: StoredUser = {
+        id: "password-winner",
+        email: "writer@example.com",
+        passwordHash: "existing-bcrypt-hash",
+        googleId: null,
+      };
+      const { service, prisma, users } = googleService({
+        users: [raced],
+        createError: uniqueViolation(),
+      });
+      prisma.user.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(raced);
+
+      const result = await service.loginWithGoogle(verifiedProfile());
+
+      expect(prisma.user.updateMany).toHaveBeenCalledWith({
+        where: { id: "password-winner", googleId: null },
+        data: { googleId: "google-sub-1" },
+      });
+      expect(users[0]?.id).toBe("password-winner");
+      expect(users[0]?.passwordHash).toBe("existing-bcrypt-hash");
+      expect(users[0]?.googleId).toBe("google-sub-1");
+      expect(result.user).toEqual({ id: "password-winner", email: "writer@example.com" });
+      expect(loggedText()).toContain("google_link");
+      expect(loggedText()).toContain("p2002_recovered");
+    });
+
+    it("rejects a link when a concurrent write already set googleId", async () => {
+      const existing: StoredUser = {
+        id: "password-user",
+        email: "writer@example.com",
+        passwordHash: "existing-bcrypt-hash",
+        googleId: null,
+      };
+      const { service, prisma } = googleService({ users: [existing] });
+      prisma.user.updateMany.mockResolvedValue({ count: 0 });
+
+      const error = await service
+        .loginWithGoogle(verifiedProfile())
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect((error as UnauthorizedException).message).toBe("Invalid Google credential");
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(loggedText()).toContain("google_denied");
     });
   });
 });

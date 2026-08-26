@@ -117,6 +117,35 @@ describe("GoogleTokenVerifier", () => {
       await expectGenericUnauthorized("Token used too late, 1000 > 100");
     });
 
+    it("throws 503 when GOOGLE_CLIENT_ID is only whitespace and does not call Google", async () => {
+      const { verifier, verifyIdToken } = verifierWith(
+        { sub: "google-user-123", email: "user@example.com" },
+        { clientId: "   " },
+      );
+
+      const error = await verifier.verify("raw-id-token").catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ServiceUnavailableException);
+      expect((error as ServiceUnavailableException).message).toBe(
+        "Google sign-in is not configured",
+      );
+      expect(verifyIdToken).not.toHaveBeenCalled();
+    });
+
+    it("trims GOOGLE_CLIENT_ID before using it as the audience", async () => {
+      const { verifier, verifyIdToken } = verifierWith(
+        { sub: "google-user-123", email: "user@example.com", email_verified: true },
+        { clientId: `  ${CLIENT_ID}  ` },
+      );
+
+      await verifier.verify("raw-id-token");
+
+      expect(verifyIdToken).toHaveBeenCalledWith({
+        idToken: "raw-id-token",
+        audience: CLIENT_ID,
+      });
+    });
+
     it("throws 503 when GOOGLE_CLIENT_ID is missing and does not call Google", async () => {
       const { verifier, verifyIdToken } = verifierWith(
         { sub: "google-user-123", email: "user@example.com" },

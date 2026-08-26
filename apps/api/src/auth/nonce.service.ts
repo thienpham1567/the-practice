@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -10,6 +10,8 @@ const NONCE_TTL_MS = 5 * 60 * 1000;
  */
 @Injectable()
 export class NonceService {
+  private readonly logger = new Logger(NonceService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async issue(): Promise<string> {
@@ -41,6 +43,7 @@ export class NonceService {
     });
 
     if (result.count === 0) {
+      this.logger.warn("event=google_denied reason=nonce_invalid");
       throw new UnauthorizedException("Sign-in session expired. Please try again.");
     }
   }

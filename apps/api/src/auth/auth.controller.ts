@@ -5,6 +5,7 @@ import {
   Header,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Req,
   Res,
@@ -33,6 +34,8 @@ const COOKIE_PATH = "/";
 @Throttle({ default: { limit: 10, ttl: 60_000 } })
 @Controller("auth")
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly auth: AuthService,
     private readonly nonce: NonceService,
@@ -92,12 +95,12 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ accessToken: string; user: { id: string; email: string } }> {
     const profile = await this.googleVerifier.verify(dto.credential);
-    // Reject unverified email before consuming the nonce so a failed attempt
-    // does not burn the sign-in session (and never touches Prisma).
     if (!profile.emailVerified) {
-      await this.auth.loginWithGoogle(profile);
+      this.logger.warn(`event=google_denied reason=unverified_email email=${profile.email}`);
+      throw new UnauthorizedException("Your Google account's email is not verified.");
     }
     if (!profile.nonce) {
+      this.logger.warn("event=google_denied reason=nonce_invalid");
       throw new UnauthorizedException("Sign-in session expired. Please try again.");
     }
     await this.nonce.consume(profile.nonce);
@@ -108,7 +111,7 @@ export class AuthController {
 
   @Get("providers")
   providers(): { google: { enabled: true; clientId: string } } | { google: { enabled: false } } {
-    const clientId = this.config.get<string>("GOOGLE_CLIENT_ID");
+    const clientId = this.config.get<string>("GOOGLE_CLIENT_ID")?.trim();
     if (!clientId) return { google: { enabled: false } };
     return { google: { enabled: true, clientId } };
   }

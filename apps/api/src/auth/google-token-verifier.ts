@@ -26,7 +26,7 @@ export class GoogleTokenVerifier {
     emailVerified: boolean;
     nonce?: string;
   }> {
-    const clientId = this.config.get<string>("GOOGLE_CLIENT_ID");
+    const clientId = this.config.get<string>("GOOGLE_CLIENT_ID")?.trim();
     if (!clientId) {
       throw new ServiceUnavailableException("Google sign-in is not configured");
     }

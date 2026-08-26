@@ -106,12 +106,7 @@ export class AuthService {
         throw new UnauthorizedException("Invalid Google credential");
       }
 
-      const linked = await this.prisma.user.update({
-        where: { id: byEmail.id },
-        data: { googleId },
-      });
-      this.logger.log(`event=google_link userId=${linked.id} email=${linked.email}`);
-      return this.sessionFor(linked);
+      return this.linkGoogleId(byEmail, googleId);
     }
 
     try {
@@ -131,6 +126,9 @@ export class AuthService {
               `event=google_denied reason=google_id_mismatch userId=${recovered.id} email=${recovered.email}`,
             );
             throw new UnauthorizedException("Invalid Google credential");
+          }
+          if (recovered.googleId === null) {
+            return this.linkGoogleId(recovered, googleId, "p2002_recovered");
           }
           this.logger.log(
             `event=google_signin reason=p2002_recovered userId=${recovered.id} email=${recovered.email}`,
@@ -183,6 +181,27 @@ export class AuthService {
     }
 
     return stored;
+  }
+
+  private async linkGoogleId(
+    user: { id: string; email: string },
+    googleId: string,
+    reason?: string,
+  ): Promise<AuthResult> {
+    const result = await this.prisma.user.updateMany({
+      where: { id: user.id, googleId: null },
+      data: { googleId },
+    });
+    if (result.count === 0) {
+      this.logger.warn(
+        `event=google_denied reason=google_id_mismatch userId=${user.id} email=${user.email}`,
+      );
+      throw new UnauthorizedException("Invalid Google credential");
+    }
+    this.logger.log(
+      `event=google_link${reason ? ` reason=${reason}` : ""} userId=${user.id} email=${user.email}`,
+    );
+    return this.sessionFor(user);
   }
 
   private async sessionFor(user: { id: string; email: string }): Promise<AuthResult> {

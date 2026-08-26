@@ -1,4 +1,4 @@
-import { UnauthorizedException } from "@nestjs/common";
+import { Logger, UnauthorizedException } from "@nestjs/common";
 import { createHash } from "node:crypto";
 import type { PrismaService } from "../prisma/prisma.service";
 import { NonceService } from "./nonce.service";
@@ -80,17 +80,32 @@ describe("NonceService", () => {
   describe("consume", () => {
     const SESSION_EXPIRED = "Sign-in session expired. Please try again.";
 
+    beforeEach(() => {
+      jest.spyOn(Logger.prototype, "warn").mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     it("rejects a second consume of the same nonce", async () => {
       const { service, prisma } = serviceWith();
       prisma.authNonce.updateMany
         .mockResolvedValueOnce({ count: 1 })
         .mockResolvedValueOnce({ count: 0 });
 
-      await expect(service.consume("once")).resolves.toBeUndefined();
+      await expect(service.consume("raw-nonce-value")).resolves.toBeUndefined();
 
-      const replay = await service.consume("once").catch((error: unknown) => error);
+      const replay = await service.consume("raw-nonce-value").catch((error: unknown) => error);
       expect(replay).toBeInstanceOf(UnauthorizedException);
       expect((replay as UnauthorizedException).message).toBe(SESSION_EXPIRED);
+      const logged = (Logger.prototype.warn as jest.Mock).mock.calls
+        .flat()
+        .map((arg) => (typeof arg === "string" ? arg : JSON.stringify(arg)))
+        .join(" ");
+      expect(logged).toContain("google_denied");
+      expect(logged).toContain("nonce_invalid");
+      expect(logged).not.toContain("raw-nonce-value");
     });
 
     it("rejects an expired nonce", async () => {

@@ -100,6 +100,36 @@ describe("Google sign-in HTTP (e2e)", () => {
 
     expect(replay.body.message).toBe("Sign-in session expired. Please try again.");
   });
+
+  it("từ chối email chưa xác minh mà không đốt nonce", async () => {
+    const nonce = await issueNonce();
+    googleVerifier.verify.mockResolvedValueOnce({
+      googleId: "google-sub-unverified",
+      email: "unverified@example.com",
+      emailVerified: false,
+      nonce,
+    });
+
+    const denied = await server()
+      .post("/auth/google")
+      .send({ credential: VALID_CREDENTIAL })
+      .expect(401);
+    expect(denied.body.message).toBe("Your Google account's email is not verified.");
+
+    googleVerifier.verify.mockResolvedValueOnce({
+      googleId: "google-sub-unverified",
+      email: "unverified@example.com",
+      emailVerified: true,
+      nonce,
+    });
+
+    const allowed = await server()
+      .post("/auth/google")
+      .send({ credential: VALID_CREDENTIAL })
+      .expect(200);
+    expect(allowed.body.user).toMatchObject({ email: "unverified@example.com" });
+    expect(String(allowed.headers["set-cookie"])).toContain("HttpOnly");
+  });
 });
 
 describe("GET /auth/providers when Google is configured (e2e)", () => {
@@ -136,6 +166,33 @@ describe("GET /auth/providers when Google is not configured (e2e)", () => {
   beforeAll(async () => {
     process.env.DISABLE_RATE_LIMIT = "true";
     process.env.GOOGLE_CLIENT_ID = "";
+
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    app = moduleRef.createNestApplication();
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+    if (previousClientId === undefined) delete process.env.GOOGLE_CLIENT_ID;
+    else process.env.GOOGLE_CLIENT_ID = previousClientId;
+  });
+
+  it("trả enabled false và không lộ clientId", async () => {
+    const response = await request(app.getHttpServer()).get("/auth/providers").expect(200);
+
+    expect(response.body).toEqual({ google: { enabled: false } });
+    expect(response.body.google).not.toHaveProperty("clientId");
+  });
+});
+
+describe("GET /auth/providers when GOOGLE_CLIENT_ID is whitespace (e2e)", () => {
+  let app: INestApplication;
+  const previousClientId = process.env.GOOGLE_CLIENT_ID;
+
+  beforeAll(async () => {
+    process.env.DISABLE_RATE_LIMIT = "true";
+    process.env.GOOGLE_CLIENT_ID = "   ";
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication();
