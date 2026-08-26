@@ -13,7 +13,8 @@ import {
   type TaskSpec,
   type TaskType,
 } from "@writing-helper/practice";
-import { AiService } from "../ai/ai.service";
+import { AiService, PRACTICE_DEADLINE_MS, PRACTICE_TIMEOUT_MS } from "../ai/ai.service";
+import { DEFAULT_PAGE_SIZE, toCursorPage } from "../common/cursor-page";
 import { PrismaService } from "../prisma/prisma.service";
 import type {
   CreateAttemptDto,
@@ -27,7 +28,6 @@ const LIST_FIELDS = {
   id: true,
   level: true,
   taskType: true,
-  prompt: true,
   band: true,
   wordCount: true,
   hintsOpened: true,
@@ -35,6 +35,9 @@ const LIST_FIELDS = {
   submittedAt: true,
   elapsedSeconds: true,
 } satisfies Prisma.PracticeAttemptSelect;
+
+/** Khoá chấm quá 2 phút coi là chết — cho phép chiếm lại. */
+const GRADING_LOCK_STALE_MS = 2 * 60 * 1000;
 
 @Injectable()
 export class PracticeService {
@@ -49,6 +52,9 @@ export class PracticeService {
       prompt: buildGeneratePrompt(chosen, dto.level),
       schema: GENERATE_TASK_SCHEMA,
       maxTokens: 1000,
+      timeoutMs: PRACTICE_TIMEOUT_MS,
+      deadlineMs: PRACTICE_DEADLINE_MS,
+      usage: { userId, endpoint: "practice.generate" },
     });
 
     return this.prisma.practiceAttempt.create({
@@ -63,12 +69,16 @@ export class PracticeService {
     });
   }
 
-  list(userId: string) {
-    return this.prisma.practiceAttempt.findMany({
+  async list(userId: string, opts: { cursor?: string; limit?: number } = {}) {
+    const limit = opts.limit ?? DEFAULT_PAGE_SIZE;
+    const rows = await this.prisma.practiceAttempt.findMany({
       where: { userId },
       select: LIST_FIELDS,
-      orderBy: { startedAt: "desc" },
+      orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
     });
+    return toCursorPage(rows, limit);
   }
 
   async findOne(userId: string, id: string) {
@@ -100,41 +110,69 @@ export class PracticeService {
       throw new ConflictException("Practice attempt already submitted");
     }
 
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - GRADING_LOCK_STALE_MS);
+    const claimed = await this.prisma.practiceAttempt.updateMany({
+      where: {
+        id,
+        userId,
+        submittedAt: null,
+        OR: [{ gradingStartedAt: null }, { gradingStartedAt: { lte: staleBefore } }],
+      },
+      data: { gradingStartedAt: now },
+    });
+
+    if (claimed.count === 0) {
+      throw new ConflictException("Practice attempt is already being graded");
+    }
+
     const task = this.taskByType(attempt.taskType as TaskType);
     const plainText = dto.plainText ?? attempt.plainText;
     const wordCount = dto.wordCount ?? attempt.wordCount;
 
-    const graded = await this.ai.complete<GradeResult>({
-      prompt: buildGradePrompt({
-        task,
-        promptText: attempt.prompt,
-        essay: plainText,
-        wordCount,
-      }),
-      schema: GRADE_TASK_SCHEMA,
-      maxTokens: 1500,
-    });
+    try {
+      const graded = await this.ai.complete<GradeResult>({
+        prompt: buildGradePrompt({
+          task,
+          promptText: attempt.prompt,
+          essay: plainText,
+          wordCount,
+        }),
+        schema: GRADE_TASK_SCHEMA,
+        maxTokens: 1500,
+        timeoutMs: PRACTICE_TIMEOUT_MS,
+        deadlineMs: PRACTICE_DEADLINE_MS,
+        usage: { userId, endpoint: "practice.grade" },
+      });
 
-    const submittedAt = new Date();
-    const elapsedSeconds = Math.max(
-      0,
-      Math.round((submittedAt.getTime() - attempt.startedAt.getTime()) / 1000),
-    );
+      const submittedAt = new Date();
+      const elapsedSeconds = Math.max(
+        0,
+        Math.round((submittedAt.getTime() - attempt.startedAt.getTime()) / 1000),
+      );
 
-    return this.prisma.practiceAttempt.update({
-      where: { id },
-      data: {
-        ...(dto.content !== undefined && { content: dto.content as Prisma.InputJsonValue }),
-        plainText,
-        wordCount,
-        submittedAt,
-        elapsedSeconds,
-        band: overallBand(graded.scores),
-        scores: graded.scores as unknown as Prisma.InputJsonValue,
-        feedback: graded.feedback as unknown as Prisma.InputJsonValue,
-        styleSnapshot: dto.styleSnapshot as Prisma.InputJsonValue,
-      },
-    });
+      return await this.prisma.practiceAttempt.update({
+        where: { id },
+        data: {
+          ...(dto.content !== undefined && { content: dto.content as Prisma.InputJsonValue }),
+          plainText,
+          wordCount,
+          submittedAt,
+          elapsedSeconds,
+          gradingStartedAt: null,
+          band: overallBand(graded.scores),
+          scores: graded.scores as unknown as Prisma.InputJsonValue,
+          feedback: graded.feedback as unknown as Prisma.InputJsonValue,
+          styleSnapshot: dto.styleSnapshot as Prisma.InputJsonValue,
+        },
+      });
+    } catch (error) {
+      await this.prisma.practiceAttempt.updateMany({
+        where: { id, userId, submittedAt: null },
+        data: { gradingStartedAt: null },
+      });
+      throw error;
+    }
   }
 
   private async chooseTask(userId: string, level: Level, taskType?: TaskType): Promise<TaskSpec> {

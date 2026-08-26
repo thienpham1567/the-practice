@@ -7,7 +7,10 @@ services:
     rootDir: .
     buildCommand: pnpm install --frozen-lockfile && pnpm --filter @writing-helper/api build
     startCommand: pnpm --filter @writing-helper/api exec prisma migrate deploy && node apps/api/dist/main.js
-    healthCheckPath: /health
+    # ready (SELECT 1) thay vì live: DB chết → Render restart. Chấp nhận vì app
+    # không dùng được khi DB down; timeout 2s ở /health/ready tránh nghẽn probe.
+    # Rủi ro: DB bảo trì ngắn có thể gây restart loop.
+    healthCheckPath: /health/ready
     envVars:
       - key: NODE_ENV
         value: production

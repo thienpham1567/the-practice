@@ -20,7 +20,7 @@ describe("Rate limiting (e2e)", () => {
     await app
       .get(PrismaService)
       .$executeRawUnsafe(
-        'TRUNCATE TABLE "AuthNonce", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
+        'TRUNCATE TABLE "AiUsage", "AuthNonce", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
       );
   });
 
@@ -58,7 +58,7 @@ describe("Rate limiting Google nonce (e2e)", () => {
     await app
       .get(PrismaService)
       .$executeRawUnsafe(
-        'TRUNCATE TABLE "AuthNonce", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
+        'TRUNCATE TABLE "AiUsage", "AuthNonce", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
       );
   });
 

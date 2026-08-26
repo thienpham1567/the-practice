@@ -6,10 +6,42 @@ function fakeConfig(values: Record<string, string | undefined>): ConfigService {
   return { get: (key: string) => values[key] } as unknown as ConfigService;
 }
 
-function jsonResponse(body: unknown, ok = true, status = 200): Response {
+function fakePrisma(overrides: {
+  create?: jest.Mock;
+  count?: jest.Mock;
+  findMany?: jest.Mock;
+} = {}) {
+  return {
+    aiUsage: {
+      create: overrides.create ?? jest.fn().mockResolvedValue({}),
+      count: overrides.count ?? jest.fn().mockResolvedValue(0),
+      findMany: overrides.findMany ?? jest.fn().mockResolvedValue([]),
+    },
+  };
+}
+
+function makeService(
+  env: Record<string, string | undefined>,
+  prisma: ReturnType<typeof fakePrisma> = fakePrisma(),
+) {
+  return {
+    service: new AiService(fakeConfig(env), prisma as never),
+    prisma,
+  };
+}
+
+function jsonResponse(
+  body: unknown,
+  ok = true,
+  status = 200,
+  headers: Record<string, string> = {},
+): Response {
   return {
     ok,
     status,
+    headers: {
+      get: (name: string) => headers[name.toLowerCase()] ?? headers[name] ?? null,
+    },
     json: () => Promise.resolve(body),
   } as Response;
 }
@@ -21,12 +53,12 @@ describe("AiService", () => {
 
   describe("isEnabled", () => {
     it("bật khi có OPENROUTER_API_KEY", () => {
-      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
       expect(service.isEnabled()).toBe(true);
     });
 
     it("tắt khi thiếu OPENROUTER_API_KEY", () => {
-      const service = new AiService(fakeConfig({}));
+      const { service } = makeService({});
       expect(service.isEnabled()).toBe(false);
     });
   });
@@ -34,10 +66,10 @@ describe("AiService", () => {
   describe("rewrite", () => {
     it("từ chối khi chưa cấu hình key, không gọi OpenRouter", async () => {
       const fetchSpy = jest.spyOn(global, "fetch");
-      const service = new AiService(fakeConfig({}));
+      const { service } = makeService({});
 
       await expect(
-        service.rewrite({ text: "It was done.", issueType: "passive" }),
+        service.rewrite("user-1", { text: "It was done.", issueType: "passive" }),
       ).rejects.toBeInstanceOf(ServiceUnavailableException);
       expect(fetchSpy).not.toHaveBeenCalled();
     });
@@ -47,11 +79,9 @@ describe("AiService", () => {
         .spyOn(global, "fetch")
         .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "One.\nTwo." } }] }));
 
-      const service = new AiService(
-        fakeConfig({ OPENROUTER_API_KEY: "key", AI_MODEL: "some/model" }),
-      );
+      const { service } = makeService({ OPENROUTER_API_KEY: "key", AI_MODEL: "some/model" });
 
-      const result = await service.rewrite({ text: "It was done.", issueType: "passive" });
+      const result = await service.rewrite("user-1", { text: "It was done.", issueType: "passive" });
 
       expect(result.suggestions).toEqual(["One.", "Two."]);
       const [, init] = fetchSpy.mock.calls[0]!;
@@ -64,8 +94,8 @@ describe("AiService", () => {
         .spyOn(global, "fetch")
         .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "One." } }] }));
 
-      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
-      await service.rewrite({ text: "x", issueType: "adverb" });
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
+      await service.rewrite("user-1", { text: "x", issueType: "adverb" });
 
       const [, init] = fetchSpy.mock.calls[0]!;
       const body = JSON.parse(init!.body as string) as { model: string };
@@ -79,9 +109,9 @@ describe("AiService", () => {
           jsonResponse({ error: { message: "insufficient credits" } }, false, 402),
         );
 
-      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
 
-      await expect(service.rewrite({ text: "x", issueType: "passive" })).rejects.toMatchObject({
+      await expect(service.rewrite("user-1", { text: "x", issueType: "passive" })).rejects.toMatchObject({
         message: expect.stringContaining("insufficient credits"),
       });
     });
@@ -99,12 +129,12 @@ describe("AiService", () => {
         });
       });
 
-      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
       // Gắn assertion ngay lập tức: nếu chờ đến sau `advanceTimersByTimeAsync`
       // mới gắn, promise đã reject mà chưa có handler và Jest báo lỗi ngoài ý
       // muốn (unhandled rejection) trước khi kịp assert.
       const assertion = expect(
-        service.rewrite({ text: "x", issueType: "passive" }),
+        service.rewrite("user-1", { text: "x", issueType: "passive" }),
       ).rejects.toBeInstanceOf(GatewayTimeoutException);
 
       await jest.advanceTimersByTimeAsync(15_000);
@@ -118,11 +148,67 @@ describe("AiService", () => {
         .spyOn(global, "fetch")
         .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "" } }] }));
 
-      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
 
-      await expect(service.rewrite({ text: "x", issueType: "passive" })).rejects.toBeInstanceOf(
+      await expect(service.rewrite("user-1", { text: "x", issueType: "passive" })).rejects.toBeInstanceOf(
         ServiceUnavailableException,
       );
+    });
+  });
+
+  describe("complete timeouts", () => {
+    it("rewrite giữ timeout 15s mỗi lượt", async () => {
+      jest.useFakeTimers();
+      jest.spyOn(global, "fetch").mockImplementation((_url, init) => {
+        return new Promise((_resolve, reject) => {
+          const signal = (init as RequestInit).signal;
+          signal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        });
+      });
+
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
+      const assertion = expect(
+        service.rewrite("user-1", { text: "x", issueType: "passive" }),
+      ).rejects.toBeInstanceOf(GatewayTimeoutException);
+
+      await jest.advanceTimersByTimeAsync(14_999);
+      expect(jest.getTimerCount()).toBeGreaterThan(0);
+      await jest.advanceTimersByTimeAsync(1);
+      await assertion;
+      jest.useRealTimers();
+    });
+
+    it("complete tôn trọng timeoutMs tùy chỉnh trên mỗi lượt", async () => {
+      jest.useFakeTimers();
+      jest.spyOn(global, "fetch").mockImplementation((_url, init) => {
+        return new Promise((_resolve, reject) => {
+          const signal = (init as RequestInit).signal;
+          signal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        });
+      });
+
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
+      const assertion = expect(
+        service.complete({
+          prompt: "grade",
+          maxTokens: 100,
+          timeoutMs: 30_000,
+          deadlineMs: 30_000,
+        }),
+      ).rejects.toBeInstanceOf(GatewayTimeoutException);
+
+      await jest.advanceTimersByTimeAsync(29_999);
+      await jest.advanceTimersByTimeAsync(1);
+      await assertion;
+      jest.useRealTimers();
     });
   });
 
@@ -132,7 +218,7 @@ describe("AiService", () => {
         .spyOn(global, "fetch")
         .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "hello" } }] }));
 
-      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
       const result = await service.complete<string>({ prompt: "Say hi", maxTokens: 80 });
 
       expect(result).toBe("hello");
@@ -162,7 +248,7 @@ describe("AiService", () => {
         },
       };
 
-      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
       const result = await service.complete<{ prompt: string; ideas: string[] }>({
         prompt: "Generate a task",
         maxTokens: 400,
@@ -186,7 +272,7 @@ describe("AiService", () => {
         }),
       );
 
-      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
       const result = await service.complete<{ ok: boolean }>({
         prompt: "x",
         maxTokens: 20,
@@ -194,6 +280,151 @@ describe("AiService", () => {
       });
 
       expect(result).toEqual({ ok: true });
+    });
+  });
+
+  describe("complete retries", () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("503 → thử lại và thành công ở lượt 2", async () => {
+      jest.spyOn(Math, "random").mockReturnValue(0);
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValueOnce(jsonResponse({ error: { message: "busy" } }, false, 503))
+        .mockResolvedValueOnce(jsonResponse({ choices: [{ message: { content: "hello" } }] }));
+
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
+      await expect(
+        service.complete({ prompt: "x", maxTokens: 10, deadlineMs: 60_000 }),
+      ).resolves.toBe("hello");
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("400 → không retry lần nào", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ error: { message: "bad request" } }, false, 400));
+
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
+      await expect(service.complete({ prompt: "x", maxTokens: 10 })).rejects.toMatchObject({
+        message: expect.stringContaining("bad request"),
+      });
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("hết 3 lượt 503 → ném lỗi cuối", async () => {
+      jest.spyOn(Math, "random").mockReturnValue(0);
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ error: { message: "down" } }, false, 503));
+
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
+      await expect(
+        service.complete({ prompt: "x", maxTokens: 10, deadlineMs: 60_000 }),
+      ).rejects.toMatchObject({ message: expect.stringContaining("down") });
+      expect(fetchSpy).toHaveBeenCalledTimes(3);
+    });
+
+    it("tôn trọng Retry-After (giây) thay vì backoff mặc định", async () => {
+      jest.useFakeTimers();
+      jest.spyOn(Math, "random").mockReturnValue(1);
+      let calls = 0;
+      jest.spyOn(global, "fetch").mockImplementation(() => {
+        calls += 1;
+        if (calls === 1) {
+          return Promise.resolve(
+            jsonResponse({ error: { message: "rate" } }, false, 429, {
+              "retry-after": "2",
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+      });
+
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
+      const pending = service.complete({ prompt: "x", maxTokens: 10, deadlineMs: 60_000 });
+
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(calls).toBe(1);
+
+      await jest.advanceTimersByTimeAsync(1_999);
+      expect(calls).toBe(1);
+      await jest.advanceTimersByTimeAsync(1);
+      await expect(pending).resolves.toBe("ok");
+      expect(calls).toBe(2);
+    });
+
+    it("dừng retry khi vượt deadlineMs dù còn lượt", async () => {
+      jest.useFakeTimers();
+      // Backoff lượt 1 = 500ms * 1 → vượt deadline 100ms.
+      jest.spyOn(Math, "random").mockReturnValue(1);
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ error: { message: "down" } }, false, 503));
+
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
+      const pending = service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        timeoutMs: 50,
+        deadlineMs: 100,
+      });
+
+      await expect(pending).rejects.toMatchObject({
+        message: expect.stringContaining("down"),
+      });
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("usage recording", () => {
+    it("ghi AiUsage từ usage OpenRouter khi có context", async () => {
+      jest.spyOn(global, "fetch").mockResolvedValue(
+        jsonResponse({
+          choices: [{ message: { content: "hello" } }],
+          usage: { prompt_tokens: 11, completion_tokens: 7, cost: 0.001234 },
+        }),
+      );
+      const create = jest.fn().mockResolvedValue({});
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" }, fakePrisma({ create }));
+
+      await service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        usage: { userId: "user-1", endpoint: "rewrite" },
+      });
+
+      await Promise.resolve();
+      expect(create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: "user-1",
+          endpoint: "rewrite",
+          promptTokens: 11,
+          completionTokens: 7,
+        }),
+      });
+    });
+
+    it("không làm hỏng request khi lưu usage thất bại", async () => {
+      jest.spyOn(global, "fetch").mockResolvedValue(
+        jsonResponse({
+          choices: [{ message: { content: "hello" } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, cost: 0 },
+        }),
+      );
+      const create = jest.fn().mockRejectedValue(new Error("db down"));
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" }, fakePrisma({ create }));
+
+      await expect(
+        service.complete({
+          prompt: "x",
+          maxTokens: 10,
+          usage: { userId: "user-1", endpoint: "rewrite" },
+        }),
+      ).resolves.toBe("hello");
     });
   });
 });

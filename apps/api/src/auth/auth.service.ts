@@ -18,6 +18,8 @@ export interface AuthResult extends AuthTokens {
 
 const ACCESS_TOKEN_TTL = "15m";
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** Giữ refresh đã thu hồi tối đa 30 ngày trước khi dọn cơ hội. */
+const REFRESH_TOKEN_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const BCRYPT_ROUNDS = 12;
 /**
  * Chuỗi khớp `DUMMY_PASSWORD_HASH`. Chỉ để compare giả trên tài khoản không
@@ -227,6 +229,18 @@ export class AuthService {
         expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
       },
     });
+
+    // Dọn cơ hội: hết hạn, hoặc đã thu hồi quá 30 ngày — không chặn phát hành token.
+    void this.prisma.refreshToken
+      .deleteMany({
+        where: {
+          OR: [
+            { expiresAt: { lte: new Date() } },
+            { revokedAt: { lte: new Date(Date.now() - REFRESH_TOKEN_RETENTION_MS) } },
+          ],
+        },
+      })
+      .catch(() => undefined);
 
     const accessToken = await this.jwt.signAsync(
       { sub: userId },

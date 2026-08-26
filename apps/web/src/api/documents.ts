@@ -21,7 +21,12 @@ export interface DocumentInput {
   grade?: number;
 }
 
-export const listDocuments = () => apiFetch<DocumentSummary[]>("/documents");
+export const listDocuments = async () => {
+  const page = await apiFetch<{ items: DocumentSummary[]; nextCursor: string | null }>(
+    "/documents",
+  );
+  return page.items;
+};
 
 export const getDocument = (id: string) => apiFetch<DocumentDetail>(`/documents/${id}`);
 

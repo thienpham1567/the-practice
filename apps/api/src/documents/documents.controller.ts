@@ -8,10 +8,12 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { CurrentUserId } from "../auth/current-user.decorator";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { ListQueryDto } from "../common/list-query.dto";
 import { DocumentsService } from "./documents.service";
 import { CreateDocumentDto, UpdateDocumentDto } from "./dto/document.dto";
 
@@ -21,8 +23,8 @@ export class DocumentsController {
   constructor(private readonly documents: DocumentsService) {}
 
   @Get()
-  list(@CurrentUserId() userId: string) {
-    return this.documents.list(userId);
+  list(@CurrentUserId() userId: string, @Query() query: ListQueryDto) {
+    return this.documents.list(userId, query);
   }
 
   @Post()

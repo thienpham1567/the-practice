@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
+import { DEFAULT_PAGE_SIZE, toCursorPage } from "../common/cursor-page";
 import { PrismaService } from "../prisma/prisma.service";
 import type { CreateDocumentDto, UpdateDocumentDto } from "./dto/document.dto";
 
@@ -16,12 +17,16 @@ const LIST_FIELDS = {
 export class DocumentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(ownerId: string) {
-    return this.prisma.document.findMany({
+  async list(ownerId: string, opts: { cursor?: string; limit?: number } = {}) {
+    const limit = opts.limit ?? DEFAULT_PAGE_SIZE;
+    const rows = await this.prisma.document.findMany({
       where: { ownerId },
       select: LIST_FIELDS,
-      orderBy: { updatedAt: "desc" },
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
     });
+    return toCursorPage(rows, limit);
   }
 
   create(ownerId: string, dto: CreateDocumentDto) {
