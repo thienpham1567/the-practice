@@ -1,9 +1,14 @@
 import {
   GatewayTimeoutException,
+  HttpException,
+  HttpStatus,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../prisma/prisma.service";
 import { buildRewritePrompt, parseSuggestions } from "./prompts";
 import type { RewriteDto } from "./dto/rewrite.dto";
 
@@ -19,9 +24,18 @@ export const PRACTICE_DEADLINE_MS = 90_000;
 const DEFAULT_MODEL = "anthropic/claude-haiku-4.5";
 const MAX_ATTEMPTS = 3;
 const BACKOFF_BASE_MS = [500, 1_500] as const;
+const DEFAULT_DAILY_QUOTA = 100;
+const USAGE_WINDOW_DAYS = 30;
+
+export type AiEndpoint = "rewrite" | "practice.generate" | "practice.grade";
 
 interface OpenRouterResponse {
   choices?: { message?: { content?: string } }[];
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    cost?: number;
+  };
 }
 
 export interface JsonSchemaSpec {
@@ -37,6 +51,8 @@ export interface CompleteOptions {
   timeoutMs?: number;
   /** Tổng thời gian cho phép kể cả retry. */
   deadlineMs?: number;
+  /** Khi có: ghi AiUsage sau lần gọi thành công. */
+  usage?: { userId: string; endpoint: AiEndpoint };
 }
 
 class OpenRouterAttemptError extends Error {
@@ -53,7 +69,12 @@ class OpenRouterAttemptError extends Error {
 
 @Injectable()
 export class AiService {
-  constructor(private readonly config: ConfigService) {}
+  private readonly logger = new Logger(AiService.name);
+
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   /**
    * Không dựng abstraction `LLMProvider` ở đây: OpenRouter là provider duy
@@ -84,12 +105,22 @@ export class AiService {
       if (remaining <= 0) break;
 
       try {
-        return await this.attemptOnce<T>({
+        const result = await this.attemptOnce<T>({
           apiKey,
           model,
           options,
           timeoutMs: Math.min(timeoutMs, remaining),
         });
+        if (options.usage) {
+          try {
+            await this.recordUsage(options.usage, model, result.usage);
+          } catch (error: unknown) {
+            this.logger.warn(
+              `event=ai_usage_write_failed endpoint=${options.usage.endpoint} ${error instanceof Error ? error.message : "unknown"}`,
+            );
+          }
+        }
+        return result.value;
       } catch (error) {
         const attemptError = toAttemptError(error);
         lastError = attemptError;
@@ -111,12 +142,93 @@ export class AiService {
     );
   }
 
+  async assertWithinDailyQuota(userId: string): Promise<void> {
+    const limit = this.dailyQuotaLimit();
+    if (limit <= 0) return;
+
+    const since = startOfUtcDay(new Date());
+    const used = await this.prisma.aiUsage.count({
+      where: { userId, createdAt: { gte: since } },
+    });
+
+    if (used >= limit) {
+      const resetsAt = new Date(since.getTime() + 24 * 60 * 60 * 1000);
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          message: `Daily AI quota exceeded. Resets at ${resetsAt.toISOString()} (UTC).`,
+          resetsAt: resetsAt.toISOString(),
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+  }
+
+  async usageSummary(userId: string): Promise<{
+    windowDays: number;
+    promptTokens: number;
+    completionTokens: number;
+    costUsd: string;
+    calls: number;
+  }> {
+    const since = new Date(Date.now() - USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    const rows = await this.prisma.aiUsage.findMany({
+      where: { userId, createdAt: { gte: since } },
+      select: { promptTokens: true, completionTokens: true, costUsd: true },
+    });
+
+    let promptTokens = 0;
+    let completionTokens = 0;
+    let cost = new Prisma.Decimal(0);
+    for (const row of rows) {
+      promptTokens += row.promptTokens;
+      completionTokens += row.completionTokens;
+      cost = cost.add(row.costUsd);
+    }
+
+    return {
+      windowDays: USAGE_WINDOW_DAYS,
+      promptTokens,
+      completionTokens,
+      costUsd: cost.toFixed(6),
+      calls: rows.length,
+    };
+  }
+
+  private dailyQuotaLimit(): number {
+    // Ưu tiên process.env để e2e có thể hạ ngưỡng mà không cần bootstrap lại app.
+    const raw = process.env.AI_DAILY_QUOTA ?? this.config.get<string>("AI_DAILY_QUOTA");
+    if (raw === undefined || raw === "") return DEFAULT_DAILY_QUOTA;
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : DEFAULT_DAILY_QUOTA;
+  }
+
+  private async recordUsage(
+    usage: { userId: string; endpoint: AiEndpoint },
+    model: string,
+    tokens: { promptTokens: number; completionTokens: number; costUsd: number },
+  ): Promise<void> {
+    await this.prisma.aiUsage.create({
+      data: {
+        userId: usage.userId,
+        endpoint: usage.endpoint,
+        model,
+        promptTokens: tokens.promptTokens,
+        completionTokens: tokens.completionTokens,
+        costUsd: new Prisma.Decimal(tokens.costUsd.toFixed(6)),
+      },
+    });
+  }
+
   private async attemptOnce<T>(args: {
     apiKey: string;
     model: string;
     options: CompleteOptions;
     timeoutMs: number;
-  }): Promise<T> {
+  }): Promise<{
+    value: T;
+    usage: { promptTokens: number; completionTokens: number; costUsd: number };
+  }> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), args.timeoutMs);
 
@@ -157,9 +269,16 @@ export class AiService {
 
       const body = (await response.json()) as OpenRouterResponse;
       const content = body.choices?.[0]?.message?.content ?? "";
+      const usage = {
+        promptTokens: body.usage?.prompt_tokens ?? 0,
+        completionTokens: body.usage?.completion_tokens ?? 0,
+        costUsd: typeof body.usage?.cost === "number" ? body.usage.cost : 0,
+      };
 
-      if (args.options.schema) return parseJsonContent<T>(content);
-      return content as T;
+      if (args.options.schema) {
+        return { value: parseJsonContent<T>(content), usage };
+      }
+      return { value: content as T, usage };
     } catch (error) {
       if (error instanceof OpenRouterAttemptError) throw error;
       if (error instanceof ServiceUnavailableException) {
@@ -174,13 +293,14 @@ export class AiService {
     }
   }
 
-  async rewrite(input: RewriteDto): Promise<{ suggestions: string[] }> {
+  async rewrite(userId: string, input: RewriteDto): Promise<{ suggestions: string[] }> {
     const prompt = buildRewritePrompt(input.text, input.issueType, input.context);
     const content = await this.complete<string>({
       prompt,
       maxTokens: 200,
       timeoutMs: DEFAULT_TIMEOUT_MS,
       deadlineMs: DEFAULT_DEADLINE_MS,
+      usage: { userId, endpoint: "rewrite" },
     });
     const suggestions = parseSuggestions(content);
 
@@ -190,6 +310,10 @@ export class AiService {
 
     return { suggestions };
   }
+}
+
+function startOfUtcDay(now: Date): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
 function parseJsonContent<T>(content: string): T {

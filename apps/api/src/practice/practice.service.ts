@@ -54,6 +54,7 @@ export class PracticeService {
       maxTokens: 1000,
       timeoutMs: PRACTICE_TIMEOUT_MS,
       deadlineMs: PRACTICE_DEADLINE_MS,
+      usage: { userId, endpoint: "practice.generate" },
     });
 
     return this.prisma.practiceAttempt.create({
@@ -137,6 +138,7 @@ export class PracticeService {
         maxTokens: 1500,
         timeoutMs: PRACTICE_TIMEOUT_MS,
         deadlineMs: PRACTICE_DEADLINE_MS,
+        usage: { userId, endpoint: "practice.grade" },
       });
 
       const submittedAt = new Date();

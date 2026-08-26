@@ -29,7 +29,7 @@ describe("API (e2e)", () => {
 
   beforeEach(async () => {
     await prisma.$executeRawUnsafe(
-      'TRUNCATE TABLE "AuthNonce", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
+      'TRUNCATE TABLE "AiUsage", "AuthNonce", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
     );
   });
 
@@ -267,11 +267,18 @@ describe("API (e2e)", () => {
       jest.restoreAllMocks();
     });
 
-    function mockOpenRouter(content: string) {
+    function mockOpenRouter(
+      content: string,
+      usage?: { prompt_tokens: number; completion_tokens: number; cost: number },
+    ) {
       return jest.spyOn(global, "fetch").mockResolvedValue({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ choices: [{ message: { content } }] }),
+        json: () =>
+          Promise.resolve({
+            choices: [{ message: { content } }],
+            ...(usage ? { usage } : {}),
+          }),
       } as Response);
     }
 
@@ -327,6 +334,72 @@ describe("API (e2e)", () => {
         .expect(503);
 
       expect(response.body.message).toContain("insufficient credits");
+    });
+
+    it("GET /ai/usage chỉ thấy usage của chính mình trong 30 ngày", async () => {
+      mockOpenRouter("One.\nTwo.", { prompt_tokens: 5, completion_tokens: 3, cost: 0.01 });
+      const alice = await registerUser("usage-alice@example.com");
+      const bob = await registerUser("usage-bob@example.com");
+
+      await server()
+        .post("/ai/rewrite")
+        .set({ Authorization: `Bearer ${alice.accessToken}` })
+        .send({ text: "It was done.", issueType: "passive" })
+        .expect(201);
+
+      mockOpenRouter("A.\nB.", { prompt_tokens: 9, completion_tokens: 4, cost: 0.02 });
+      await server()
+        .post("/ai/rewrite")
+        .set({ Authorization: `Bearer ${bob.accessToken}` })
+        .send({ text: "It was done.", issueType: "passive" })
+        .expect(201);
+
+      const aliceUsage = await server()
+        .get("/ai/usage")
+        .set({ Authorization: `Bearer ${alice.accessToken}` })
+        .expect(200);
+
+      expect(aliceUsage.body).toMatchObject({
+        windowDays: 30,
+        promptTokens: 5,
+        completionTokens: 3,
+        calls: 1,
+      });
+      expect(aliceUsage.body.costUsd).toBe("0.010000");
+
+      const bobUsage = await server()
+        .get("/ai/usage")
+        .set({ Authorization: `Bearer ${bob.accessToken}` })
+        .expect(200);
+      expect(bobUsage.body.calls).toBe(1);
+      expect(bobUsage.body.promptTokens).toBe(9);
+    });
+
+    it("vượt AI_DAILY_QUOTA → 429 kèm thời điểm reset UTC", async () => {
+      const previous = process.env.AI_DAILY_QUOTA;
+      process.env.AI_DAILY_QUOTA = "1";
+      mockOpenRouter("One.\nTwo.", { prompt_tokens: 1, completion_tokens: 1, cost: 0 });
+
+      try {
+        const { accessToken } = await registerUser("quota@example.com");
+        await server()
+          .post("/ai/rewrite")
+          .set({ Authorization: `Bearer ${accessToken}` })
+          .send({ text: "It was done.", issueType: "passive" })
+          .expect(201);
+
+        const blocked = await server()
+          .post("/ai/rewrite")
+          .set({ Authorization: `Bearer ${accessToken}` })
+          .send({ text: "It was done.", issueType: "passive" })
+          .expect(429);
+
+        expect(blocked.body.message).toMatch(/Daily AI quota exceeded/i);
+        expect(blocked.body.resetsAt).toEqual(expect.stringMatching(/Z$/));
+      } finally {
+        if (previous === undefined) delete process.env.AI_DAILY_QUOTA;
+        else process.env.AI_DAILY_QUOTA = previous;
+      }
     });
   });
 

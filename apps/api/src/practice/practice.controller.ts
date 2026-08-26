@@ -11,6 +11,7 @@ import { Throttle } from "@nestjs/throttler";
 import { CurrentUserId } from "../auth/current-user.decorator";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { UserThrottlerGuard } from "../ai/user-throttler.guard";
+import { DailyAiQuotaGuard } from "../ai/daily-ai-quota.guard";
 import { CreateAttemptDto, SubmitAttemptDto, UpdateAttemptDto } from "./dto/practice.dto";
 import { PracticeService } from "./practice.service";
 
@@ -25,7 +26,7 @@ export class PracticeController {
   }
 
   @Post()
-  @UseGuards(UserThrottlerGuard)
+  @UseGuards(UserThrottlerGuard, DailyAiQuotaGuard)
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   create(@CurrentUserId() userId: string, @Body() dto: CreateAttemptDto) {
     return this.practice.create(userId, dto);
@@ -46,7 +47,7 @@ export class PracticeController {
   }
 
   @Post(":id/submit")
-  @UseGuards(UserThrottlerGuard)
+  @UseGuards(UserThrottlerGuard, DailyAiQuotaGuard)
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   submit(
     @CurrentUserId() userId: string,
