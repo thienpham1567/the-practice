@@ -3,8 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { apiJson, ApiError } from "../api/client";
 import { useAuthStore, type SessionUser } from "../api/auth-store";
 import { AppMark } from "../AppMark";
-import { BrandLockup } from "../BrandLockup";
-import { hasStashedDraft } from "../pages/draft-stash";
+import { afterAuthPath } from "../folio/after-auth-path";
+import { Masthead } from "../folio/Masthead";
 
 interface AuthPageProps {
   mode: "login" | "register";
@@ -54,9 +54,7 @@ export function AuthPage({ mode }: AuthPageProps) {
       );
 
       setSession(result.accessToken, result.user);
-      // Nếu người dùng bị đưa tới đây giữa chừng lúc đang viết, trả họ về đúng
-      // bản nháp đó thay vì danh sách.
-      void navigate(hasStashedDraft() ? "/" : "/docs");
+      void navigate(afterAuthPath());
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : "Something went wrong");
     } finally {
@@ -67,9 +65,8 @@ export function AuthPage({ mode }: AuthPageProps) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
       <div className="animate-fade-up relative" style={{ animationDelay: "40ms" }}>
-        {/* Con dấu khổ lớn, mờ — neo theo khối tiêu đề, không theo cả trang. */}
         <AppMark className="pointer-events-none absolute -left-4 -top-16 h-28 w-28 text-rule select-none" />
-        <BrandLockup size="lg" />
+        <Masthead />
         <h1 className="relative mt-6 font-display text-4xl font-semibold">{copy.heading}</h1>
         <p className="relative mt-2 text-ink-soft">{copy.lede}</p>
       </div>
@@ -122,7 +119,7 @@ export function AuthPage({ mode }: AuthPageProps) {
       </p>
 
       <Link
-        to="/"
+        to="/write"
         className="animate-fade-up relative mt-10 text-sm text-ink-faint underline underline-offset-2 hover:text-ink"
         style={{ animationDelay: "160ms" }}
       >

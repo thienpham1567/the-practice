@@ -94,7 +94,7 @@ export function EditorPage() {
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center gap-4 border-b border-rule px-6 py-3">
-        <BrandLockup to="/docs" />
+        <BrandLockup to={signedIn ? "/practice" : "/"} />
         <Link
           to="/practice"
           className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion"
