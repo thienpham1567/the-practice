@@ -126,9 +126,17 @@ export function AuthPage({ mode }: AuthPageProps) {
             <span className="h-px flex-1 bg-rule" />
           </div>
           <div
-            ref={google.containerRef}
-            className={`mt-5 flex justify-center${formBusy ? " pointer-events-none" : ""}`}
-          />
+            className={`relative mt-5 flex min-h-10 justify-center${formBusy ? " pointer-events-none" : ""}`}
+          >
+            <div ref={google.containerRef} className="w-full max-w-[320px]" />
+            {google.status === "loading" && (
+              <div
+                data-testid="google-sign-in-skeleton"
+                className="pointer-events-none absolute inset-0 mx-auto max-w-[320px] border border-rule bg-paper"
+                aria-hidden="true"
+              />
+            )}
+          </div>
           {google.status === "loading" && (
             <p className="sr-only" aria-live="polite">
               Loading Google Sign-In…

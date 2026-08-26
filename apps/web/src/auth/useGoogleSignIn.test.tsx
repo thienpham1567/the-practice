@@ -145,8 +145,49 @@ describe("useGoogleSignIn", () => {
     renderHarness();
 
     await waitFor(() => expect(screen.getByTestId("status").textContent).toBe("hidden"));
-    expect(loadGsi).not.toHaveBeenCalled();
     expect(initialize).not.toHaveBeenCalled();
+  });
+
+  it("loads GSI in parallel with the nonce request after providers", async () => {
+    let resolveGsi: (() => void) | undefined;
+    let resolveNonce: ((value: { nonce: string }) => void) | undefined;
+    let gsiStarted = false;
+    let nonceStarted = false;
+    let overlapped = false;
+
+    vi.mocked(loadGsi).mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          gsiStarted = true;
+          if (nonceStarted) overlapped = true;
+          resolveGsi = () => resolve();
+        }),
+    );
+    vi.mocked(apiFetch).mockImplementation(async (path: string) => {
+      if (path === "/auth/providers") {
+        return { google: { enabled: true, clientId: "test-client-id" } };
+      }
+      if (path === "/auth/google/nonce") {
+        return new Promise<{ nonce: string }>((resolve) => {
+          nonceStarted = true;
+          if (gsiStarted) overlapped = true;
+          resolveNonce = resolve;
+        });
+      }
+      throw new Error(`unexpected apiFetch ${path}`);
+    });
+
+    renderHarness();
+
+    await waitFor(() => expect(gsiStarted && nonceStarted).toBe(true));
+    expect(overlapped).toBe(true);
+    expect(initialize).not.toHaveBeenCalled();
+
+    resolveGsi?.();
+    resolveNonce?.({ nonce: "nonce-1" });
+
+    await waitFor(() => expect(initialize).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId("status").textContent).toBe("ready");
   });
 
   it("hides Google sign-in when the GIS script fails to load", async () => {

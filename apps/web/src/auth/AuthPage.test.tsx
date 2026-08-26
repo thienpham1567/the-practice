@@ -86,6 +86,13 @@ describe("AuthPage", () => {
     expect(screen.getByLabelText("Email")).toBeTruthy();
   });
 
+  it("shows a visible loading placeholder while Google Sign-In boots", () => {
+    googleSignIn.status = "loading";
+    renderAuth();
+    expect(screen.getByTestId("google-sign-in")).toBeTruthy();
+    expect(screen.getByTestId("google-sign-in-skeleton")).toBeTruthy();
+  });
+
   it("surfaces a Google sign-in error in the existing alert", () => {
     googleSignIn.status = "ready";
     googleSignIn.error = "Sign-in session expired. Please try again.";

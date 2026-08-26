@@ -15,10 +15,6 @@ export class NonceService {
   constructor(private readonly prisma: PrismaService) {}
 
   async issue(): Promise<string> {
-    await this.prisma.authNonce.deleteMany({
-      where: { expiresAt: { lte: new Date() } },
-    });
-
     const raw = randomBytes(32).toString("hex");
 
     await this.prisma.authNonce.create({
@@ -27,6 +23,13 @@ export class NonceService {
         expiresAt: new Date(Date.now() + NONCE_TTL_MS),
       },
     });
+
+    // Cleanup không chặn phát hành nonce — một round-trip DB trên đường nóng.
+    void this.prisma.authNonce
+      .deleteMany({
+        where: { expiresAt: { lte: new Date() } },
+      })
+      .catch(() => undefined);
 
     return raw;
   }

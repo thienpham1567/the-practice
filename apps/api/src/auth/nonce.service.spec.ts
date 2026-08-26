@@ -58,22 +58,24 @@ describe("NonceService", () => {
       expect(expiresAt.getTime()).toBeLessThanOrEqual(after + 5 * 60 * 1000);
     });
 
-    it("deletes expired nonces before creating a new one", async () => {
+    it("creates the nonce without waiting on expired cleanup", async () => {
       const { service, prisma } = serviceWith();
-      const before = Date.now();
-
-      await service.issue();
-
-      const after = Date.now();
-      expect(prisma.authNonce.deleteMany).toHaveBeenCalledTimes(1);
-      const where = prisma.authNonce.deleteMany.mock.calls[0]?.[0].where as {
-        expiresAt: { lte: Date };
-      };
-      expect(where.expiresAt.lte.getTime()).toBeGreaterThanOrEqual(before);
-      expect(where.expiresAt.lte.getTime()).toBeLessThanOrEqual(after);
-      expect(prisma.authNonce.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
-        prisma.authNonce.create.mock.invocationCallOrder[0]!,
+      let resolveCleanup: ((value: { count: number }) => void) | undefined;
+      prisma.authNonce.deleteMany.mockImplementation(
+        () =>
+          new Promise<{ count: number }>((resolve) => {
+            resolveCleanup = resolve;
+          }),
       );
+
+      const issued = service.issue();
+
+      await expect(issued).resolves.toEqual(expect.any(String));
+      expect(prisma.authNonce.create).toHaveBeenCalledTimes(1);
+      expect(prisma.authNonce.deleteMany).toHaveBeenCalledTimes(1);
+      expect(typeof resolveCleanup).toBe("function");
+
+      resolveCleanup?.({ count: 0 });
     });
   });
 

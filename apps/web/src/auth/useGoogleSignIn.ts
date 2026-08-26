@@ -27,7 +27,7 @@ export function useGoogleSignIn(options?: { formPending?: boolean }): {
   const clientIdRef = useRef<string | undefined>(undefined);
   const needsButtonRef = useRef(false);
 
-  const { data, isError, isSuccess } = useQuery({
+  const { data, isError, isSuccess, isPending } = useQuery({
     queryKey: ["auth-providers"],
     queryFn: getAuthProviders,
     staleTime: Infinity,
@@ -41,6 +41,8 @@ export function useGoogleSignIn(options?: { formPending?: boolean }): {
     cancelledRef.current = false;
     const abort = new AbortController();
     abortRef.current = abort;
+    // Prefetch GIS song song với /auth/providers — script công khai, không cần clientId.
+    void loadGsi().catch(() => undefined);
 
     return () => {
       cancelledRef.current = true;
@@ -53,6 +55,10 @@ export function useGoogleSignIn(options?: { formPending?: boolean }): {
       setStatus("hidden");
       return;
     }
+    if (isPending) {
+      setStatus("loading");
+      return;
+    }
     if (!enabled || !clientId) return;
 
     const id = clientId;
@@ -63,9 +69,10 @@ export function useGoogleSignIn(options?: { formPending?: boolean }): {
       setStatus("loading");
       setError(null);
       try {
-        await loadGsi();
-        if (cancelled || cancelledRef.current) return;
-        const { nonce } = await apiFetch<{ nonce: string }>("/auth/google/nonce", { signal });
+        const [, { nonce }] = await Promise.all([
+          loadGsi(),
+          apiFetch<{ nonce: string }>("/auth/google/nonce", { signal }),
+        ]);
         if (cancelled || cancelledRef.current) return;
         initializeGis(id, nonce);
         needsButtonRef.current = true;
@@ -80,7 +87,7 @@ export function useGoogleSignIn(options?: { formPending?: boolean }): {
     return () => {
       cancelled = true;
     };
-  }, [enabled, clientId, isError, isSuccess]);
+  }, [enabled, clientId, isError, isSuccess, isPending]);
 
   useLayoutEffect(() => {
     if (status === "hidden" || !needsButtonRef.current) return;
