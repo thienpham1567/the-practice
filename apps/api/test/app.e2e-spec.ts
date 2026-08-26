@@ -1,13 +1,12 @@
-import { ValidationPipe, type INestApplication } from "@nestjs/common";
-import { Test } from "@nestjs/testing";
 import type { NestExpressApplication } from "@nestjs/platform-express";
-import cookieParser from "cookie-parser";
+import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
+import { configureApp } from "../src/configure-app";
 import { PrismaService } from "../src/prisma/prisma.service";
 
 describe("API (e2e)", () => {
-  let app: INestApplication;
+  let app: NestExpressApplication;
   let prisma: PrismaService;
 
   beforeAll(async () => {
@@ -18,10 +17,7 @@ describe("API (e2e)", () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
 
     app = moduleRef.createNestApplication<NestExpressApplication>();
-    app.use(cookieParser());
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
-    );
+    configureApp(app);
     await app.init();
 
     prisma = app.get(PrismaService);
@@ -214,15 +210,47 @@ describe("API (e2e)", () => {
         .get("/documents")
         .set({ Authorization: `Bearer ${alice.accessToken}` })
         .expect(200);
-      expect(aliceList.body).toHaveLength(1);
-      expect(aliceList.body[0].content).toBeUndefined();
-      expect(aliceList.body[0].title).toBe("Draft");
+      expect(aliceList.body.items).toHaveLength(1);
+      expect(aliceList.body.nextCursor).toBeNull();
+      expect(aliceList.body.items[0].content).toBeUndefined();
+      expect(aliceList.body.items[0].title).toBe("Draft");
 
       const bobList = await server()
         .get("/documents")
         .set({ Authorization: `Bearer ${bob.accessToken}` })
         .expect(200);
-      expect(bobList.body).toEqual([]);
+      expect(bobList.body).toEqual({ items: [], nextCursor: null });
+    });
+
+    it("phân trang theo cursor — trang 1 và trang 2 không trùng", async () => {
+      const { accessToken } = await registerUser("docs-page@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      for (let i = 0; i < 5; i += 1) {
+        await server()
+          .post("/documents")
+          .set(auth)
+          .send({ ...payload, title: `Draft ${i}` })
+          .expect(201);
+      }
+
+      const page1 = await server().get("/documents?limit=2").set(auth).expect(200);
+      expect(page1.body.items).toHaveLength(2);
+      expect(page1.body.nextCursor).toEqual(expect.any(String));
+
+      const page2 = await server()
+        .get(`/documents?limit=2&cursor=${page1.body.nextCursor}`)
+        .set(auth)
+        .expect(200);
+      expect(page2.body.items).toHaveLength(2);
+
+      const ids1 = page1.body.items.map((item: { id: string }) => item.id);
+      const ids2 = page2.body.items.map((item: { id: string }) => item.id);
+      expect(ids1.filter((id: string) => ids2.includes(id))).toEqual([]);
+
+      const noCursor = await server().get("/documents").set(auth).expect(200);
+      expect(noCursor.body.items.length).toBeGreaterThanOrEqual(5);
+      expect(noCursor.body.nextCursor).toBeNull();
     });
 
     it("không cho người khác đọc, sửa hay xóa document của mình", async () => {
@@ -547,10 +575,12 @@ describe("API (e2e)", () => {
       expect(submitted.body.submittedAt).toEqual(expect.any(String));
 
       const listed = await server().get("/practice/attempts").set(auth).expect(200);
-      expect(listed.body).toHaveLength(1);
-      expect(listed.body[0].content).toBeUndefined();
-      expect(listed.body[0].ideas).toBeUndefined();
-      expect(listed.body[0].band).toBe(6);
+      expect(listed.body.items).toHaveLength(1);
+      expect(listed.body.nextCursor).toBeNull();
+      expect(listed.body.items[0].content).toBeUndefined();
+      expect(listed.body.items[0].ideas).toBeUndefined();
+      expect(listed.body.items[0].prompt).toBeUndefined();
+      expect(listed.body.items[0].band).toBe(6);
 
       const fetched = await server().get(`/practice/attempts/${id}`).set(auth).expect(200);
       expect(fetched.body.content).toEqual(content);
@@ -561,6 +591,43 @@ describe("API (e2e)", () => {
         .set(auth)
         .send({ styleSnapshot: {} })
         .expect(409);
+    });
+
+    it("phân trang practice theo cursor — trang 1 và trang 2 không trùng", async () => {
+      const { accessToken } = await registerUser("practice-page@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { email: "practice-page@example.com" },
+      });
+
+      for (let i = 0; i < 5; i += 1) {
+        await prisma.practiceAttempt.create({
+          data: {
+            userId: user.id,
+            level: "A2",
+            taskType: "email",
+            prompt: `Prompt ${i}`,
+            ideas: [],
+            vocabulary: [],
+            startedAt: new Date(Date.now() - i * 60_000),
+          },
+        });
+      }
+
+      const page1 = await server().get("/practice/attempts?limit=2").set(auth).expect(200);
+      expect(page1.body.items).toHaveLength(2);
+      expect(page1.body.nextCursor).toEqual(expect.any(String));
+      expect(page1.body.items[0].prompt).toBeUndefined();
+
+      const page2 = await server()
+        .get(`/practice/attempts?limit=2&cursor=${page1.body.nextCursor}`)
+        .set(auth)
+        .expect(200);
+      expect(page2.body.items).toHaveLength(2);
+
+      const ids1 = page1.body.items.map((item: { id: string }) => item.id);
+      const ids2 = page2.body.items.map((item: { id: string }) => item.id);
+      expect(ids1.filter((id: string) => ids2.includes(id))).toEqual([]);
     });
   });
 
@@ -575,6 +642,30 @@ describe("API (e2e)", () => {
 
     it("/health là alias của ready", async () => {
       await server().get("/health").expect(200, { status: "ok" });
+    });
+  });
+
+  describe("ops headers", () => {
+    it("helmet gắn X-Content-Type-Options và X-Frame-Options", async () => {
+      const response = await server().get("/health/live").expect(200);
+      expect(response.headers["x-content-type-options"]).toBe("nosniff");
+      expect(response.headers["x-frame-options"]).toBe("SAMEORIGIN");
+      // CSP tắt để không chặn GIS nếu process này từng serve HTML
+      expect(response.headers["content-security-policy"]).toBeUndefined();
+    });
+
+    it("echo x-request-id từ client hoặc sinh mới", async () => {
+      const echoed = await server()
+        .get("/health/live")
+        .set("x-request-id", "test-req-123")
+        .expect(200);
+      expect(echoed.headers["x-request-id"]).toBe("test-req-123");
+
+      const generated = await server().get("/health/live").expect(200);
+      expect(generated.headers["x-request-id"]).toEqual(expect.any(String));
+      expect(generated.headers["x-request-id"]).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+      );
     });
   });
 });

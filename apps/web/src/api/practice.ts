@@ -13,7 +13,6 @@ export interface PracticeAttemptSummary {
   id: string;
   level: Level;
   taskType: TaskType;
-  prompt: string;
   band: number | null;
   wordCount: number;
   hintsOpened: boolean;
@@ -23,6 +22,7 @@ export interface PracticeAttemptSummary {
 }
 
 export interface PracticeAttemptDetail extends PracticeAttemptSummary {
+  prompt: string;
   ideas: string[];
   vocabulary: VocabularyItem[];
   content: SerializedEditorState | null;
@@ -51,7 +51,12 @@ export interface SubmitAttemptInput {
   wordCount?: number;
 }
 
-export const listAttempts = () => apiFetch<PracticeAttemptSummary[]>("/practice/attempts");
+export const listAttempts = async () => {
+  const page = await apiFetch<{ items: PracticeAttemptSummary[]; nextCursor: string | null }>(
+    "/practice/attempts",
+  );
+  return page.items;
+};
 
 export const getAttempt = (id: string) =>
   apiFetch<PracticeAttemptDetail>(`/practice/attempts/${id}`);

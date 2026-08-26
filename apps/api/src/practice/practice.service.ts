@@ -14,6 +14,7 @@ import {
   type TaskType,
 } from "@writing-helper/practice";
 import { AiService, PRACTICE_DEADLINE_MS, PRACTICE_TIMEOUT_MS } from "../ai/ai.service";
+import { DEFAULT_PAGE_SIZE, toCursorPage } from "../common/cursor-page";
 import { PrismaService } from "../prisma/prisma.service";
 import type {
   CreateAttemptDto,
@@ -27,7 +28,6 @@ const LIST_FIELDS = {
   id: true,
   level: true,
   taskType: true,
-  prompt: true,
   band: true,
   wordCount: true,
   hintsOpened: true,
@@ -69,12 +69,16 @@ export class PracticeService {
     });
   }
 
-  list(userId: string) {
-    return this.prisma.practiceAttempt.findMany({
+  async list(userId: string, opts: { cursor?: string; limit?: number } = {}) {
+    const limit = opts.limit ?? DEFAULT_PAGE_SIZE;
+    const rows = await this.prisma.practiceAttempt.findMany({
       where: { userId },
       select: LIST_FIELDS,
-      orderBy: { startedAt: "desc" },
+      orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
     });
+    return toCursorPage(rows, limit);
   }
 
   async findOne(userId: string, id: string) {
