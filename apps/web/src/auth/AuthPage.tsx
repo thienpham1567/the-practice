@@ -5,6 +5,7 @@ import { useAuthStore, type SessionUser } from "../api/auth-store";
 import { AppMark } from "../AppMark";
 import { afterAuthPath } from "../folio/after-auth-path";
 import { Masthead } from "../folio/Masthead";
+import { useGoogleSignIn } from "./useGoogleSignIn";
 
 interface AuthPageProps {
   mode: "login" | "register";
@@ -40,6 +41,8 @@ export function AuthPage({ mode }: AuthPageProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const google = useGoogleSignIn();
+  const alertMessage = error ?? google.error;
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -92,10 +95,10 @@ export function AuthPage({ mode }: AuthPageProps) {
           hint={mode === "register" ? "At least 8 characters." : undefined}
         />
 
-        {error && (
+        {alertMessage && (
           <p role="alert" className="flex items-baseline gap-1.5 text-sm text-vermilion">
             <span aria-hidden="true">—</span>
-            {error}
+            {alertMessage}
           </p>
         )}
 
@@ -107,6 +110,33 @@ export function AuthPage({ mode }: AuthPageProps) {
           {pending ? "Working…" : copy.action}
         </button>
       </form>
+
+      {google.status !== "hidden" && (
+        <div
+          className="animate-fade-up relative mt-8"
+          style={{ animationDelay: "110ms" }}
+          data-testid="google-sign-in"
+        >
+          <div className="flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-rule" />
+            <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+              or
+            </span>
+            <span className="h-px flex-1 bg-rule" />
+          </div>
+          <div ref={google.containerRef} className="mt-5 flex justify-center" />
+          {google.status === "loading" && (
+            <p className="sr-only" aria-live="polite">
+              Loading Google Sign-In…
+            </p>
+          )}
+          {google.status === "submitting" && (
+            <p className="sr-only" aria-live="polite">
+              Signing in with Google…
+            </p>
+          )}
+        </div>
+      )}
 
       <p
         className="animate-fade-up relative mt-6 text-sm text-ink-soft"
