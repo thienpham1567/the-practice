@@ -132,6 +132,13 @@ describe("API (e2e)", () => {
       await server().post("/auth/refresh").expect(401);
     });
 
+    it("cấp nonce Google khi chưa đăng nhập", async () => {
+      const response = await server().get("/auth/google/nonce").expect(200);
+
+      expect(response.body).toEqual({ nonce: expect.any(String) });
+      expect(response.body.nonce).toHaveLength(64);
+    });
+
     it("từ chối refresh token đã hết hạn", async () => {
       const { cookies } = await registerUser("expired@example.com");
 

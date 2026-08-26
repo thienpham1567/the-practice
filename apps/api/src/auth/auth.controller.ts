@@ -1,9 +1,10 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { AuthService, REFRESH_TOKEN_TTL_MS } from "./auth.service";
 import { LoginDto, RegisterDto } from "./dto/credentials.dto";
+import { NonceService } from "./nonce.service";
 
 const REFRESH_COOKIE = "refresh_token";
 
@@ -22,6 +23,7 @@ const COOKIE_PATH = "/";
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
+    private readonly nonce: NonceService,
     private readonly config: ConfigService,
   ) {}
 
@@ -62,6 +64,11 @@ export class AuthController {
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.auth.logout(readRefreshCookie(req));
     res.clearCookie(REFRESH_COOKIE, { path: COOKIE_PATH });
+  }
+
+  @Get("google/nonce")
+  async issueGoogleNonce(): Promise<{ nonce: string }> {
+    return { nonce: await this.nonce.issue() };
   }
 
   private setRefreshCookie(res: Response, token: string): void {

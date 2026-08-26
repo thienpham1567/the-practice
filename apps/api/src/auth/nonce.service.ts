@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
-import type { PrismaService } from "../prisma/prisma.service";
+import { PrismaService } from "../prisma/prisma.service";
 
 const NONCE_TTL_MS = 5 * 60 * 1000;
 
