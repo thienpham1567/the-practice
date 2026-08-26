@@ -81,6 +81,10 @@ Tiền lưu bằng `Decimal(10,6)`, không dùng `Float`.
 | 2.7 | Chấm hỏng → xoá `gradingStartedAt`; khoá quá 2 phút coi là chết, cho chiếm lại | Unit test cho cả hai nhánh |
 | 2.8 | Đo thời gian chấm thật để chỉnh timeout cho đúng | Chạy thật vài bài 250–300 từ, ghi lại thời gian trong plan |
 
+### Ghi chú 2.8 (2026-08-26)
+
+Đặt tạm `PRACTICE_TIMEOUT_MS = 30_000` và `PRACTICE_DEADLINE_MS = 90_000` (đủ cho 1 lượt + 2 retry + backoff). **Chưa đo production** trong session này — cần chạy vài bài 250–300 từ trên staging/prod với `OPENROUTER_API_KEY` thật rồi cập nhật lại hai hằng số nếu p95 vượt ~25s/lượt.
+
 ## Milestone 3 — Chi phí
 
 | # | Việc | Kiểm chứng |
