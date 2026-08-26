@@ -6,10 +6,18 @@ function fakeConfig(values: Record<string, string | undefined>): ConfigService {
   return { get: (key: string) => values[key] } as unknown as ConfigService;
 }
 
-function jsonResponse(body: unknown, ok = true, status = 200): Response {
+function jsonResponse(
+  body: unknown,
+  ok = true,
+  status = 200,
+  headers: Record<string, string> = {},
+): Response {
   return {
     ok,
     status,
+    headers: {
+      get: (name: string) => headers[name.toLowerCase()] ?? headers[name] ?? null,
+    },
     json: () => Promise.resolve(body),
   } as Response;
 }
@@ -250,6 +258,103 @@ describe("AiService", () => {
       });
 
       expect(result).toEqual({ ok: true });
+    });
+  });
+
+  describe("complete retries", () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it("503 → thử lại và thành công ở lượt 2", async () => {
+      jest.spyOn(Math, "random").mockReturnValue(0);
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValueOnce(jsonResponse({ error: { message: "busy" } }, false, 503))
+        .mockResolvedValueOnce(jsonResponse({ choices: [{ message: { content: "hello" } }] }));
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      await expect(
+        service.complete({ prompt: "x", maxTokens: 10, deadlineMs: 60_000 }),
+      ).resolves.toBe("hello");
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("400 → không retry lần nào", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ error: { message: "bad request" } }, false, 400));
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      await expect(service.complete({ prompt: "x", maxTokens: 10 })).rejects.toMatchObject({
+        message: expect.stringContaining("bad request"),
+      });
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("hết 3 lượt 503 → ném lỗi cuối", async () => {
+      jest.spyOn(Math, "random").mockReturnValue(0);
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ error: { message: "down" } }, false, 503));
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      await expect(
+        service.complete({ prompt: "x", maxTokens: 10, deadlineMs: 60_000 }),
+      ).rejects.toMatchObject({ message: expect.stringContaining("down") });
+      expect(fetchSpy).toHaveBeenCalledTimes(3);
+    });
+
+    it("tôn trọng Retry-After (giây) thay vì backoff mặc định", async () => {
+      jest.useFakeTimers();
+      jest.spyOn(Math, "random").mockReturnValue(1);
+      let calls = 0;
+      jest.spyOn(global, "fetch").mockImplementation(() => {
+        calls += 1;
+        if (calls === 1) {
+          return Promise.resolve(
+            jsonResponse({ error: { message: "rate" } }, false, 429, {
+              "retry-after": "2",
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+      });
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const pending = service.complete({ prompt: "x", maxTokens: 10, deadlineMs: 60_000 });
+
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(calls).toBe(1);
+
+      await jest.advanceTimersByTimeAsync(1_999);
+      expect(calls).toBe(1);
+      await jest.advanceTimersByTimeAsync(1);
+      await expect(pending).resolves.toBe("ok");
+      expect(calls).toBe(2);
+    });
+
+    it("dừng retry khi vượt deadlineMs dù còn lượt", async () => {
+      jest.useFakeTimers();
+      // Backoff lượt 1 = 500ms * 1 → vượt deadline 100ms.
+      jest.spyOn(Math, "random").mockReturnValue(1);
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ error: { message: "down" } }, false, 503));
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const pending = service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        timeoutMs: 50,
+        deadlineMs: 100,
+      });
+
+      await expect(pending).rejects.toMatchObject({
+        message: expect.stringContaining("down"),
+      });
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
   });
 });
