@@ -1,9 +1,22 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { apiJson } from "../api/client";
+import { useAuthStore } from "../api/auth-store";
 import { AuthPage } from "./AuthPage";
 import type { GoogleSignInStatus } from "./useGoogleSignIn";
+
+vi.mock("../api/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../api/client")>();
+  return { ...actual, apiJson: vi.fn() };
+});
+
+const navigate = vi.fn();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return { ...actual, useNavigate: () => navigate };
+});
 
 const googleSignIn = {
   containerRef: { current: null },
@@ -11,8 +24,13 @@ const googleSignIn = {
   error: null as string | null,
 };
 
+let lastFormPending = false;
+
 vi.mock("./useGoogleSignIn", () => ({
-  useGoogleSignIn: () => googleSignIn,
+  useGoogleSignIn: (options?: { formPending?: boolean }) => {
+    lastFormPending = options?.formPending === true;
+    return googleSignIn;
+  },
 }));
 
 function renderAuth(mode: "login" | "register" = "login") {
@@ -32,10 +50,14 @@ describe("AuthPage", () => {
   beforeEach(() => {
     googleSignIn.status = "hidden";
     googleSignIn.error = null;
+    lastFormPending = false;
+    navigate.mockReset();
+    vi.mocked(apiJson).mockReset();
   });
 
   afterEach(() => {
     cleanup();
+    useAuthStore.setState({ accessToken: null, user: null, status: "loading" });
   });
 
   it("sends Back to the editor to /write", () => {
@@ -80,5 +102,24 @@ describe("AuthPage", () => {
       true,
     );
     expect(screen.getByTestId("google-sign-in").querySelector(".pointer-events-none")).toBeTruthy();
+  });
+
+  it("keeps the password form locked after a successful sign-in", async () => {
+    vi.mocked(apiJson).mockResolvedValue({
+      accessToken: "tok",
+      user: { id: "u1", email: "a@b.c" },
+    });
+    googleSignIn.status = "ready";
+    renderAuth();
+
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "a@b.c" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password1" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Sign in" }).closest("form")!);
+
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
+    expect(lastFormPending).toBe(true);
+    expect((screen.getByRole("button", { name: "Working…" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 });

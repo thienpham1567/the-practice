@@ -61,9 +61,8 @@ export function AuthPage({ mode }: AuthPageProps) {
       setSession(result.accessToken, result.user);
       void navigate(afterAuthPath());
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "Something went wrong");
-    } finally {
       setPending(false);
+      setError(caught instanceof ApiError ? caught.message : "Something went wrong");
     }
   };
 
