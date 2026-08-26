@@ -151,7 +151,7 @@ export class AiService {
         throw new OpenRouterAttemptError(
           await describeError(response),
           response.status,
-          parseRetryAfterMs(response.headers.get("retry-after")),
+          parseRetryAfterMs(response.headers?.get?.("retry-after") ?? null),
         );
       }
 
