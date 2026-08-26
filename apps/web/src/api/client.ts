@@ -81,6 +81,11 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   return (await response.json()) as T;
 }
 
-export function apiJson<T>(path: string, method: string, body: unknown): Promise<T> {
-  return apiFetch<T>(path, { method, body: JSON.stringify(body) });
+export function apiJson<T>(
+  path: string,
+  method: string,
+  body: unknown,
+  signal?: AbortSignal,
+): Promise<T> {
+  return apiFetch<T>(path, { method, body: JSON.stringify(body), signal });
 }
