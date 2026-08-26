@@ -60,6 +60,15 @@ describe("AuthPage", () => {
     useAuthStore.setState({ accessToken: null, user: null, status: "loading" });
   });
 
+  it("opens as a Folio title page with a large brand lockup", () => {
+    renderAuth();
+    const brand = screen.getByRole("link", { name: /The Practice/ });
+    expect(brand.getAttribute("href")).toBe("/");
+    expect(brand.className).toContain("text-3xl");
+    expect(screen.getByRole("heading", { name: "Welcome back" })).toBeTruthy();
+    expect(document.querySelector("header.border-b")).toBeNull();
+  });
+
   it("sends Back to the editor to /write", () => {
     renderAuth();
     expect(screen.getByRole("link", { name: "Back to the editor" }).getAttribute("href")).toBe(
@@ -91,6 +100,14 @@ describe("AuthPage", () => {
     renderAuth();
     expect(screen.getByTestId("google-sign-in")).toBeTruthy();
     expect(screen.getByTestId("google-sign-in-skeleton")).toBeTruthy();
+    expect(screen.getByTestId("google-sign-in-slot").className).toContain("h-10");
+  });
+
+  it("keeps a fixed-height Google slot when the button is ready", () => {
+    googleSignIn.status = "ready";
+    renderAuth();
+    expect(screen.getByTestId("google-sign-in-slot").className).toContain("h-10");
+    expect(screen.queryByTestId("google-sign-in-skeleton")).toBeNull();
   });
 
   it("surfaces a Google sign-in error in the existing alert", () => {

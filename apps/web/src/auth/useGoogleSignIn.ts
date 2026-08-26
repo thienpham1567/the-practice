@@ -16,7 +16,7 @@ export function useGoogleSignIn(options?: { formPending?: boolean }): {
 } {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState<GoogleSignInStatus>("hidden");
+  const [status, setStatus] = useState<GoogleSignInStatus>("loading");
   const [error, setError] = useState<string | null>(null);
 
   const cancelledRef = useRef(false);

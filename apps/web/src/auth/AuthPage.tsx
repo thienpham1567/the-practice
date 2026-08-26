@@ -2,9 +2,8 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiJson, ApiError } from "../api/client";
 import { useAuthStore, type SessionUser } from "../api/auth-store";
-import { AppMark } from "../AppMark";
+import { BrandLockup } from "../BrandLockup";
 import { afterAuthPath } from "../folio/after-auth-path";
-import { Masthead } from "../folio/Masthead";
 import { useGoogleSignIn } from "./useGoogleSignIn";
 
 interface AuthPageProps {
@@ -67,17 +66,18 @@ export function AuthPage({ mode }: AuthPageProps) {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6">
-      <div className="animate-fade-up relative" style={{ animationDelay: "40ms" }}>
-        <AppMark className="pointer-events-none absolute -left-4 -top-16 h-28 w-28 text-rule select-none" />
-        <Masthead />
-        <h1 className="relative mt-6 font-display text-4xl font-semibold">{copy.heading}</h1>
-        <p className="relative mt-2 text-ink-soft">{copy.lede}</p>
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-14">
+      <div className="animate-fade-up" style={{ animationDelay: "40ms" }}>
+        <BrandLockup to="/" size="xl" />
+        <h1 className="mt-10 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+          {copy.heading}
+        </h1>
+        <p className="mt-3 text-lg text-ink-soft">{copy.lede}</p>
       </div>
 
       <form
         onSubmit={(event) => void submit(event)}
-        className="animate-fade-up relative mt-8 space-y-5"
+        className="animate-fade-up relative mt-10 space-y-5"
         style={{ animationDelay: "90ms" }}
       >
         <Field
@@ -113,11 +113,7 @@ export function AuthPage({ mode }: AuthPageProps) {
       </form>
 
       {google.status !== "hidden" && (
-        <div
-          className="animate-fade-up relative mt-8"
-          style={{ animationDelay: "110ms" }}
-          data-testid="google-sign-in"
-        >
+        <div className="relative mt-8" data-testid="google-sign-in">
           <div className="flex items-center gap-3" aria-hidden="true">
             <span className="h-px flex-1 bg-rule" />
             <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
@@ -126,13 +122,14 @@ export function AuthPage({ mode }: AuthPageProps) {
             <span className="h-px flex-1 bg-rule" />
           </div>
           <div
-            className={`relative mt-5 flex min-h-10 justify-center${formBusy ? " pointer-events-none" : ""}`}
+            data-testid="google-sign-in-slot"
+            className={`relative mt-5 flex h-10 justify-center overflow-hidden${formBusy ? " pointer-events-none" : ""}`}
           >
-            <div ref={google.containerRef} className="w-full max-w-[320px]" />
+            <div ref={google.containerRef} className="h-10 w-full max-w-[320px]" />
             {google.status === "loading" && (
               <div
                 data-testid="google-sign-in-skeleton"
-                className="pointer-events-none absolute inset-0 mx-auto max-w-[320px] border border-rule bg-paper"
+                className="pointer-events-none absolute inset-0 mx-auto h-10 max-w-[320px] border border-rule bg-paper"
                 aria-hidden="true"
               />
             )}
