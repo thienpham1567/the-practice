@@ -72,4 +72,13 @@ describe("AuthPage", () => {
       "Sign-in session expired. Please try again.",
     );
   });
+
+  it("disables the password form while Google is submitting", () => {
+    googleSignIn.status = "submitting";
+    renderAuth();
+    expect((screen.getByRole("button", { name: "Sign in" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    expect(screen.getByTestId("google-sign-in").querySelector(".pointer-events-none")).toBeTruthy();
+  });
 });

@@ -30,8 +30,8 @@ vi.mock("react-router-dom", async (importOriginal) => {
   };
 });
 
-function Probe() {
-  const google = useGoogleSignIn();
+function Probe({ formPending = false }: { formPending?: boolean }) {
+  const google = useGoogleSignIn({ formPending });
   return (
     <div>
       <span data-testid="status">{google.status}</span>
@@ -41,26 +41,26 @@ function Probe() {
   );
 }
 
-function Harness() {
+function Harness({ formPending = false }: { formPending?: boolean }) {
   const [, setTick] = useState(0);
   return (
     <div>
       <button type="button" onClick={() => setTick((n) => n + 1)}>
         rerender
       </button>
-      <Probe />
+      <Probe formPending={formPending} />
     </div>
   );
 }
 
-function renderHarness() {
+function renderHarness(formPending = false) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
   });
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter>
-        <Harness />
+        <Harness formPending={formPending} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -184,6 +184,9 @@ describe("useGoogleSignIn", () => {
     finish?.({ accessToken: "tok", user: { id: "u1", email: "a@b.c" } });
     await waitFor(() => expect(navigate).toHaveBeenCalledTimes(1));
     expect(useAuthStore.getState().accessToken).toBe("tok");
+
+    credentialCallback!(googleCredential("other.payload.sig"));
+    expect(apiJson).toHaveBeenCalledTimes(1);
   });
 
   it("does not set session after unmount aborts an in-flight sign-in", async () => {
@@ -240,5 +243,15 @@ describe("useGoogleSignIn", () => {
     expect(screen.getByRole("alert").textContent).toBe(
       "Sign-in session expired. Please try again.",
     );
+  });
+
+  it("ignores a GIS callback while the password form is pending", async () => {
+    renderHarness(true);
+    await waitFor(() => expect(credentialCallback).toBeDefined());
+
+    credentialCallback!(googleCredential());
+
+    expect(apiJson).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

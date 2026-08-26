@@ -9,7 +9,7 @@ import { loadGsi } from "./load-gsi";
 
 export type GoogleSignInStatus = "hidden" | "loading" | "ready" | "submitting";
 
-export function useGoogleSignIn(): {
+export function useGoogleSignIn(options?: { formPending?: boolean }): {
   containerRef: RefObject<HTMLDivElement>;
   status: GoogleSignInStatus;
   error: string | null;
@@ -21,6 +21,8 @@ export function useGoogleSignIn(): {
 
   const cancelledRef = useRef(false);
   const submittingRef = useRef(false);
+  const formPendingRef = useRef(false);
+  formPendingRef.current = options?.formPending === true;
   const abortRef = useRef<AbortController | null>(null);
   const clientIdRef = useRef<string | undefined>(undefined);
   const needsButtonRef = useRef(false);
@@ -105,7 +107,7 @@ export function useGoogleSignIn(): {
   }
 
   async function handleCredential(response: google.accounts.id.CredentialResponse) {
-    if (submittingRef.current || cancelledRef.current) return;
+    if (submittingRef.current || cancelledRef.current || formPendingRef.current) return;
     if (!response.credential) return;
 
     submittingRef.current = true;
@@ -123,6 +125,7 @@ export function useGoogleSignIn(): {
       useAuthStore.getState().setSession(result.accessToken, result.user);
       void navigate(afterAuthPath());
     } catch (caught) {
+      submittingRef.current = false;
       if (cancelledRef.current || isAbortError(caught)) return;
       setError(caught instanceof ApiError ? caught.message : "Something went wrong");
       if (caught instanceof ApiError && caught.status === 401 && clientIdRef.current) {
@@ -137,8 +140,6 @@ export function useGoogleSignIn(): {
         }
       }
       if (!cancelledRef.current) setStatus("ready");
-    } finally {
-      submittingRef.current = false;
     }
   }
 

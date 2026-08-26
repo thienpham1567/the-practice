@@ -41,11 +41,13 @@ export function AuthPage({ mode }: AuthPageProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const google = useGoogleSignIn();
+  const google = useGoogleSignIn({ formPending: pending });
   const alertMessage = error ?? google.error;
+  const formBusy = pending || google.status === "submitting";
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (formBusy) return;
     setError(null);
     setPending(true);
 
@@ -104,7 +106,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
         <button
           type="submit"
-          disabled={pending}
+          disabled={formBusy}
           className="w-full bg-ink px-4 py-2.5 font-mono text-sm uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion active:scale-[0.99] disabled:opacity-50"
         >
           {pending ? "Working…" : copy.action}
@@ -124,7 +126,10 @@ export function AuthPage({ mode }: AuthPageProps) {
             </span>
             <span className="h-px flex-1 bg-rule" />
           </div>
-          <div ref={google.containerRef} className="mt-5 flex justify-center" />
+          <div
+            ref={google.containerRef}
+            className={`mt-5 flex justify-center${formBusy ? " pointer-events-none" : ""}`}
+          />
           {google.status === "loading" && (
             <p className="sr-only" aria-live="polite">
               Loading Google Sign-In…
