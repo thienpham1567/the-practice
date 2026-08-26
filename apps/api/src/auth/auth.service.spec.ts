@@ -76,6 +76,7 @@ function googleService(options: { users?: StoredUser[]; createError?: Error } = 
     },
     refreshToken: {
       create: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
   };
 
@@ -124,6 +125,7 @@ function serviceWith(user: { id: string; email: string; passwordHash: string | n
     },
     refreshToken: {
       create: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
   };
 
@@ -484,6 +486,47 @@ describe("AuthService", () => {
       expect(prisma.refreshToken.create).not.toHaveBeenCalled();
       expect(users[0]?.googleId).toBe("other-sub");
       expect(loggedText()).toContain("google_denied");
+    });
+  });
+
+  describe("refresh token cleanup", () => {
+    it("deletes expired and long-revoked tokens without blocking issue", async () => {
+      const passwordHash = await bcrypt.hash("password1", 4);
+      const { service, prisma } = serviceWith({
+        id: "u1",
+        email: "a@b.c",
+        passwordHash,
+      });
+      let resolveCleanup: ((value: { count: number }) => void) | undefined;
+      prisma.refreshToken.deleteMany.mockImplementation(
+        () =>
+          new Promise<{ count: number }>((resolve) => {
+            resolveCleanup = resolve;
+          }),
+      );
+
+      const before = Date.now();
+      const result = await service.login("a@b.c", "password1");
+      const after = Date.now();
+
+      expect(result.refreshToken).toEqual(expect.any(String));
+      expect(prisma.refreshToken.create).toHaveBeenCalledTimes(1);
+      expect(prisma.refreshToken.deleteMany).toHaveBeenCalledTimes(1);
+
+      const where = prisma.refreshToken.deleteMany.mock.calls[0]?.[0].where as {
+        OR: [{ expiresAt: { lte: Date } }, { revokedAt: { lte: Date } }];
+      };
+      expect(where.OR[0].expiresAt.lte.getTime()).toBeGreaterThanOrEqual(before);
+      expect(where.OR[0].expiresAt.lte.getTime()).toBeLessThanOrEqual(after);
+      // Còn hạn / vừa thu hồi không khớp predicate này.
+      expect(where.OR[1].revokedAt.lte.getTime()).toBeLessThanOrEqual(
+        after - 29 * 24 * 60 * 60 * 1000,
+      );
+      expect(where.OR[1].revokedAt.lte.getTime()).toBeGreaterThanOrEqual(
+        before - 31 * 24 * 60 * 60 * 1000,
+      );
+
+      resolveCleanup?.({ count: 0 });
     });
   });
 });
