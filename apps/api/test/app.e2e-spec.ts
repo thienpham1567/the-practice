@@ -492,7 +492,15 @@ describe("API (e2e)", () => {
   });
 
   describe("health", () => {
-    it("trả về ok", async () => {
+    it("live trả 200 không cần DB ping ngoài tiến trình", async () => {
+      await server().get("/health/live").expect(200, { status: "ok" });
+    });
+
+    it("ready trả 200 khi DB sống", async () => {
+      await server().get("/health/ready").expect(200, { status: "ok" });
+    });
+
+    it("/health là alias của ready", async () => {
       await server().get("/health").expect(200, { status: "ok" });
     });
   });
