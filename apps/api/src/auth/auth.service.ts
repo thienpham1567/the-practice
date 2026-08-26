@@ -1,6 +1,7 @@
-import { ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Injectable, Logger, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
+import { Prisma } from "@prisma/client";
 import { createHash, randomBytes } from "node:crypto";
 import * as bcrypt from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
@@ -27,8 +28,16 @@ export const DUMMY_PASSWORD_PLAINTEXT =
 /** Hash bcrypt 12 vòng có sẵn — compare giả trên tài khoản không mật khẩu. */
 const DUMMY_PASSWORD_HASH = "$2b$12$NXX.aAVdMUS6dzfbpjqg..L7YTdOtGpq1SXmH.755v4rpH456moE2";
 
+export type GoogleProfile = {
+  googleId: string;
+  email: string;
+  emailVerified: boolean;
+};
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -72,6 +81,67 @@ export class AuthService {
     return { user: { id: user.id, email: user.email }, ...(await this.issueTokens(user.id)) };
   }
 
+  async loginWithGoogle(profile: GoogleProfile): Promise<AuthResult> {
+    const email = profile.email.trim().toLowerCase();
+
+    if (!profile.emailVerified) {
+      this.logger.warn(`event=google_denied reason=unverified_email email=${email}`);
+      throw new UnauthorizedException("Your Google account's email is not verified.");
+    }
+
+    const { googleId } = profile;
+
+    const byGoogleId = await this.prisma.user.findUnique({ where: { googleId } });
+    if (byGoogleId) {
+      this.logger.log(`event=google_signin userId=${byGoogleId.id} email=${byGoogleId.email}`);
+      return this.sessionFor(byGoogleId);
+    }
+
+    const byEmail = await this.prisma.user.findUnique({ where: { email } });
+    if (byEmail) {
+      if (byEmail.googleId && byEmail.googleId !== googleId) {
+        this.logger.warn(
+          `event=google_denied reason=google_id_mismatch userId=${byEmail.id} email=${byEmail.email}`,
+        );
+        throw new UnauthorizedException("Invalid Google credential");
+      }
+
+      const linked = await this.prisma.user.update({
+        where: { id: byEmail.id },
+        data: { googleId },
+      });
+      this.logger.log(`event=google_link userId=${linked.id} email=${linked.email}`);
+      return this.sessionFor(linked);
+    }
+
+    try {
+      const created = await this.prisma.user.create({
+        data: { email, googleId, passwordHash: null },
+      });
+      this.logger.log(`event=google_signup userId=${created.id} email=${created.email}`);
+      return this.sessionFor(created);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        const recovered =
+          (await this.prisma.user.findUnique({ where: { googleId } })) ??
+          (await this.prisma.user.findUnique({ where: { email } }));
+        if (recovered) {
+          if (recovered.googleId && recovered.googleId !== googleId) {
+            this.logger.warn(
+              `event=google_denied reason=google_id_mismatch userId=${recovered.id} email=${recovered.email}`,
+            );
+            throw new UnauthorizedException("Invalid Google credential");
+          }
+          this.logger.log(
+            `event=google_signin reason=p2002_recovered userId=${recovered.id} email=${recovered.email}`,
+          );
+          return this.sessionFor(recovered);
+        }
+      }
+      throw error;
+    }
+  }
+
   /**
    * Đổi refresh token lấy cặp mới; token cũ bị thu hồi ngay (rotation).
    *
@@ -113,6 +183,10 @@ export class AuthService {
     }
 
     return stored;
+  }
+
+  private async sessionFor(user: { id: string; email: string }): Promise<AuthResult> {
+    return { user: { id: user.id, email: user.email }, ...(await this.issueTokens(user.id)) };
   }
 
   private async issueTokens(userId: string): Promise<AuthTokens> {
