@@ -3,7 +3,7 @@ import type { ConfigService } from "@nestjs/config";
 import type { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import type { PrismaService } from "../prisma/prisma.service";
-import { AuthService } from "./auth.service";
+import { AuthService, DUMMY_PASSWORD_PLAINTEXT } from "./auth.service";
 
 function serviceWith(user: { id: string; email: string; passwordHash: string | null } | null) {
   const prisma = {
@@ -80,6 +80,19 @@ describe("AuthService", () => {
         (wrongPasswordError as UnauthorizedException).message,
       );
       expect((googleError as UnauthorizedException).message).toBe("Invalid email or password");
+    });
+
+    it("rejects a Google-only account even when the dummy bcrypt hash matches", async () => {
+      const { service } = serviceWith({
+        id: "g1",
+        email: "google@example.com",
+        passwordHash: null,
+      });
+
+      const error = await loginRejection(service, "google@example.com", DUMMY_PASSWORD_PLAINTEXT);
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect((error as UnauthorizedException).message).toBe("Invalid email or password");
     });
 
     it("does not leak Google-only accounts through login timing", async () => {

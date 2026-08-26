@@ -18,8 +18,14 @@ export interface AuthResult extends AuthTokens {
 const ACCESS_TOKEN_TTL = "15m";
 export const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const BCRYPT_ROUNDS = 12;
+/**
+ * Chuỗi khớp `DUMMY_PASSWORD_HASH`. Chỉ để compare giả trên tài khoản không
+ * mật khẩu — không phải mật khẩu đăng nhập.
+ */
+export const DUMMY_PASSWORD_PLAINTEXT =
+  "db9de9360de62933e7b97748121682b672eeccbf44c1a6c14d6f47417b6329d4";
 /** Hash bcrypt 12 vòng có sẵn — compare giả trên tài khoản không mật khẩu. */
-const DUMMY_PASSWORD_HASH = "$2b$12$STQLKxA9lHiYSl2l8ndHruB6AdLtW4sEehasvTdK.78QAYW1vchh6";
+const DUMMY_PASSWORD_HASH = "$2b$12$NXX.aAVdMUS6dzfbpjqg..L7YTdOtGpq1SXmH.755v4rpH456moE2";
 
 @Injectable()
 export class AuthService {
