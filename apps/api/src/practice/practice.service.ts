@@ -36,6 +36,9 @@ const LIST_FIELDS = {
   elapsedSeconds: true,
 } satisfies Prisma.PracticeAttemptSelect;
 
+/** Khoá chấm quá 2 phút coi là chết — cho phép chiếm lại. */
+const GRADING_LOCK_STALE_MS = 2 * 60 * 1000;
+
 @Injectable()
 export class PracticeService {
   constructor(
@@ -102,43 +105,68 @@ export class PracticeService {
       throw new ConflictException("Practice attempt already submitted");
     }
 
+    const now = new Date();
+    const staleBefore = new Date(now.getTime() - GRADING_LOCK_STALE_MS);
+    const claimed = await this.prisma.practiceAttempt.updateMany({
+      where: {
+        id,
+        userId,
+        submittedAt: null,
+        OR: [{ gradingStartedAt: null }, { gradingStartedAt: { lte: staleBefore } }],
+      },
+      data: { gradingStartedAt: now },
+    });
+
+    if (claimed.count === 0) {
+      throw new ConflictException("Practice attempt is already being graded");
+    }
+
     const task = this.taskByType(attempt.taskType as TaskType);
     const plainText = dto.plainText ?? attempt.plainText;
     const wordCount = dto.wordCount ?? attempt.wordCount;
 
-    const graded = await this.ai.complete<GradeResult>({
-      prompt: buildGradePrompt({
-        task,
-        promptText: attempt.prompt,
-        essay: plainText,
-        wordCount,
-      }),
-      schema: GRADE_TASK_SCHEMA,
-      maxTokens: 1500,
-      timeoutMs: PRACTICE_TIMEOUT_MS,
-      deadlineMs: PRACTICE_DEADLINE_MS,
-    });
+    try {
+      const graded = await this.ai.complete<GradeResult>({
+        prompt: buildGradePrompt({
+          task,
+          promptText: attempt.prompt,
+          essay: plainText,
+          wordCount,
+        }),
+        schema: GRADE_TASK_SCHEMA,
+        maxTokens: 1500,
+        timeoutMs: PRACTICE_TIMEOUT_MS,
+        deadlineMs: PRACTICE_DEADLINE_MS,
+      });
 
-    const submittedAt = new Date();
-    const elapsedSeconds = Math.max(
-      0,
-      Math.round((submittedAt.getTime() - attempt.startedAt.getTime()) / 1000),
-    );
+      const submittedAt = new Date();
+      const elapsedSeconds = Math.max(
+        0,
+        Math.round((submittedAt.getTime() - attempt.startedAt.getTime()) / 1000),
+      );
 
-    return this.prisma.practiceAttempt.update({
-      where: { id },
-      data: {
-        ...(dto.content !== undefined && { content: dto.content as Prisma.InputJsonValue }),
-        plainText,
-        wordCount,
-        submittedAt,
-        elapsedSeconds,
-        band: overallBand(graded.scores),
-        scores: graded.scores as unknown as Prisma.InputJsonValue,
-        feedback: graded.feedback as unknown as Prisma.InputJsonValue,
-        styleSnapshot: dto.styleSnapshot as Prisma.InputJsonValue,
-      },
-    });
+      return await this.prisma.practiceAttempt.update({
+        where: { id },
+        data: {
+          ...(dto.content !== undefined && { content: dto.content as Prisma.InputJsonValue }),
+          plainText,
+          wordCount,
+          submittedAt,
+          elapsedSeconds,
+          gradingStartedAt: null,
+          band: overallBand(graded.scores),
+          scores: graded.scores as unknown as Prisma.InputJsonValue,
+          feedback: graded.feedback as unknown as Prisma.InputJsonValue,
+          styleSnapshot: dto.styleSnapshot as Prisma.InputJsonValue,
+        },
+      });
+    } catch (error) {
+      await this.prisma.practiceAttempt.updateMany({
+        where: { id, userId, submittedAt: null },
+        data: { gradingStartedAt: null },
+      });
+      throw error;
+    }
   }
 
   private async chooseTask(userId: string, level: Level, taskType?: TaskType): Promise<TaskSpec> {

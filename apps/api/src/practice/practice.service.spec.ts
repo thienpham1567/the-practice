@@ -34,7 +34,9 @@ function serviceWith(overrides: {
   attempt?: Record<string, unknown> | null;
   created?: Record<string, unknown>;
   updated?: Record<string, unknown>;
+  claimCounts?: number[];
 }) {
+  const claimCounts = [...(overrides.claimCounts ?? [1])];
   const prisma = {
     practiceAttempt: {
       findMany: jest.fn().mockResolvedValue(
@@ -43,6 +45,10 @@ function serviceWith(overrides: {
       findFirst: jest.fn().mockResolvedValue(overrides.attempt ?? null),
       create: jest.fn().mockResolvedValue(overrides.created ?? { id: "a1", ...generated }),
       update: jest.fn().mockResolvedValue(overrides.updated ?? { id: "a1" }),
+      updateMany: jest.fn().mockImplementation(async () => {
+        const count = claimCounts.length > 0 ? claimCounts.shift()! : 0;
+        return { count };
+      }),
     },
   };
 
@@ -116,6 +122,7 @@ describe("PracticeService", () => {
       wordCount: 95,
       startedAt: new Date("2026-08-25T10:00:00Z"),
       submittedAt: null,
+      gradingStartedAt: null,
     };
 
     it("computes overall band on the server from the four criteria", async () => {
@@ -129,6 +136,11 @@ describe("PracticeService", () => {
         styleSnapshot: { counts: { passives: 1 } },
       });
 
+      expect(prisma.practiceAttempt.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ gradingStartedAt: expect.any(Date) }),
+        }),
+      );
       expect(complete).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: expect.stringContaining("Write to your teacher."),
@@ -141,6 +153,7 @@ describe("PracticeService", () => {
             scores: graded.scores,
             feedback: graded.feedback,
             styleSnapshot: { counts: { passives: 1 } },
+            gradingStartedAt: null,
           }),
         }),
       );
@@ -156,6 +169,62 @@ describe("PracticeService", () => {
         service.submit("user-1", "a1", { styleSnapshot: {} }),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(complete).not.toHaveBeenCalled();
+    });
+
+    it("hai lần submit đồng thời chỉ gọi AI một lần", async () => {
+      const { service, complete } = serviceWith({
+        attempt: draft,
+        claimCounts: [1, 0],
+      });
+      complete.mockResolvedValue(graded);
+
+      const results = await Promise.allSettled([
+        service.submit("user-1", "a1", { styleSnapshot: {} }),
+        service.submit("user-1", "a1", { styleSnapshot: {} }),
+      ]);
+
+      expect(complete).toHaveBeenCalledTimes(1);
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
+      const rejected = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
+      expect(rejected.reason).toBeInstanceOf(ConflictException);
+    });
+
+    it("xoá gradingStartedAt khi chấm AI thất bại", async () => {
+      const { service, prisma, complete } = serviceWith({ attempt: draft });
+      complete.mockRejectedValueOnce(new Error("AI down"));
+
+      await expect(
+        service.submit("user-1", "a1", { styleSnapshot: {} }),
+      ).rejects.toThrow("AI down");
+
+      expect(prisma.practiceAttempt.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: "a1", userId: "user-1", submittedAt: null }),
+          data: { gradingStartedAt: null },
+        }),
+      );
+    });
+
+    it("cho chiếm lại khoá grading cũ hơn 2 phút", async () => {
+      const stale = new Date(Date.now() - 3 * 60 * 1000);
+      const { service, prisma, complete } = serviceWith({
+        attempt: { ...draft, gradingStartedAt: stale },
+      });
+      complete.mockResolvedValueOnce(graded);
+
+      await service.submit("user-1", "a1", { styleSnapshot: {} });
+
+      const claimWhere = prisma.practiceAttempt.updateMany.mock.calls[0]![0].where as {
+        OR: unknown[];
+      };
+      expect(claimWhere.OR).toEqual(
+        expect.arrayContaining([
+          { gradingStartedAt: null },
+          { gradingStartedAt: { lte: expect.any(Date) } },
+        ]),
+      );
+      expect(complete).toHaveBeenCalledTimes(1);
     });
   });
 });
