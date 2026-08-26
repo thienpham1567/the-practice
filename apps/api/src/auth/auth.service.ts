@@ -99,6 +99,10 @@ export class AuthService {
 
     const byEmail = await this.prisma.user.findUnique({ where: { email } });
     if (byEmail) {
+      if (byEmail.googleId === googleId) {
+        this.logger.log(`event=google_signin userId=${byEmail.id} email=${byEmail.email}`);
+        return this.sessionFor(byEmail);
+      }
       if (byEmail.googleId && byEmail.googleId !== googleId) {
         this.logger.warn(
           `event=google_denied reason=google_id_mismatch userId=${byEmail.id} email=${byEmail.email}`,
@@ -193,6 +197,11 @@ export class AuthService {
       data: { googleId },
     });
     if (result.count === 0) {
+      const current = await this.prisma.user.findUnique({ where: { id: user.id } });
+      if (current?.googleId === googleId) {
+        this.logger.log(`event=google_signin userId=${current.id} email=${current.email}`);
+        return this.sessionFor(current);
+      }
       this.logger.warn(
         `event=google_denied reason=google_id_mismatch userId=${user.id} email=${user.email}`,
       );

@@ -423,6 +423,45 @@ describe("AuthService", () => {
       expect(loggedText()).toContain("p2002_recovered");
     });
 
+    it("signs in when email lookup finds this same googleId after a googleId miss", async () => {
+      const existing: StoredUser = {
+        id: "already-linked",
+        email: "writer@example.com",
+        passwordHash: "existing-bcrypt-hash",
+        googleId: "google-sub-1",
+      };
+      const { service, prisma } = googleService({ users: [existing] });
+      prisma.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(existing);
+
+      const result = await service.loginWithGoogle(verifiedProfile());
+
+      expect(result.user).toEqual({ id: "already-linked", email: "writer@example.com" });
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
+      expect(loggedText()).toContain("google_signin");
+      expect(loggedText()).not.toContain("google_denied");
+    });
+
+    it("signs in when a concurrent link already set this same googleId", async () => {
+      const existing: StoredUser = {
+        id: "password-user",
+        email: "writer@example.com",
+        passwordHash: "existing-bcrypt-hash",
+        googleId: null,
+      };
+      const { service, prisma, users } = googleService({ users: [existing] });
+      prisma.user.updateMany.mockImplementation(async () => {
+        users[0]!.googleId = "google-sub-1";
+        return { count: 0 };
+      });
+
+      const result = await service.loginWithGoogle(verifiedProfile());
+
+      expect(result.user).toEqual({ id: "password-user", email: "writer@example.com" });
+      expect(prisma.refreshToken.create).toHaveBeenCalledTimes(1);
+      expect(loggedText()).toContain("google_signin");
+      expect(loggedText()).not.toContain("google_denied");
+    });
+
     it("rejects a link when a concurrent write already set googleId", async () => {
       const existing: StoredUser = {
         id: "password-user",
@@ -430,8 +469,11 @@ describe("AuthService", () => {
         passwordHash: "existing-bcrypt-hash",
         googleId: null,
       };
-      const { service, prisma } = googleService({ users: [existing] });
-      prisma.user.updateMany.mockResolvedValue({ count: 0 });
+      const { service, prisma, users } = googleService({ users: [existing] });
+      prisma.user.updateMany.mockImplementation(async () => {
+        users[0]!.googleId = "other-sub";
+        return { count: 0 };
+      });
 
       const error = await service
         .loginWithGoogle(verifiedProfile())
@@ -440,6 +482,7 @@ describe("AuthService", () => {
       expect(error).toBeInstanceOf(UnauthorizedException);
       expect((error as UnauthorizedException).message).toBe("Invalid Google credential");
       expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(users[0]?.googleId).toBe("other-sub");
       expect(loggedText()).toContain("google_denied");
     });
   });
