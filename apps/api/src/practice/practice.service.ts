@@ -13,7 +13,7 @@ import {
   type TaskSpec,
   type TaskType,
 } from "@writing-helper/practice";
-import { AiService } from "../ai/ai.service";
+import { AiService, PRACTICE_DEADLINE_MS, PRACTICE_TIMEOUT_MS } from "../ai/ai.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type {
   CreateAttemptDto,
@@ -49,6 +49,8 @@ export class PracticeService {
       prompt: buildGeneratePrompt(chosen, dto.level),
       schema: GENERATE_TASK_SCHEMA,
       maxTokens: 1000,
+      timeoutMs: PRACTICE_TIMEOUT_MS,
+      deadlineMs: PRACTICE_DEADLINE_MS,
     });
 
     return this.prisma.practiceAttempt.create({
@@ -113,6 +115,8 @@ export class PracticeService {
       }),
       schema: GRADE_TASK_SCHEMA,
       maxTokens: 1500,
+      timeoutMs: PRACTICE_TIMEOUT_MS,
+      deadlineMs: PRACTICE_DEADLINE_MS,
     });
 
     const submittedAt = new Date();

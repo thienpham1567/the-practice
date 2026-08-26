@@ -8,7 +8,14 @@ import { buildRewritePrompt, parseSuggestions } from "./prompts";
 import type { RewriteDto } from "./dto/rewrite.dto";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const TIMEOUT_MS = 15_000;
+/** Timeout mỗi lượt mặc định — rewrite và caller không chỉ định. */
+export const DEFAULT_TIMEOUT_MS = 15_000;
+/** Deadline tổng mặc định bằng một lượt — không retry vượt quá trừ khi caller nới. */
+export const DEFAULT_DEADLINE_MS = 15_000;
+/** Chấm bài / sinh đề: mỗi lượt dài hơn vì structured output nặng. */
+export const PRACTICE_TIMEOUT_MS = 30_000;
+/** Chấm bài / sinh đề: tổng thời gian cho phép retry thoáng qua. */
+export const PRACTICE_DEADLINE_MS = 90_000;
 const DEFAULT_MODEL = "anthropic/claude-haiku-4.5";
 
 interface OpenRouterResponse {
@@ -24,6 +31,10 @@ export interface CompleteOptions {
   prompt: string;
   maxTokens: number;
   schema?: JsonSchemaSpec;
+  /** Timeout AbortController cho một lượt fetch. */
+  timeoutMs?: number;
+  /** Tổng thời gian cho phép kể cả retry (Milestone 2.2+). */
+  deadlineMs?: number;
 }
 
 @Injectable()
@@ -47,9 +58,15 @@ export class AiService {
     const apiKey = this.config.get<string>("OPENROUTER_API_KEY");
     if (!apiKey) throw new ServiceUnavailableException("AI is not configured");
 
+    const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const deadlineMs = options.deadlineMs ?? DEFAULT_DEADLINE_MS;
     const model = this.config.get<string>("AI_MODEL") ?? DEFAULT_MODEL;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    // deadlineMs được ghi nhận ở đây để caller truyền đúng; retry (2.2) sẽ cắt
+    // theo mốc này. Hiện một lượt vẫn chỉ bị timeoutMs giới hạn.
+    void deadlineMs;
 
     try {
       const response = await fetch(OPENROUTER_URL, {
@@ -98,7 +115,12 @@ export class AiService {
 
   async rewrite(input: RewriteDto): Promise<{ suggestions: string[] }> {
     const prompt = buildRewritePrompt(input.text, input.issueType, input.context);
-    const content = await this.complete<string>({ prompt, maxTokens: 200 });
+    const content = await this.complete<string>({
+      prompt,
+      maxTokens: 200,
+      timeoutMs: DEFAULT_TIMEOUT_MS,
+      deadlineMs: DEFAULT_DEADLINE_MS,
+    });
     const suggestions = parseSuggestions(content);
 
     if (suggestions.length === 0) {

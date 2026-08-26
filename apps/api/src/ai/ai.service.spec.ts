@@ -126,6 +126,62 @@ describe("AiService", () => {
     });
   });
 
+  describe("complete timeouts", () => {
+    it("rewrite giữ timeout 15s mỗi lượt", async () => {
+      jest.useFakeTimers();
+      jest.spyOn(global, "fetch").mockImplementation((_url, init) => {
+        return new Promise((_resolve, reject) => {
+          const signal = (init as RequestInit).signal;
+          signal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        });
+      });
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const assertion = expect(
+        service.rewrite({ text: "x", issueType: "passive" }),
+      ).rejects.toBeInstanceOf(GatewayTimeoutException);
+
+      await jest.advanceTimersByTimeAsync(14_999);
+      expect(jest.getTimerCount()).toBeGreaterThan(0);
+      await jest.advanceTimersByTimeAsync(1);
+      await assertion;
+      jest.useRealTimers();
+    });
+
+    it("complete tôn trọng timeoutMs tùy chỉnh trên mỗi lượt", async () => {
+      jest.useFakeTimers();
+      jest.spyOn(global, "fetch").mockImplementation((_url, init) => {
+        return new Promise((_resolve, reject) => {
+          const signal = (init as RequestInit).signal;
+          signal?.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        });
+      });
+
+      const service = new AiService(fakeConfig({ OPENROUTER_API_KEY: "key" }));
+      const assertion = expect(
+        service.complete({
+          prompt: "grade",
+          maxTokens: 100,
+          timeoutMs: 30_000,
+          deadlineMs: 30_000,
+        }),
+      ).rejects.toBeInstanceOf(GatewayTimeoutException);
+
+      await jest.advanceTimersByTimeAsync(29_999);
+      await jest.advanceTimersByTimeAsync(1);
+      await assertion;
+      jest.useRealTimers();
+    });
+  });
+
   describe("complete", () => {
     it("gửi prompt, maxTokens và không kèm response_format khi không có schema", async () => {
       const fetchSpy = jest
