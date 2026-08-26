@@ -4,6 +4,8 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useAuthStore } from "./api/auth-store";
 import { tryRefreshSession } from "./api/client";
 import { AuthPage } from "./auth/AuthPage";
+import { HomeGate } from "./folio/HomeGate";
+import { SessionSplash } from "./folio/SessionSplash";
 import { DocumentsPage } from "./pages/DocumentsPage";
 import { EditorPage } from "./pages/EditorPage";
 import { PracticeAttemptPage } from "./pages/PracticeAttemptPage";
@@ -29,11 +31,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { accessToken, status } = useAuthStore();
 
   if (status === "loading") {
-    return (
-      <main className="flex h-screen items-center justify-center">
-        <p className="text-ink-faint">One moment…</p>
-      </main>
-    );
+    return <SessionSplash />;
   }
 
   return accessToken ? <>{children}</> : <Navigate to="/login" replace />;
@@ -46,7 +44,8 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<EditorPage />} />
+          <Route path="/" element={<HomeGate />} />
+          <Route path="/write" element={<EditorPage />} />
           <Route path="/doc/:id" element={<EditorPage />} />
           <Route
             path="/docs"
