@@ -16,6 +16,7 @@ model User {
   documents     Document[]
   refreshTokens RefreshToken[]
   practiceAttempts PracticeAttempt[]
+  aiUsages      AiUsage[]
 }
 
 /// Nonce dùng một lần cho luồng Google. Lưu hash chứ không lưu chuỗi gốc —
@@ -96,4 +97,22 @@ model PracticeAttempt {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, submittedAt])
+}
+
+/// Mỗi lần gọi OpenRouter thành công — dùng cho quota ngày và GET /ai/usage.
+model AiUsage {
+  id               String   @id @default(cuid())
+  userId           String
+  /// "rewrite" | "practice.generate" | "practice.grade"
+  endpoint         String
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  costUsd          Decimal  @db.Decimal(10, 6)
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
