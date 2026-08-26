@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, Get, Header, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
@@ -67,6 +67,7 @@ export class AuthController {
   }
 
   @Get("google/nonce")
+  @Header("Cache-Control", "no-store")
   async issueGoogleNonce(): Promise<{ nonce: string }> {
     return { nonce: await this.nonce.issue() };
   }

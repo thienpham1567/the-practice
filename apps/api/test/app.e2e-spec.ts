@@ -137,6 +137,7 @@ describe("API (e2e)", () => {
 
       expect(response.body).toEqual({ nonce: expect.any(String) });
       expect(response.body.nonce).toHaveLength(64);
+      expect(response.headers["cache-control"]).toBe("no-store");
     });
 
     it("từ chối refresh token đã hết hạn", async () => {
