@@ -1,9 +1,21 @@
-import { Body, Controller, Get, Header, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { AuthService, REFRESH_TOKEN_TTL_MS } from "./auth.service";
-import { LoginDto, RegisterDto } from "./dto/credentials.dto";
+import { GoogleCredentialDto, LoginDto, RegisterDto } from "./dto/credentials.dto";
+import { GoogleTokenVerifier } from "./google-token-verifier";
 import { NonceService } from "./nonce.service";
 
 const REFRESH_COOKIE = "refresh_token";
@@ -25,6 +37,7 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly nonce: NonceService,
     private readonly config: ConfigService,
+    private readonly googleVerifier: GoogleTokenVerifier,
   ) {}
 
   @Post("register")
@@ -70,6 +83,34 @@ export class AuthController {
   @Header("Cache-Control", "no-store")
   async issueGoogleNonce(): Promise<{ nonce: string }> {
     return { nonce: await this.nonce.issue() };
+  }
+
+  @Post("google")
+  @HttpCode(HttpStatus.OK)
+  async google(
+    @Body() dto: GoogleCredentialDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ accessToken: string; user: { id: string; email: string } }> {
+    const profile = await this.googleVerifier.verify(dto.credential);
+    // Reject unverified email before consuming the nonce so a failed attempt
+    // does not burn the sign-in session (and never touches Prisma).
+    if (!profile.emailVerified) {
+      await this.auth.loginWithGoogle(profile);
+    }
+    if (!profile.nonce) {
+      throw new UnauthorizedException("Sign-in session expired. Please try again.");
+    }
+    await this.nonce.consume(profile.nonce);
+    const { refreshToken, ...rest } = await this.auth.loginWithGoogle(profile);
+    this.setRefreshCookie(res, refreshToken);
+    return rest;
+  }
+
+  @Get("providers")
+  providers(): { google: { enabled: true; clientId: string } } | { google: { enabled: false } } {
+    const clientId = this.config.get<string>("GOOGLE_CLIENT_ID");
+    if (!clientId) return { google: { enabled: false } };
+    return { google: { enabled: true, clientId } };
   }
 
   private setRefreshCookie(res: Response, token: string): void {
