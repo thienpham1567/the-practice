@@ -255,15 +255,15 @@ function EditorBody({
 
   return (
     <>
-      <div className="border-b border-rule bg-paper/80 px-6 py-2 backdrop-blur">
-        <div className="mx-auto max-w-[46rem]">
+      <div className="min-w-0 border-b border-rule bg-paper/80 px-6 py-2 backdrop-blur">
+        <div className="mx-auto min-w-0 max-w-[46rem]">
           <ToolbarPlugin />
         </div>
       </div>
 
       <div
         ref={containerRef}
-        className="relative flex-1 overflow-y-auto"
+        className="relative min-w-0 flex-1 overflow-y-auto"
         onMouseMove={handlePointerMove}
         onMouseLeave={() => setHover(null)}
         onClick={handleClick}

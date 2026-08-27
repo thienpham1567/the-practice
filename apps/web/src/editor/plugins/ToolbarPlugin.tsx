@@ -58,7 +58,10 @@ export function ToolbarPlugin() {
   const setHeading = (tag: HeadingTagType) => setBlock(() => $createHeadingNode(tag));
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div
+      data-testid="editor-toolbar"
+      className="flex min-w-0 items-center gap-0.5 overflow-x-auto"
+    >
       <ToolButton label="Undo" onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}>
         ↩
       </ToolButton>
