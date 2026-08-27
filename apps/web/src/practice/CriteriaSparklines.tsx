@@ -42,6 +42,9 @@ export function CriteriaSparklines({ series, now }: CriteriaSparklinesProps) {
               band: point.scores[criterion.key],
             }));
           const dots = chartDots(points, WIDTH, HEIGHT);
+          const isWeakest = summary?.weakest === criterion.key;
+          const strokeClass = isWeakest ? "text-vermilion" : "text-ink";
+          const lineClass = isWeakest ? "text-vermilion" : "text-ink-soft";
 
           return (
             <li key={criterion.key}>
@@ -50,9 +53,11 @@ export function CriteriaSparklines({ series, now }: CriteriaSparklinesProps) {
               </h3>
               <svg
                 viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                className="mt-1 w-full text-ink"
+                className={`mt-1 w-full ${strokeClass}`}
                 role="img"
                 aria-label={`${criterion.label} sparkline`}
+                data-criterion={criterion.key}
+                data-weakest={isWeakest ? "true" : undefined}
               >
                 {dots.length > 1 && (
                   <polyline
@@ -60,7 +65,7 @@ export function CriteriaSparklines({ series, now }: CriteriaSparklinesProps) {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.1"
-                    className="text-ink-soft"
+                    className={lineClass}
                   />
                 )}
                 {dots.map((dot, index) => (
@@ -70,7 +75,7 @@ export function CriteriaSparklines({ series, now }: CriteriaSparklinesProps) {
                     cy={dot.y}
                     r="1.8"
                     fill="currentColor"
-                    className="text-vermilion"
+                    className={strokeClass}
                   />
                 ))}
               </svg>
