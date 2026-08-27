@@ -52,11 +52,11 @@ export function buildGeneratePrompt(
   const base =
     `You write English exam prompts for CEFR level ${level}.\n\n` +
     `Task type: ${task.label} (${task.type})\n` +
-    `Fixed instruction (copy this into the prompt; do not rewrite the frame): "${task.instruction}"\n` +
+    `Fixed exam frame (context only — the server appends this; do not rewrite or embed it): "${task.instruction}"\n` +
     `Target length: ${task.minWords}–${task.maxWords} words.\n` +
     `Time allowed: ${task.timeMinutes} minutes.\n\n` +
-    `Invent a specific, original topic suitable for ${level}. ` +
-    `The prompt field must include the situation/topic AND the fixed instruction above.\n` +
+    `Invent a specific, original topic/situation suitable for ${level}. ` +
+    `The prompt field must contain ONLY that topic/situation — do not include the fixed exam frame.\n` +
     `Give 4–6 short development ideas the writer might use, and 6–8 useful vocabulary items ` +
     `with meaning and a short example sentence.\n` +
     `Write everything in English. Do not write a sample essay.`;

@@ -4,7 +4,7 @@ import { buildGeneratePrompt, GENERATE_TASK_SCHEMA } from "./generate-prompt";
 const email = TASK_CATALOG.find((task) => task.type === "email")!;
 
 describe("buildGeneratePrompt", () => {
-  it("embeds the task instruction and word-count range", () => {
+  it("embeds the task instruction and word-count range as context", () => {
     const prompt = buildGeneratePrompt(email, "A2");
 
     expect(prompt).toContain(email.instruction);
@@ -13,11 +13,17 @@ describe("buildGeneratePrompt", () => {
     expect(prompt).toContain("A2");
   });
 
-  it("tells the model to invent the topic, not the task frame", () => {
+  it("tells the model to invent the topic only, not to copy the fixed instruction", () => {
     const prompt = buildGeneratePrompt(email, "B1");
 
     expect(prompt.toLowerCase()).toContain("topic");
     expect(prompt).toContain(email.instruction);
+    expect(prompt.toLowerCase()).not.toMatch(
+      /must include[\s\S]*fixed instruction|copy this into the prompt|copy[\s\S]*instruction into/,
+    );
+    expect(prompt.toLowerCase()).not.toContain(
+      "the prompt field must include the situation/topic and the fixed instruction",
+    );
   });
 
   it("when reviewWords is omitted or empty, prompt is byte-identical to the base prompt", () => {
