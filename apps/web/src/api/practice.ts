@@ -36,7 +36,7 @@ export interface PracticeAttemptDetail
   extends Omit<PracticeAttemptSummary, "revisionCount" | "latestBand"> {
   prompt: string;
   ideas: string[];
-  vocabulary: VocabularyItem[];
+  vocabulary: Array<VocabularyItem & { review?: boolean }>;
   content: SerializedEditorState | null;
   plainText: string;
   scores: CriterionScores | null;

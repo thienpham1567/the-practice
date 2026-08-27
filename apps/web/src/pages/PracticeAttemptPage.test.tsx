@@ -271,3 +271,42 @@ describe("PracticeAttemptPage ResultView revision results", () => {
     expect(await screen.findByRole("button", { name: "Sửa lại bài này" })).toBeTruthy();
   });
 });
+
+const openAttemptWithReview: PracticeAttemptDetail = {
+  ...gradedAttempt,
+  id: "open-1",
+  band: null,
+  submittedAt: null,
+  scores: null,
+  feedback: null,
+  styleSnapshot: null,
+  vocabulary: [
+    { word: "commute", meaning: "travel to work", example: "I commute by bus.", review: true },
+    { word: "punctual", meaning: "on time", example: "She is always punctual." },
+  ],
+};
+
+describe("PracticeAttemptPage PromptPane review chip", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+    vi.mocked(reviseAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('shows "ôn lại" only on vocabulary items marked review', async () => {
+    vi.mocked(getAttempt).mockResolvedValue(openAttemptWithReview);
+    renderPage("open-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Show hints" }));
+
+    expect(await screen.findByText("ôn lại")).toBeTruthy();
+    const commute = screen.getByText("commute").closest("li");
+    const punctual = screen.getByText("punctual").closest("li");
+    expect(commute?.textContent).toMatch(/ôn lại/);
+    expect(punctual?.textContent).not.toMatch(/ôn lại/);
+  });
+});

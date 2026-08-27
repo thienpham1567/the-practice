@@ -280,6 +280,11 @@ function PromptPane({
                 {attempt.vocabulary.map((item) => (
                   <li key={item.word}>
                     <span className="font-display">{item.word}</span>
+                    {item.review && (
+                      <span className="ml-2 inline-block border border-vermilion px-1.5 py-px font-mono text-[0.6rem] uppercase tracking-[0.12em] text-vermilion">
+                        ôn lại
+                      </span>
+                    )}
                     <span className="text-ink-soft"> — {item.meaning}</span>
                     <span className="mt-0.5 block italic text-ink-faint">{item.example}</span>
                   </li>
