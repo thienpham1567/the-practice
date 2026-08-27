@@ -94,9 +94,20 @@ model PracticeAttempt {
   /// counts từ analyze() tại thời điểm nộp, để xem lại mà không phải chạy lại.
   styleSnapshot Json?
 
+  /// Bản sửa trỏ về bài nó sửa. null = bài gốc.
+  parentAttemptId String?
+  /// 0 = gốc, 1–2 = vòng sửa. Lưu thẳng để kiểm tra trần bằng một phép so sánh.
+  revisionRound   Int     @default(0)
+  /// Kết quả đối chiếu khi chấm bản sửa: mỗi góp ý cũ → resolved | partial | unresolved.
+  feedbackAudit   Json?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  parent    PracticeAttempt?  @relation("Revisions", fields: [parentAttemptId], references: [id], onDelete: Cascade)
+  revisions PracticeAttempt[] @relation("Revisions")
+
   @@index([userId, submittedAt])
+  @@index([parentAttemptId])
 }
 
 /// Mỗi lần gọi OpenRouter thành công — dùng cho quota ngày và GET /ai/usage.
