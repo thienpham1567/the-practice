@@ -993,6 +993,120 @@ describe("API (e2e)", () => {
       });
       expect(punctual.usedCount).toBeGreaterThan(0);
     });
+
+    it("GET /practice/progress returns own graded root series and streak", async () => {
+      const alice = await registerUser("progress-alice@example.com");
+      const bob = await registerUser("progress-bob@example.com");
+      const aliceAuth = { Authorization: `Bearer ${alice.accessToken}` };
+      const bobAuth = { Authorization: `Bearer ${bob.accessToken}` };
+      const aliceUser = await prisma.user.findUniqueOrThrow({
+        where: { email: "progress-alice@example.com" },
+      });
+      const bobUser = await prisma.user.findUniqueOrThrow({
+        where: { email: "progress-bob@example.com" },
+      });
+
+      const older = new Date("2026-08-10T09:00:00.000Z");
+      const newer = new Date("2026-08-20T15:30:00.000Z");
+      const scores = {
+        taskResponse: 6.5,
+        coherenceCohesion: 6,
+        lexicalResource: 7,
+        grammaticalRange: 5.5,
+      };
+
+      const aliceRoot = await prisma.practiceAttempt.create({
+        data: {
+          userId: aliceUser.id,
+          level: "B1",
+          taskType: "letter",
+          prompt: "Write a letter",
+          ideas: [],
+          vocabulary: [],
+          submittedAt: older,
+          band: 6.5,
+          scores,
+          styleSnapshot: {
+            counts: { passives: 2, adverbs: 5 },
+            stats: { words: 250 },
+          },
+        },
+      });
+      await prisma.practiceAttempt.create({
+        data: {
+          userId: aliceUser.id,
+          level: "B1",
+          taskType: "letter",
+          prompt: "Revision",
+          ideas: [],
+          vocabulary: [],
+          submittedAt: newer,
+          band: 7,
+          scores,
+          parentAttemptId: aliceRoot.id,
+          revisionRound: 1,
+          styleSnapshot: {
+            counts: { passives: 0, adverbs: 0 },
+            stats: { words: 200 },
+          },
+        },
+      });
+      await prisma.practiceAttempt.create({
+        data: {
+          userId: aliceUser.id,
+          level: "A2",
+          taskType: "email",
+          prompt: "Draft only",
+          ideas: [],
+          vocabulary: [],
+        },
+      });
+      await prisma.practiceAttempt.create({
+        data: {
+          userId: bobUser.id,
+          level: "C1",
+          taskType: "report",
+          prompt: "Bob secret",
+          ideas: [],
+          vocabulary: [],
+          submittedAt: newer,
+          band: 8,
+          scores,
+          styleSnapshot: {
+            counts: { passives: 1, adverbs: 1 },
+            stats: { words: 100 },
+          },
+        },
+      });
+
+      await server().get("/practice/progress").expect(401);
+
+      const aliceProgress = await server()
+        .get("/practice/progress")
+        .set(aliceAuth)
+        .expect(200);
+
+      expect(aliceProgress.body.series).toHaveLength(1);
+      expect(aliceProgress.body.series[0]).toEqual({
+        at: older.toISOString(),
+        level: "B1",
+        band: 6.5,
+        scores: { task: 6.5, coherence: 6, lexical: 7, grammar: 5.5 },
+        per100: { passives: 0.8, adverbs: 2 },
+      });
+      expect(aliceProgress.body.streak).toEqual({
+        current: expect.any(Number),
+        submittedDates: [older.toISOString()],
+      });
+
+      const bobProgress = await server()
+        .get("/practice/progress")
+        .set(bobAuth)
+        .expect(200);
+      expect(bobProgress.body.series).toHaveLength(1);
+      expect(bobProgress.body.series[0].level).toBe("C1");
+      expect(bobProgress.body.series[0].at).toBe(newer.toISOString());
+    });
   });
 
   describe("health", () => {
