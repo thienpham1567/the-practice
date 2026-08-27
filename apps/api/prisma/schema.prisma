@@ -16,6 +16,7 @@ model User {
   documents     Document[]
   refreshTokens RefreshToken[]
   practiceAttempts PracticeAttempt[]
+  vocabEntries  VocabEntry[]
   aiUsages      AiUsage[]
 }
 
@@ -108,6 +109,26 @@ model PracticeAttempt {
 
   @@index([userId, submittedAt])
   @@index([parentAttemptId])
+}
+
+model VocabEntry {
+  id              String    @id @default(cuid())
+  userId          String
+  /// Khoá danh tính: lowercase + trim.
+  word            String
+  meaning         String
+  example         String
+  level           String
+  suggestedCount  Int       @default(1)
+  usedCount       Int       @default(0)
+  lastSuggestedAt DateTime  @default(now())
+  firstUsedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, word])
+  @@index([userId, usedCount, lastSuggestedAt])
 }
 
 /// Mỗi lần gọi OpenRouter thành công — dùng cho quota ngày và GET /ai/usage.
