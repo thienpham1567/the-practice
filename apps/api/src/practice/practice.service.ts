@@ -30,6 +30,8 @@ import {
   parseFeedbackAudit,
   type RevisionGradeResult,
 } from "./revision-grade-prompt";
+import { normalizeWord } from "./vocab-match";
+import { VocabService, type VocabSuggestItem } from "./vocab.service";
 
 const LIST_FIELDS = {
   id: true,
@@ -99,12 +101,23 @@ export class PracticeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ai: AiService,
+    private readonly vocab: VocabService,
   ) {}
 
   async create(userId: string, dto: CreateAttemptDto) {
     const chosen = await this.chooseTask(userId, dto.level, dto.taskType);
+
+    let reviewCandidates: VocabSuggestItem[] = [];
+    try {
+      reviewCandidates = await this.vocab.reviewCandidates(userId, dto.level);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `event=vocab_review_candidates_failed userId=${userId} ${error instanceof Error ? error.message : "unknown"}`,
+      );
+    }
+
     const generated = await this.ai.complete<GeneratedTask>({
-      prompt: buildGeneratePrompt(chosen, dto.level),
+      prompt: buildGeneratePrompt(chosen, dto.level, reviewCandidates),
       schema: GENERATE_TASK_SCHEMA,
       maxTokens: 1000,
       timeoutMs: PRACTICE_TIMEOUT_MS,
@@ -112,16 +125,28 @@ export class PracticeService {
       usage: { userId, endpoint: "practice.generate" },
     });
 
-    return this.prisma.practiceAttempt.create({
+    const vocabulary = tagReviewVocabulary(generated.vocabulary, reviewCandidates);
+
+    const attempt = await this.prisma.practiceAttempt.create({
       data: {
         userId,
         level: dto.level,
         taskType: chosen.type,
         prompt: `${generated.prompt.trim()}\n\n${chosen.instruction}`,
         ideas: generated.ideas as Prisma.InputJsonValue,
-        vocabulary: generated.vocabulary as Prisma.InputJsonValue,
+        vocabulary: vocabulary as Prisma.InputJsonValue,
       },
     });
+
+    try {
+      await this.vocab.recordSuggested(userId, dto.level, generated.vocabulary);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `event=vocab_record_suggested_failed userId=${userId} ${error instanceof Error ? error.message : "unknown"}`,
+      );
+    }
+
+    return attempt;
   }
 
   async list(userId: string, opts: { cursor?: string; limit?: number } = {}) {
@@ -296,7 +321,7 @@ export class PracticeService {
         }
       }
 
-      return await this.prisma.practiceAttempt.update({
+      const updated = await this.prisma.practiceAttempt.update({
         where: { id },
         data: {
           ...(dto.content !== undefined && { content: dto.content as Prisma.InputJsonValue }),
@@ -314,6 +339,16 @@ export class PracticeService {
           styleSnapshot: dto.styleSnapshot as Prisma.InputJsonValue,
         },
       });
+
+      try {
+        await this.vocab.markUsed(userId, plainText);
+      } catch (error: unknown) {
+        this.logger.warn(
+          `event=vocab_mark_used_failed userId=${userId} attemptId=${id} ${error instanceof Error ? error.message : "unknown"}`,
+        );
+      }
+
+      return updated;
     } catch (error) {
       await this.prisma.practiceAttempt.updateMany({
         where: { id, userId, submittedAt: null },
@@ -352,4 +387,23 @@ export class PracticeService {
     if (!task) throw new BadRequestException(`Unknown task type: ${taskType}`);
     return task;
   }
+}
+
+/** Tag AI vocabulary items that match review candidates (normalized word). */
+function tagReviewVocabulary(
+  vocabulary: GeneratedTask["vocabulary"],
+  candidates: VocabSuggestItem[],
+): Array<GeneratedTask["vocabulary"][number] & { review?: true }> {
+  if (candidates.length === 0) return vocabulary;
+
+  const reviewWords = new Set(
+    candidates.map((item) => normalizeWord(item.word)).filter(Boolean),
+  );
+
+  return vocabulary.map((item) => {
+    if (reviewWords.has(normalizeWord(item.word))) {
+      return { ...item, review: true as const };
+    }
+    return item;
+  });
 }

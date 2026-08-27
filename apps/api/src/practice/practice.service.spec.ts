@@ -39,7 +39,11 @@ function serviceWith(overrides: {
   created?: Record<string, unknown>;
   updated?: Record<string, unknown>;
   claimCounts?: number[];
-}) {
+  reviewCandidates?: Array<{ word: string; meaning: string; example: string }>;
+  reviewCandidatesError?: Error;
+  recordSuggestedError?: Error;
+  markUsedError?: Error;
+} = {}) {
   const claimCounts = [...(overrides.claimCounts ?? [1])];
   const findFirstResults = overrides.findFirstResults
     ? [...overrides.findFirstResults]
@@ -69,9 +73,26 @@ function serviceWith(overrides: {
 
   const complete = jest.fn().mockResolvedValue(generated);
   const ai = { complete } as unknown as AiService;
-  const service = new PracticeService(prisma as unknown as PrismaService, ai);
 
-  return { service, prisma, complete };
+  const reviewCandidates = jest.fn().mockImplementation(async () => {
+    if (overrides.reviewCandidatesError) throw overrides.reviewCandidatesError;
+    return overrides.reviewCandidates ?? [];
+  });
+  const recordSuggested = jest.fn().mockImplementation(async () => {
+    if (overrides.recordSuggestedError) throw overrides.recordSuggestedError;
+  });
+  const markUsed = jest.fn().mockImplementation(async () => {
+    if (overrides.markUsedError) throw overrides.markUsedError;
+  });
+  const vocab = { reviewCandidates, recordSuggested, markUsed };
+
+  const service = new PracticeService(
+    prisma as unknown as PrismaService,
+    ai,
+    vocab as never,
+  );
+
+  return { service, prisma, complete, vocab };
 }
 
 describe("PracticeService", () => {
@@ -113,6 +134,84 @@ describe("PracticeService", () => {
       };
       expect(data.prompt).toContain(generated.prompt);
       expect(data.prompt).toContain("Write an email to a specific person");
+    });
+
+    it("passes review candidates into the generate prompt", async () => {
+      const candidates = [
+        { word: "lively", meaning: "full of energy", example: "The crowd was lively." },
+      ];
+      const { service, complete, vocab } = serviceWith({
+        recentTypes: [],
+        reviewCandidates: candidates,
+      });
+
+      await service.create("user-1", { level: "A2", taskType: "email" });
+
+      expect(vocab.reviewCandidates).toHaveBeenCalledWith("user-1", "A2");
+      expect(complete.mock.calls[0]![0].prompt).toContain("lively");
+      expect(complete.mock.calls[0]![0].prompt).toContain("Decide the topic FIRST");
+    });
+
+    it("flags matching vocabulary items with review: true and records all suggested", async () => {
+      const candidates = [
+        { word: "Lively", meaning: "full of energy", example: "The crowd was lively." },
+        { word: "commute", meaning: "travel to work", example: "I commute by bus." },
+      ];
+      const aiVocab = [
+        { word: "lively", meaning: "full of energy", example: "The crowd was lively." },
+        { word: "memorable", meaning: "worth remembering", example: "A memorable day." },
+      ];
+      const { service, prisma, complete, vocab } = serviceWith({ recentTypes: [] });
+      complete.mockResolvedValueOnce({ ...generated, vocabulary: aiVocab });
+      vocab.reviewCandidates.mockResolvedValueOnce(candidates);
+
+      await service.create("user-1", { level: "A2", taskType: "email" });
+
+      expect(prisma.practiceAttempt.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            vocabulary: [
+              { ...aiVocab[0], review: true },
+              aiVocab[1],
+            ],
+          }),
+        }),
+      );
+      expect(vocab.recordSuggested).toHaveBeenCalledWith("user-1", "A2", aiVocab);
+    });
+
+    it("still creates the attempt when reviewCandidates throws", async () => {
+      jest.spyOn(Logger.prototype, "warn").mockImplementation();
+      const { service, prisma, complete, vocab } = serviceWith({
+        recentTypes: [],
+        reviewCandidatesError: new Error("db down"),
+      });
+
+      await expect(service.create("user-1", { level: "A2", taskType: "email" })).resolves.toEqual(
+        expect.objectContaining({ id: "a1" }),
+      );
+
+      expect(complete.mock.calls[0]![0].prompt).not.toContain("Decide the topic FIRST");
+      expect(prisma.practiceAttempt.create).toHaveBeenCalled();
+      expect(vocab.recordSuggested).toHaveBeenCalled();
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+      jest.restoreAllMocks();
+    });
+
+    it("still creates the attempt when recordSuggested throws", async () => {
+      jest.spyOn(Logger.prototype, "warn").mockImplementation();
+      const { service, prisma } = serviceWith({
+        recentTypes: [],
+        recordSuggestedError: new Error("upsert failed"),
+      });
+
+      await expect(service.create("user-1", { level: "A2", taskType: "email" })).resolves.toEqual(
+        expect.objectContaining({ id: "a1" }),
+      );
+
+      expect(prisma.practiceAttempt.create).toHaveBeenCalled();
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+      jest.restoreAllMocks();
     });
   });
 
@@ -509,6 +608,45 @@ describe("PracticeService", () => {
         ]),
       );
       expect(complete).toHaveBeenCalledTimes(1);
+    });
+
+    it("calls markUsed with the submitted plainText after a successful grade", async () => {
+      const { service, vocab, complete } = serviceWith({
+        attempt: { ...draft, parentAttemptId: null, parent: null },
+        updated: { id: "a1", band: 6 },
+      });
+      complete.mockResolvedValueOnce(graded);
+
+      await service.submit("user-1", "a1", {
+        styleSnapshot: {},
+        plainText: "The crowd was lively and memorable.",
+      });
+
+      expect(vocab.markUsed).toHaveBeenCalledWith(
+        "user-1",
+        "The crowd was lively and memorable.",
+      );
+    });
+
+    it("still returns the graded attempt when markUsed throws", async () => {
+      jest.spyOn(Logger.prototype, "warn").mockImplementation();
+      const gradedRow = { id: "a1", band: 6 };
+      const { service, complete } = serviceWith({
+        attempt: { ...draft, parentAttemptId: null, parent: null },
+        updated: gradedRow,
+        markUsedError: new Error("scan failed"),
+      });
+      complete.mockResolvedValueOnce(graded);
+
+      await expect(
+        service.submit("user-1", "a1", {
+          styleSnapshot: {},
+          plainText: "Dear teacher, the trip was memorable.",
+        }),
+      ).resolves.toEqual(gradedRow);
+
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+      jest.restoreAllMocks();
     });
   });
 
