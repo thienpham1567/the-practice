@@ -135,6 +135,7 @@ describe("PracticeService", () => {
           feedbackAudit: [{ point: "Use complex sentences", status: "resolved" }],
           band: 6.5,
           parent: { band: 5.5 },
+          revisions: [],
         },
       });
 
@@ -142,7 +143,10 @@ describe("PracticeService", () => {
 
       expect(prisma.practiceAttempt.findFirst).toHaveBeenCalledWith({
         where: { id: "rev-1", userId: "user-1" },
-        include: { parent: { select: { band: true } } },
+        include: {
+          parent: { select: { band: true } },
+          revisions: { select: { id: true }, take: 1 },
+        },
       });
       expect(result).toMatchObject({
         id: "rev-1",
@@ -150,8 +154,10 @@ describe("PracticeService", () => {
         revisionRound: 1,
         feedbackAudit: [{ point: "Use complex sentences", status: "resolved" }],
         parentBand: 5.5,
+        hasRevision: false,
       });
       expect(result).not.toHaveProperty("parent");
+      expect(result).not.toHaveProperty("revisions");
     });
 
     it("returns parentBand null for a root attempt", async () => {
@@ -164,6 +170,7 @@ describe("PracticeService", () => {
           feedbackAudit: null,
           band: 5.5,
           parent: null,
+          revisions: [],
         },
       });
 
@@ -174,8 +181,29 @@ describe("PracticeService", () => {
         parentAttemptId: null,
         revisionRound: 0,
         parentBand: null,
+        hasRevision: false,
       });
       expect(result).not.toHaveProperty("parent");
+      expect(result).not.toHaveProperty("revisions");
+    });
+
+    it("returns hasRevision true when a child revision exists", async () => {
+      const { service } = serviceWith({
+        attempt: {
+          id: "a1",
+          userId: "user-1",
+          parentAttemptId: null,
+          revisionRound: 0,
+          band: 5.5,
+          parent: null,
+          revisions: [{ id: "rev-1" }],
+        },
+      });
+
+      const result = await service.findOne("user-1", "a1");
+
+      expect(result).toMatchObject({ id: "a1", hasRevision: true });
+      expect(result).not.toHaveProperty("revisions");
     });
   });
 
@@ -191,6 +219,7 @@ describe("PracticeService", () => {
       startedAt: new Date("2026-08-25T10:00:00Z"),
       submittedAt: null,
       gradingStartedAt: null,
+      revisions: [] as { id: string }[],
     };
 
     it("computes overall band on the server from the four criteria", async () => {

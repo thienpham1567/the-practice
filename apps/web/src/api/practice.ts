@@ -41,6 +41,7 @@ export interface PracticeAttemptDetail extends PracticeAttemptSummary {
   revisionRound: number;
   feedbackAudit: FeedbackAuditItem[] | null;
   parentBand: number | null;
+  hasRevision: boolean;
 }
 
 export interface CreateAttemptInput {

@@ -93,11 +93,18 @@ export class PracticeService {
   async findOne(userId: string, id: string) {
     const attempt = await this.prisma.practiceAttempt.findFirst({
       where: { id, userId },
-      include: { parent: { select: { band: true } } },
+      include: {
+        parent: { select: { band: true } },
+        revisions: { select: { id: true }, take: 1 },
+      },
     });
     if (!attempt) throw new NotFoundException("Practice attempt not found");
-    const { parent, ...rest } = attempt;
-    return { ...rest, parentBand: parent?.band ?? null };
+    const { parent, revisions, ...rest } = attempt;
+    return {
+      ...rest,
+      parentBand: parent?.band ?? null,
+      hasRevision: revisions.length > 0,
+    };
   }
 
   async revise(userId: string, id: string) {
