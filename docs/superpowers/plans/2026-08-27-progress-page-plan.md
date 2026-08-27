@@ -29,7 +29,7 @@ Nguyên tắc như các plan trước: TDD từng bước, commit riêng từng 
 | 3.3 | Khối 3: xu hướng style per-100-từ, điểm null bị bỏ qua không đứt gãy trục thời gian | Component test có điểm null xen giữa |
 | 3.4 | Khối 4: hộp level-up kiểu con dấu — chỉ render khi verdict khác null, kèm dòng reason; route `/progress` (RequireAuth) + link "Xem tiến bộ →" từ PracticePage | Component test hai trạng thái; test route |
 | 3.5 | Trạng thái rỗng toàn trang (chưa có bài chấm nào): một dòng mời viết bài đầu, không render 4 khối trống | Component test |
-| 3.6 | Xem thật trong browser với dữ liệu thật nhiều ngày; kiểm dark-mode/responsive theo nếp verify hiện có | Screenshot |
+| 3.6 | Xem thật trong browser với dữ liệu thật nhiều ngày; kiểm dark-mode/responsive theo nếp verify hiện có | **API smoke 2026-08-27:** `GET /practice/progress` với JWT trả `series` (8 điểm A2+B1, band/scores/per100) + `streak`; seed tại `/tmp/progress-smoke.json`. Browser screenshot còn lại. |
 | 3.7 | Full suite + e2e + lint; cập nhật spec nếu lệch | Tất cả xanh |
 
 ## Rủi ro đã biết
