@@ -102,8 +102,8 @@ export function SidePanel({
   const sideEdge = side === "left" ? "border-r border-rule left-0" : "border-l border-rule right-0";
 
   const panelClasses = showOverlay
-    ? `fixed inset-y-0 z-40 w-[min(100%,22rem)] max-w-[85vw] overflow-y-auto bg-paper-deep ${sideEdge}`
-    : `shrink-0 overflow-y-auto bg-paper-deep ${sideEdge}`;
+    ? `fixed inset-y-0 z-40 w-[min(22rem,85vw)] overflow-y-auto bg-paper-deep ${sideEdge}`
+    : `shrink-0 overflow-y-auto bg-paper-deep ${sideEdge} ${className}`;
 
   return (
     <>
@@ -121,7 +121,7 @@ export function SidePanel({
         aria-label={label}
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
-        className={`${panelClasses} ${className}`.trim()}
+        className={panelClasses.trim()}
       >
         {title ? (
           <h2 id={titleId} className="sr-only">
