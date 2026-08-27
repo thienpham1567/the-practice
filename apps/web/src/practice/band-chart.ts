@@ -8,23 +8,41 @@ export interface ChartDot {
   y: number;
 }
 
+/** Optional shared axes so several series can share one SVG. */
+export type ChartScale = {
+  minT?: number;
+  maxT?: number;
+  /** Y-axis ceiling; defaults to band max (9). */
+  valueMax?: number;
+};
+
 const PAD_X = 8;
 const PAD_Y = 10;
 const BAND_MAX = 9;
 
 /** Map scored attempts onto an SVG viewBox. One point sits at the right edge. */
-export function chartDots(points: BandPoint[], width: number, height: number): ChartDot[] {
+export function chartDots(
+  points: BandPoint[],
+  width: number,
+  height: number,
+  scale?: ChartScale,
+): ChartDot[] {
   if (points.length === 0) return [];
 
   const innerW = width - PAD_X * 2;
   const innerH = height - PAD_Y * 2;
-  const yOf = (band: number) => PAD_Y + innerH * (1 - band / BAND_MAX);
+  const valueMax = scale?.valueMax ?? BAND_MAX;
+  const yOf = (band: number) => PAD_Y + innerH * (1 - band / valueMax);
 
-  if (points.length === 1) {
+  const hasDomain = scale?.minT != null && scale?.maxT != null;
+
+  if (points.length === 1 && !hasDomain) {
     return [{ x: PAD_X + innerW, y: yOf(points[0]!.band) }];
   }
 
-  const times = points.map((point) => point.at);
+  const times = hasDomain
+    ? [scale.minT!, scale.maxT!]
+    : points.map((point) => point.at);
   const minT = Math.min(...times);
   const maxT = Math.max(...times);
   const span = Math.max(maxT - minT, 1);

@@ -72,6 +72,16 @@ describe("PracticePage papers list", () => {
     expect(screen.queryByText(/lần sửa/)).toBeNull();
   });
 
+  it("links to the progress page", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByRole("link", { name: "Xem tiến bộ →" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Xem tiến bộ →" }).getAttribute("href")).toBe(
+      "/progress",
+    );
+  });
+
   it("shows chain summary when a paper has revisions", async () => {
     vi.mocked(listAttempts).mockResolvedValue([rootWithRevisions]);
     renderPage();

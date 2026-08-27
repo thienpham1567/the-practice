@@ -29,6 +29,12 @@ describe("chartDots", () => {
     expect(dots[1]!.x).toBeLessThan(dots[2]!.x);
     expect(dots[1]!.y).toBeLessThan(dots[0]!.y);
   });
+
+  it("places a point by shared time domain instead of the right edge", () => {
+    const dots = chartDots([{ at: 10, band: 6 }], 200, 80, { minT: 0, maxT: 20 });
+    expect(dots).toHaveLength(1);
+    expect(dots[0]!.x).toBe(100);
+  });
 });
 
 describe("polyline", () => {

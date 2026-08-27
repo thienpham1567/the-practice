@@ -48,6 +48,12 @@ export function PracticePage() {
             Vocabulary
           </Link>
           <Link
+            to="/progress"
+            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
+          >
+            Xem tiến bộ →
+          </Link>
+          <Link
             to="/docs"
             className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
           >
