@@ -5,10 +5,14 @@ interface BandStampProps {
   size?: "sm" | "lg";
 }
 
+const CEFR_HINT =
+  "Approximate CEFR level converted from this IELTS band score — not the practice level you selected.";
+
 /** Same rubber-stamp chrome as GradeStamp: double frame, tilt, ink grain. */
 export function BandStamp({ band, size = "lg" }: BandStampProps) {
   const isLarge = size === "lg";
   const cefr = bandToCefr(band);
+  const cefrLabel = `≈ ${cefr}`;
 
   return (
     <div
@@ -25,8 +29,10 @@ export function BandStamp({ band, size = "lg" }: BandStampProps) {
         className={`font-mono uppercase tracking-[0.2em] text-ink ${
           isLarge ? "mt-1 text-[0.7rem]" : "mt-0.5 text-[0.55rem]"
         }`}
+        title={CEFR_HINT}
+        aria-label={CEFR_HINT}
       >
-        {cefr}
+        {cefrLabel}
       </span>
     </div>
   );
