@@ -48,19 +48,15 @@ describe("CriteriaSparklines", () => {
     const sparklines = screen.getAllByRole("img");
     expect(sparklines).toHaveLength(4);
 
-    const vermilion = sparklines.filter((svg) =>
-      svg.className.baseVal
-        ? svg.className.baseVal.includes("text-vermilion")
-        : String(svg.getAttribute("class")).includes("text-vermilion"),
-    );
+    const classOf = (el: Element) => String(el.getAttribute("class") ?? "");
+
+    const vermilion = sparklines.filter((svg) => classOf(svg).includes("text-vermilion"));
     expect(vermilion).toHaveLength(1);
-    expect(vermilion[0].getAttribute("data-criterion")).toBe("lexical");
-    expect(vermilion[0].getAttribute("data-weakest")).toBe("true");
+    expect(vermilion[0]!.getAttribute("data-criterion")).toBe("lexical");
+    expect(vermilion[0]!.getAttribute("data-weakest")).toBe("true");
 
     const ink = sparklines.filter((svg) => {
-      const cls = svg.className.baseVal
-        ? svg.className.baseVal
-        : String(svg.getAttribute("class"));
+      const cls = classOf(svg);
       return cls.includes("text-ink") && !cls.includes("text-vermilion");
     });
     expect(ink).toHaveLength(3);

@@ -36,7 +36,11 @@ function Harness({
 
   return (
     <div>
-      <button ref={ref} type="button" onClick={() => setOpen(true)}>
+      <button
+        ref={ref as React.RefObject<HTMLButtonElement>}
+        type="button"
+        onClick={() => setOpen(true)}
+      >
         Open panel
       </button>
       <SidePanel
