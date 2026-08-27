@@ -26,10 +26,10 @@ export function LandingPage({ now = new Date() }: { now?: Date }) {
       </p>
 
       <article
-        className="animate-fade-up relative mt-12 border border-rule px-8 py-10"
+        className="animate-fade-up relative mt-12 overflow-hidden border border-rule px-5 py-8 sm:px-8 sm:py-10"
         style={{ animationDelay: "110ms" }}
       >
-        <AppMark className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 -rotate-6 text-vermilion" />
+        <AppMark className="pointer-events-none absolute -right-2 -top-2 h-12 w-12 -rotate-6 text-vermilion sm:-right-3 sm:-top-3 sm:h-14 sm:w-14" />
         <p className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
           {LANDING_PAPER.kicker}
         </p>

@@ -28,7 +28,7 @@ export function DocumentsPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
       <Masthead lockupTo="/practice">
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <Link
             to="/"
             className="text-vermilion decoration-vermilion/40 underline-offset-4 hover:underline"
@@ -76,7 +76,7 @@ export function DocumentsPage() {
         {documents.data?.map((document, index) => (
           <li
             key={document.id}
-            className="animate-fade-up group flex items-center gap-4 py-4 transition-colors"
+            className="animate-fade-up group flex flex-wrap items-center gap-x-4 gap-y-2 py-4 transition-colors"
             style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
           >
             <Link to={`/doc/${document.id}`} className="min-w-0 flex-1">

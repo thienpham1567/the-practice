@@ -9,9 +9,9 @@ export function Masthead({
   lockupTo?: string;
 }) {
   return (
-    <header className="flex items-baseline justify-between gap-4 border-b border-rule pb-5">
-      <BrandLockup to={lockupTo} />
-      {children}
+    <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-3 border-b border-rule pb-5">
+      <BrandLockup to={lockupTo} size="sm" />
+      {children ? <div className="min-w-0 max-w-full">{children}</div> : null}
     </header>
   );
 }

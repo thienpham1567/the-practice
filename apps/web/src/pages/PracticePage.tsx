@@ -40,7 +40,7 @@ export function PracticePage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
       <Masthead lockupTo="/practice">
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <Link
             to="/vocab"
             className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
@@ -124,7 +124,7 @@ export function PracticePage() {
               >
                 <Link
                   to={`/practice/${attempt.id}`}
-                  className="group flex items-center gap-4 py-4"
+                  className="group flex flex-wrap items-center gap-x-4 gap-y-2 py-4"
                 >
                   <span className="min-w-0 flex-1">
                     <span className="font-display text-lg transition-colors group-hover:text-vermilion">

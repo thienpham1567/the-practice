@@ -28,7 +28,7 @@ export function ProgressPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
       <Masthead lockupTo="/practice">
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <Link
             to="/practice"
             className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"

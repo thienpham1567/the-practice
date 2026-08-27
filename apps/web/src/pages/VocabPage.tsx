@@ -39,7 +39,7 @@ export function VocabPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-14">
       <Masthead lockupTo="/practice">
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <Link
             to="/practice"
             className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
@@ -119,11 +119,14 @@ export function VocabPage() {
       )}
 
       {items.length > 0 && (
-        <div className="animate-fade-up mt-6 overflow-x-auto" style={{ animationDelay: "120ms" }}>
+        <div
+          className="animate-fade-up mt-6 overflow-x-auto border border-rule"
+          style={{ animationDelay: "120ms" }}
+        >
           <table className="w-full min-w-[36rem] border-collapse text-left">
             <thead>
               <tr className="border-b border-rule">
-                <th className="py-2 pr-4 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
+                <th className="px-3 py-2 pr-4 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
                   Word
                 </th>
                 <th className="py-2 pr-4 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
@@ -132,7 +135,7 @@ export function VocabPage() {
                 <th className="py-2 pr-4 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
                   Example
                 </th>
-                <th className="py-2 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
+                <th className="py-2 pr-3 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
                   Status
                 </th>
               </tr>
@@ -144,10 +147,10 @@ export function VocabPage() {
                   className="animate-fade-up align-top"
                   style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
                 >
-                  <td className="py-3 pr-4 font-display text-lg">{entry.word}</td>
+                  <td className="px-3 py-3 pr-4 font-display text-lg">{entry.word}</td>
                   <td className="py-3 pr-4 text-sm text-ink-soft">{entry.meaning}</td>
                   <td className="py-3 pr-4 text-sm italic text-ink-faint">{entry.example}</td>
-                  <td className="py-3">
+                  <td className="py-3 pr-3">
                     <UsageBadge usedCount={entry.usedCount} />
                   </td>
                 </tr>
