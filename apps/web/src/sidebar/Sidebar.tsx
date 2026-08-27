@@ -17,24 +17,38 @@ interface SidebarProps {
   result: AnalysisResult | null;
 }
 
+/** Nội dung cột phân tích — khung ngoài do SidePanel chịu. */
 export function Sidebar({ result }: SidebarProps) {
   if (!result) {
     return (
-      <aside className="w-80 shrink-0 border-l border-rule bg-paper-deep px-6 py-10">
+      <div className="px-6 py-10">
         <p className="animate-fade-up text-sm italic text-ink-faint">
           Write mode hides the marks so you can get the words down. Switch to Edit when you are
           ready to cut.
         </p>
-      </aside>
+      </div>
     );
   }
 
   return (
-    <aside className="w-80 shrink-0 overflow-y-auto border-l border-rule bg-paper-deep px-6 py-10">
+    <div className="px-6 py-10">
       <ReadabilityCard result={result} />
       <IssueList result={result} />
       <CountsPanel result={result} />
-    </aside>
+    </div>
+  );
+}
+
+export function analysisIssueCount(result: AnalysisResult | null): number {
+  if (!result) return 0;
+  const { counts } = result;
+  return (
+    counts.veryHardSentences +
+    counts.hardSentences +
+    counts.adverbs +
+    counts.passives +
+    counts.qualifiers +
+    counts.complexPhrases
   );
 }
 

@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuthStore } from "../api/auth-store";
 import { createDocument, getDocument, updateDocument, type DocumentInput } from "../api/documents";
-import { Editor, type EditorChange, type EditorMode } from "../editor/Editor";
-import { Sidebar } from "../sidebar/Sidebar";
 import { BrandLockup } from "../BrandLockup";
+import { Editor, type EditorChange, type EditorMode } from "../editor/Editor";
+import { SidePanel } from "../SidePanel";
+import { analysisIssueCount, Sidebar } from "../sidebar/Sidebar";
 import { stashDraft, takeStashedDraft } from "./draft-stash";
 
 const AUTOSAVE_DELAY_MS = 2000;
@@ -26,10 +27,12 @@ export function EditorPage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [title, setTitle] = useState(restored?.title ?? "Untitled");
   const [status, setStatus] = useState<SaveStatus>("idle");
+  const [panelOpen, setPanelOpen] = useState(false);
 
   const draftRef = useRef<EditorChange | null>(null);
   const gradeRef = useRef<number | undefined>(undefined);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const panelTriggerRef = useRef<HTMLButtonElement>(null);
 
   const document = useQuery({
     queryKey: ["document", id],
@@ -91,6 +94,11 @@ export function EditorPage() {
     return <CenteredNote>That draft is not here. It may have been deleted.</CenteredNote>;
   }
 
+  const analysis = mode === "edit" ? result : null;
+  const issueCount = analysisIssueCount(analysis);
+  const panelLabel =
+    issueCount > 0 ? `${issueCount} ${issueCount === 1 ? "issue" : "issues"}` : "Analysis";
+
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center gap-4 border-b border-rule px-6 py-3">
@@ -126,6 +134,16 @@ export function EditorPage() {
           ))}
         </div>
 
+        <button
+          ref={panelTriggerRef}
+          type="button"
+          onClick={() => setPanelOpen((current) => !current)}
+          aria-expanded={panelOpen}
+          className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion lg:hidden"
+        >
+          {panelLabel}
+        </button>
+
         {!id && (
           <button
             type="button"
@@ -157,7 +175,17 @@ export function EditorPage() {
           />
         </div>
 
-        <Sidebar result={mode === "edit" ? result : null} />
+        <SidePanel
+          open={panelOpen}
+          onOpenChange={setPanelOpen}
+          title="Analysis"
+          triggerLabel={panelLabel}
+          triggerRef={panelTriggerRef}
+          side="right"
+          className="w-80"
+        >
+          <Sidebar result={analysis} />
+        </SidePanel>
       </div>
     </div>
   );
