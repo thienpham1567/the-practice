@@ -38,12 +38,18 @@ export interface GeneratedTask {
   vocabulary: { word: string; meaning: string; example: string }[];
 }
 
+export type ReviewWord = { word: string; meaning: string; example: string };
+
 /**
  * The catalog instruction is the fixed exam frame. The model only invents a
  * concrete topic so generated prompts stay on-spec across runs.
  */
-export function buildGeneratePrompt(task: TaskSpec, level: Level): string {
-  return (
+export function buildGeneratePrompt(
+  task: TaskSpec,
+  level: Level,
+  reviewWords?: ReviewWord[],
+): string {
+  const base =
     `You write English exam prompts for CEFR level ${level}.\n\n` +
     `Task type: ${task.label} (${task.type})\n` +
     `Fixed instruction (copy this into the prompt; do not rewrite the frame): "${task.instruction}"\n` +
@@ -53,6 +59,23 @@ export function buildGeneratePrompt(task: TaskSpec, level: Level): string {
     `The prompt field must include the situation/topic AND the fixed instruction above.\n` +
     `Give 4–6 short development ideas the writer might use, and 6–8 useful vocabulary items ` +
     `with meaning and a short example sentence.\n` +
-    `Write everything in English. Do not write a sample essay.`
+    `Write everything in English. Do not write a sample essay.`;
+
+  if (!reviewWords || reviewWords.length === 0) {
+    return base;
+  }
+
+  const list = reviewWords
+    .map(
+      (item) =>
+        `- ${item.word}: ${item.meaning} (e.g. ${item.example})`,
+    )
+    .join("\n");
+
+  return (
+    base +
+    `\n\nReview vocabulary (optional reuse):\n${list}\n` +
+    `Decide the topic FIRST. Then include 0–4 of these review words in the vocabulary ` +
+    `list only when they fit the topic; generate the rest as new words.`
   );
 }
