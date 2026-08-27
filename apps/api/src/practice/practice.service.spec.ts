@@ -32,24 +32,37 @@ const graded = {
 function serviceWith(overrides: {
   recentTypes?: string[];
   attempt?: Record<string, unknown> | null;
+  /** Sequential findFirst results (e.g. parent then existing-revision check). */
+  findFirstResults?: Array<Record<string, unknown> | null>;
   created?: Record<string, unknown>;
   updated?: Record<string, unknown>;
   claimCounts?: number[];
 }) {
   const claimCounts = [...(overrides.claimCounts ?? [1])];
+  const findFirstResults = overrides.findFirstResults
+    ? [...overrides.findFirstResults]
+    : undefined;
+  const practiceAttempt = {
+    findMany: jest.fn().mockResolvedValue(
+      (overrides.recentTypes ?? []).map((taskType) => ({ taskType })),
+    ),
+    findFirst: findFirstResults
+      ? jest.fn().mockImplementation(async () =>
+          findFirstResults.length > 0 ? findFirstResults.shift()! : null,
+        )
+      : jest.fn().mockResolvedValue(overrides.attempt ?? null),
+    create: jest.fn().mockResolvedValue(overrides.created ?? { id: "a1", ...generated }),
+    update: jest.fn().mockResolvedValue(overrides.updated ?? { id: "a1" }),
+    updateMany: jest.fn().mockImplementation(async () => {
+      const count = claimCounts.length > 0 ? claimCounts.shift()! : 0;
+      return { count };
+    }),
+  };
   const prisma = {
-    practiceAttempt: {
-      findMany: jest.fn().mockResolvedValue(
-        (overrides.recentTypes ?? []).map((taskType) => ({ taskType })),
-      ),
-      findFirst: jest.fn().mockResolvedValue(overrides.attempt ?? null),
-      create: jest.fn().mockResolvedValue(overrides.created ?? { id: "a1", ...generated }),
-      update: jest.fn().mockResolvedValue(overrides.updated ?? { id: "a1" }),
-      updateMany: jest.fn().mockImplementation(async () => {
-        const count = claimCounts.length > 0 ? claimCounts.shift()! : 0;
-        return { count };
-      }),
-    },
+    practiceAttempt,
+    $transaction: jest.fn(async (fn: (tx: { practiceAttempt: typeof practiceAttempt }) => unknown) =>
+      fn({ practiceAttempt }),
+    ),
   };
 
   const complete = jest.fn().mockResolvedValue(generated);
@@ -225,6 +238,100 @@ describe("PracticeService", () => {
         ]),
       );
       expect(complete).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("revise", () => {
+    const gradedParent = {
+      id: "a1",
+      userId: "user-1",
+      level: "A2",
+      taskType: "email",
+      prompt: "Write to your teacher.",
+      ideas: ["who to thank", "what happened"],
+      vocabulary: [{ word: "grateful", meaning: "thankful", example: "I am grateful." }],
+      hintsOpened: true,
+      content: { type: "doc", content: [{ type: "paragraph" }] },
+      plainText: "Dear teacher, thank you.",
+      wordCount: 95,
+      submittedAt: new Date("2026-08-25T10:05:00Z"),
+      band: 6,
+      revisionRound: 0,
+      parentAttemptId: null,
+    };
+
+    it("returns 404 when the attempt is missing or belongs to someone else", async () => {
+      const { service } = serviceWith({ findFirstResults: [null] });
+
+      await expect(service.revise("user-1", "missing")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it("returns 409 when the attempt is not yet graded (submittedAt null)", async () => {
+      const { service } = serviceWith({
+        findFirstResults: [{ ...gradedParent, submittedAt: null }],
+      });
+
+      await expect(service.revise("user-1", "a1")).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("returns 409 when the attempt has no band", async () => {
+      const { service } = serviceWith({
+        findFirstResults: [{ ...gradedParent, band: null }],
+      });
+
+      await expect(service.revise("user-1", "a1")).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("returns 409 when a revision already exists", async () => {
+      const { service } = serviceWith({
+        findFirstResults: [gradedParent, { id: "rev-1", parentAttemptId: "a1" }],
+      });
+
+      await expect(service.revise("user-1", "a1")).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("returns 409 when revisionRound is already 2", async () => {
+      const { service } = serviceWith({
+        findFirstResults: [{ ...gradedParent, revisionRound: 2 }],
+      });
+
+      await expect(service.revise("user-1", "a1")).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("creates a revision attempt copying parent fields without calling AI", async () => {
+      const created = {
+        id: "rev-1",
+        parentAttemptId: "a1",
+        revisionRound: 1,
+      };
+      const { service, prisma, complete } = serviceWith({
+        findFirstResults: [gradedParent, null],
+        created,
+      });
+
+      const result = await service.revise("user-1", "a1");
+
+      expect(result).toEqual(created);
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.practiceAttempt.create).toHaveBeenCalledWith({
+        data: {
+          userId: "user-1",
+          level: "A2",
+          taskType: "email",
+          prompt: "Write to your teacher.",
+          ideas: gradedParent.ideas,
+          vocabulary: gradedParent.vocabulary,
+          hintsOpened: true,
+          content: gradedParent.content,
+          plainText: "Dear teacher, thank you.",
+          wordCount: 95,
+          parentAttemptId: "a1",
+          revisionRound: 1,
+        },
+      });
+      expect(complete).not.toHaveBeenCalled();
     });
   });
 });

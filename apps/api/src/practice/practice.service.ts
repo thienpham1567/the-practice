@@ -87,6 +87,42 @@ export class PracticeService {
     return attempt;
   }
 
+  async revise(userId: string, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const parent = await tx.practiceAttempt.findFirst({ where: { id, userId } });
+      if (!parent) throw new NotFoundException("Practice attempt not found");
+      if (!parent.submittedAt || parent.band == null) {
+        throw new ConflictException("Practice attempt has not been graded yet");
+      }
+      if (parent.revisionRound >= 2) {
+        throw new ConflictException("Maximum revision rounds reached");
+      }
+      const existing = await tx.practiceAttempt.findFirst({
+        where: { parentAttemptId: id },
+      });
+      if (existing) {
+        throw new ConflictException("Practice attempt already has a revision");
+      }
+
+      return tx.practiceAttempt.create({
+        data: {
+          userId,
+          level: parent.level,
+          taskType: parent.taskType,
+          prompt: parent.prompt,
+          ideas: parent.ideas as Prisma.InputJsonValue,
+          vocabulary: parent.vocabulary as Prisma.InputJsonValue,
+          hintsOpened: parent.hintsOpened,
+          content: parent.content as Prisma.InputJsonValue | undefined,
+          plainText: parent.plainText,
+          wordCount: parent.wordCount,
+          parentAttemptId: id,
+          revisionRound: parent.revisionRound + 1,
+        },
+      });
+    });
+  }
+
   async update(userId: string, id: string, dto: UpdateAttemptDto) {
     const attempt = await this.findOne(userId, id);
     if (attempt.submittedAt) {
