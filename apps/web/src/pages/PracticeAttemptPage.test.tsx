@@ -130,3 +130,65 @@ describe("PracticeAttemptPage ResultView revise button", () => {
     });
   });
 });
+
+const revisionAttempt: PracticeAttemptDetail = {
+  ...gradedAttempt,
+  id: "rev-1",
+  band: null,
+  submittedAt: null,
+  scores: null,
+  feedback: null,
+  parentAttemptId: "a1",
+  revisionRound: 1,
+  parentBand: 5.5,
+  hasRevision: false,
+  startedAt: new Date().toISOString(),
+};
+
+describe("PracticeAttemptPage ExamRoom revision", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+    vi.mocked(reviseAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("hides the countdown and shows Bản sửa 1/2 with parent feedback", async () => {
+    vi.mocked(getAttempt).mockImplementation(async (id: string) => {
+      if (id === "rev-1") return revisionAttempt;
+      if (id === "a1") return gradedAttempt;
+      throw new Error(`unexpected id ${id}`);
+    });
+
+    renderPage("rev-1");
+
+    expect(await screen.findByText("Bản sửa 1/2")).toBeTruthy();
+    expect(screen.queryByLabelText("Time remaining")).toBeNull();
+    expect(screen.queryByText(/Time is up/)).toBeNull();
+
+    expect(await screen.findByText("Góp ý lần trước")).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.taskResponse)).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.coherenceCohesion)).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.lexicalResource)).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.grammaticalRange)).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.overview)).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.nextFocus)).toBeTruthy();
+  });
+
+  it("shows Bản sửa 2/2 on the second revision round", async () => {
+    const round2 = { ...revisionAttempt, id: "rev-2", revisionRound: 2, parentAttemptId: "rev-1" };
+    vi.mocked(getAttempt).mockImplementation(async (id: string) => {
+      if (id === "rev-2") return round2;
+      if (id === "rev-1") return { ...gradedAttempt, id: "rev-1", revisionRound: 1, parentAttemptId: "a1" };
+      throw new Error(`unexpected id ${id}`);
+    });
+
+    renderPage("rev-2");
+
+    expect(await screen.findByText("Bản sửa 2/2")).toBeTruthy();
+    expect(screen.queryByLabelText("Time remaining")).toBeNull();
+  });
+});

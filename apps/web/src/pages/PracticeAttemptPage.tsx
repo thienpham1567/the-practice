@@ -55,10 +55,11 @@ export function PracticeAttemptPage() {
 
 function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: TaskSpec }) {
   const queryClient = useQueryClient();
+  const isRevision = attempt.revisionRound > 0 || Boolean(attempt.parentAttemptId);
   const [hintsOpen, setHintsOpen] = useState(attempt.hintsOpened);
   const [wordCount, setWordCount] = useState(attempt.wordCount);
   const [remaining, setRemaining] = useState(() =>
-    remainingSeconds(new Date(attempt.startedAt), spec.timeMinutes),
+    isRevision ? 0 : remainingSeconds(new Date(attempt.startedAt), spec.timeMinutes),
   );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
@@ -66,17 +67,24 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   const draftRef = useRef<EditorChange | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
+  const parent = useQuery({
+    queryKey: ["practice-attempt", attempt.parentAttemptId],
+    queryFn: () => getAttempt(attempt.parentAttemptId!),
+    enabled: Boolean(attempt.parentAttemptId),
+  });
+
   const save = useMutation({
     mutationFn: (input: Parameters<typeof updateAttempt>[1]) => updateAttempt(attempt.id, input),
   });
 
   useEffect(() => {
+    if (isRevision) return;
     const tick = () =>
       setRemaining(remainingSeconds(new Date(attempt.startedAt), spec.timeMinutes));
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [attempt.startedAt, spec.timeMinutes]);
+  }, [attempt.startedAt, isRevision, spec.timeMinutes]);
 
   useEffect(() => () => clearTimeout(autosaveTimer.current), []);
 
@@ -125,18 +133,24 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   };
 
   const tone = wordCountTone(wordCount, spec.minWords);
-  const timedOut = remaining === 0;
+  const timedOut = !isRevision && remaining === 0;
 
   return (
     <div className="flex h-screen flex-col">
       <header className="flex items-center gap-4 border-b border-rule px-6 py-3">
         <BrandLockup to="/practice" />
-        <span
-          className={`font-mono text-sm tabular-nums ${timedOut ? "text-vermilion" : "text-ink"}`}
-          aria-label="Time remaining"
-        >
-          {formatClock(remaining)}
-        </span>
+        {isRevision ? (
+          <span className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-vermilion">
+            Bản sửa {attempt.revisionRound}/2
+          </span>
+        ) : (
+          <span
+            className={`font-mono text-sm tabular-nums ${timedOut ? "text-vermilion" : "text-ink"}`}
+            aria-label="Time remaining"
+          >
+            {formatClock(remaining)}
+          </span>
+        )}
         <span
           className={`font-mono text-[0.7rem] uppercase tracking-[0.15em] ${
             tone === "under" ? "text-vermilion" : "text-ink-soft"
@@ -169,7 +183,13 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
       )}
 
       <div className="flex min-h-0 flex-1">
-        <PromptPane attempt={attempt} spec={spec} hintsOpen={hintsOpen} onOpenHints={openHints} />
+        <PromptPane
+          attempt={attempt}
+          spec={spec}
+          hintsOpen={hintsOpen}
+          onOpenHints={openHints}
+          parentFeedback={parent.data?.feedback ?? null}
+        />
         <div className="flex min-w-0 flex-1 flex-col">
           <Editor
             key={attempt.id}
@@ -190,12 +210,25 @@ function PromptPane({
   spec,
   hintsOpen,
   onOpenHints,
+  parentFeedback,
 }: {
   attempt: PracticeAttemptDetail;
   spec: TaskSpec;
   hintsOpen: boolean;
   onOpenHints: () => void;
+  parentFeedback: PracticeAttemptDetail["feedback"];
 }) {
+  const feedbackPoints = parentFeedback
+    ? [
+        parentFeedback.taskResponse,
+        parentFeedback.coherenceCohesion,
+        parentFeedback.lexicalResource,
+        parentFeedback.grammaticalRange,
+        parentFeedback.overview,
+        parentFeedback.nextFocus,
+      ].filter(Boolean)
+    : [];
+
   return (
     <aside className="prompt-scroll w-96 shrink-0 overflow-y-auto border-r border-rule bg-paper-deep px-6 py-8">
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">{spec.label}</p>
@@ -203,6 +236,19 @@ function PromptPane({
       <p className="mt-4 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
         {spec.minWords}–{spec.maxWords} words · {spec.timeMinutes} min
       </p>
+
+      {feedbackPoints.length > 0 && (
+        <div className="mt-8 border-t border-rule pt-6">
+          <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-vermilion">
+            Góp ý lần trước
+          </h2>
+          <ul className="mt-3 list-disc space-y-2 pl-4 text-sm leading-relaxed text-ink-soft">
+            {feedbackPoints.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="mt-8 border-t border-rule pt-6">
         <button
