@@ -67,7 +67,14 @@ describe("AuthPage", () => {
     expect(brand.className).toContain("text-3xl");
     expect(screen.getByRole("heading", { name: "Welcome back" })).toBeTruthy();
     expect(screen.getByText("Your papers and drafts are waiting.")).toBeTruthy();
+    expect(document.querySelector("[data-ambient='ink']")).toBeTruthy();
     expect(document.querySelector("header.border-b")).toBeNull();
+  });
+
+  it("shows the ambient backdrop on register as well", () => {
+    renderAuth("register");
+    expect(document.querySelector("[data-ambient='rules']")).toBeTruthy();
+    expect(document.querySelector("[data-ambient='marks']")).toBeTruthy();
   });
 
   it("sends Back to the editor to /write", () => {

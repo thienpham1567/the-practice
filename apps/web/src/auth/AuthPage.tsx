@@ -4,6 +4,7 @@ import { apiJson, ApiError } from "../api/client";
 import { useAuthStore, type SessionUser } from "../api/auth-store";
 import { BrandLockup } from "../BrandLockup";
 import { afterAuthPath } from "../folio/after-auth-path";
+import { AuthAmbient } from "./AuthAmbient";
 import { useGoogleSignIn } from "./useGoogleSignIn";
 
 interface AuthPageProps {
@@ -66,8 +67,9 @@ export function AuthPage({ mode }: AuthPageProps) {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-14">
-      <div className="animate-fade-up" style={{ animationDelay: "40ms" }}>
+    <main className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-14">
+      <AuthAmbient />
+      <div className="relative z-10 animate-fade-up" style={{ animationDelay: "40ms" }}>
         <BrandLockup to="/" size="xl" />
         <h1 className="mt-10 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
           {copy.heading}
@@ -77,7 +79,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
       <form
         onSubmit={(event) => void submit(event)}
-        className="animate-fade-up relative mt-10 space-y-5"
+        className="relative z-10 animate-fade-up mt-10 space-y-5"
         style={{ animationDelay: "90ms" }}
       >
         <Field
@@ -113,7 +115,7 @@ export function AuthPage({ mode }: AuthPageProps) {
       </form>
 
       {google.status !== "hidden" && (
-        <div className="relative mt-8" data-testid="google-sign-in">
+        <div className="relative z-10 mt-8" data-testid="google-sign-in">
           <div className="flex items-center gap-3" aria-hidden="true">
             <span className="h-px flex-1 bg-rule" />
             <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
@@ -148,7 +150,7 @@ export function AuthPage({ mode }: AuthPageProps) {
       )}
 
       <p
-        className="animate-fade-up relative mt-6 text-sm text-ink-soft"
+        className="relative z-10 animate-fade-up mt-6 text-sm text-ink-soft"
         style={{ animationDelay: "130ms" }}
       >
         {copy.switchText}{" "}
@@ -159,7 +161,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
       <Link
         to="/write"
-        className="animate-fade-up relative mt-10 text-sm text-ink-faint underline underline-offset-2 hover:text-ink"
+        className="relative z-10 animate-fade-up mt-10 text-sm text-ink-faint underline underline-offset-2 hover:text-ink"
         style={{ animationDelay: "160ms" }}
       >
         Back to the editor
