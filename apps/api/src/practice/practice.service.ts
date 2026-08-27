@@ -170,15 +170,17 @@ export class PracticeService {
       where: { id, userId },
       include: {
         parent: { select: { band: true } },
-        revisions: { select: { id: true }, take: 1 },
+        revisions: { select: { id: true, submittedAt: true }, take: 1 },
       },
     });
     if (!attempt) throw new NotFoundException("Practice attempt not found");
     const { parent, revisions, ...rest } = attempt;
+    const child = revisions[0] ?? null;
     return {
       ...rest,
       parentBand: parent?.band ?? null,
-      hasRevision: revisions.length > 0,
+      hasRevision: child != null,
+      pendingRevisionId: child != null && child.submittedAt == null ? child.id : null,
     };
   }
 

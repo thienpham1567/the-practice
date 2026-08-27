@@ -61,6 +61,7 @@ const gradedAttempt: PracticeAttemptDetail = {
   feedbackAudit: null,
   parentBand: null,
   hasRevision: false,
+  pendingRevisionId: null,
 };
 
 function renderPage(attemptId = "a1") {

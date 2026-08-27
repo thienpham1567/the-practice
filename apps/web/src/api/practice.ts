@@ -47,6 +47,8 @@ export interface PracticeAttemptDetail
   feedbackAudit: FeedbackAuditItem[] | null;
   parentBand: number | null;
   hasRevision: boolean;
+  /** Child revision id when one exists but has not been submitted; otherwise null. */
+  pendingRevisionId: string | null;
 }
 
 export interface CreateAttemptInput {

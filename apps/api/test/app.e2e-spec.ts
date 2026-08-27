@@ -641,6 +641,13 @@ describe("API (e2e)", () => {
       expect(revised.body.submittedAt).toBeNull();
       expect(revised.body.plainText).toContain("Dear Ms Lee");
 
+      const rootWhilePending = await server()
+        .get(`/practice/attempts/${id}`)
+        .set(auth)
+        .expect(200);
+      expect(rootWhilePending.body.hasRevision).toBe(true);
+      expect(rootWhilePending.body.pendingRevisionId).toBe(revised.body.id);
+
       await server().post(`/practice/attempts/${id}/revise`).set(auth).expect(409);
     });
 

@@ -244,7 +244,7 @@ describe("PracticeService", () => {
         where: { id: "rev-1", userId: "user-1" },
         include: {
           parent: { select: { band: true } },
-          revisions: { select: { id: true }, take: 1 },
+          revisions: { select: { id: true, submittedAt: true }, take: 1 },
         },
       });
       expect(result).toMatchObject({
@@ -254,6 +254,7 @@ describe("PracticeService", () => {
         feedbackAudit: [{ point: "Use complex sentences", status: "resolved" }],
         parentBand: 5.5,
         hasRevision: false,
+        pendingRevisionId: null,
       });
       expect(result).not.toHaveProperty("parent");
       expect(result).not.toHaveProperty("revisions");
@@ -281,12 +282,13 @@ describe("PracticeService", () => {
         revisionRound: 0,
         parentBand: null,
         hasRevision: false,
+        pendingRevisionId: null,
       });
       expect(result).not.toHaveProperty("parent");
       expect(result).not.toHaveProperty("revisions");
     });
 
-    it("returns hasRevision true when a child revision exists", async () => {
+    it("returns hasRevision true and pendingRevisionId when the child is unsubmitted", async () => {
       const { service } = serviceWith({
         attempt: {
           id: "a1",
@@ -295,13 +297,40 @@ describe("PracticeService", () => {
           revisionRound: 0,
           band: 5.5,
           parent: null,
-          revisions: [{ id: "rev-1" }],
+          revisions: [{ id: "rev-1", submittedAt: null }],
         },
       });
 
       const result = await service.findOne("user-1", "a1");
 
-      expect(result).toMatchObject({ id: "a1", hasRevision: true });
+      expect(result).toMatchObject({
+        id: "a1",
+        hasRevision: true,
+        pendingRevisionId: "rev-1",
+      });
+      expect(result).not.toHaveProperty("revisions");
+    });
+
+    it("returns hasRevision true and pendingRevisionId null when the child is submitted", async () => {
+      const { service } = serviceWith({
+        attempt: {
+          id: "a1",
+          userId: "user-1",
+          parentAttemptId: null,
+          revisionRound: 0,
+          band: 5.5,
+          parent: null,
+          revisions: [{ id: "rev-1", submittedAt: new Date("2026-08-27T12:00:00Z") }],
+        },
+      });
+
+      const result = await service.findOne("user-1", "a1");
+
+      expect(result).toMatchObject({
+        id: "a1",
+        hasRevision: true,
+        pendingRevisionId: null,
+      });
       expect(result).not.toHaveProperty("revisions");
     });
   });
@@ -318,7 +347,7 @@ describe("PracticeService", () => {
       startedAt: new Date("2026-08-25T10:00:00Z"),
       submittedAt: null,
       gradingStartedAt: null,
-      revisions: [] as { id: string }[],
+      revisions: [] as { id: string; submittedAt: Date | null }[],
     };
 
     it("computes overall band on the server from the four criteria", async () => {
