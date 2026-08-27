@@ -36,7 +36,7 @@ Phần lõi giá trị. Audit là phần phụ của lần chấm — mọi bư�
 | 3.3 | Trang kết quả: nút "Sửa lại bài này" khi `canRevise` → gọi revise → navigate `/practice/:newId` | Component test: nút hiện/ẩn đúng; bấm điều hướng đúng |
 | 3.4 | Trang viết bản sửa: ẩn đồng hồ đếm ngược, nhãn "Bản sửa 1/2"; sidebar ghim danh sách feedback của cha | Component test: bản sửa không render countdown, có nhãn và feedback cha |
 | 3.5 | Kết quả bản sửa: delta `5.5 → 6.5` cạnh `BandStamp`; danh sách audit ✓/±/✗ (✗ màu vermilion); `feedbackAudit` null → chỉ hiện delta, không hiện audit | Component test ba trạng thái status + trạng thái null |
-| 3.6 | Đi hết vòng thật trong browser với API + OpenRouter thật: tạo → viết → chấm → sửa → chấm lại → thấy delta và audit | Screenshot; ghi lại thời gian chấm thật vào plan (liên quan ghi chú 2.8 plan hardening) |
+| 3.6 | Đi hết vòng thật trong browser với API + OpenRouter thật: tạo → viết → chấm → sửa → chấm lại → thấy delta và audit | **Đã chạy 2026-08-27:** API smoke với OpenRouter — create ~3.7s, grade gốc ~3.9s (band 3.5), revise tức thì, grade bản sửa ~5.6s (band 2 + audit 6 điểm). Second revise → 409. Browser: login → list (roots-only sau 4.1) → trang kết quả bản sửa hiện delta `3.5 → 2.0` + audit. |
 
 ## Milestone 4 — Danh sách và biểu đồ
 

@@ -1,4 +1,3 @@
-import type { TaskSpec } from "@writing-helper/practice";
 import type { JsonSchemaSpec } from "../ai/ai.service";
 import {
   GRADE_TASK_SCHEMA,
