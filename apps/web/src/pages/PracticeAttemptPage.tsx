@@ -323,6 +323,8 @@ function PromptPane({
 function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: TaskSpec }) {
   const navigate = useNavigate();
   const snapshot = attempt.styleSnapshot;
+  const [scoresOpen, setScoresOpen] = useState(true);
+  const scoresTriggerRef = useRef<HTMLButtonElement>(null);
   const showRevise = canRevise({
     band: attempt.band,
     submittedAt: attempt.submittedAt,
@@ -344,6 +346,15 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
         <span className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
           {spec.label}
         </span>
+        <button
+          ref={scoresTriggerRef}
+          type="button"
+          onClick={() => setScoresOpen((current) => !current)}
+          aria-expanded={scoresOpen}
+          className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion lg:hidden"
+        >
+          Scores
+        </button>
         {showRevise && (
           <button
             type="button"
@@ -357,47 +368,57 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <aside className="w-[22rem] shrink-0 overflow-y-auto border-r border-rule bg-paper-deep px-6 py-8">
-          {attempt.band !== null && (
-            <div className="mb-8">
-              <BandStamp band={attempt.band} />
-              {attempt.parentBand != null && (
-                <p className="mt-3 font-mono text-sm tabular-nums text-ink-soft">
-                  {formatBandDelta(attempt.parentBand, attempt.band)}
-                </p>
-              )}
-            </div>
-          )}
+        <SidePanel
+          open={scoresOpen}
+          onOpenChange={setScoresOpen}
+          title="Scores"
+          triggerLabel="Scores"
+          triggerRef={scoresTriggerRef}
+          side="left"
+          className="w-[22rem]"
+        >
+          <div className="px-6 py-8">
+            {attempt.band !== null && (
+              <div className="mb-8">
+                <BandStamp band={attempt.band} />
+                {attempt.parentBand != null && (
+                  <p className="mt-3 font-mono text-sm tabular-nums text-ink-soft">
+                    {formatBandDelta(attempt.parentBand, attempt.band)}
+                  </p>
+                )}
+              </div>
+            )}
 
-          {attempt.feedbackAudit && attempt.feedbackAudit.length > 0 && (
-            <section className="mb-8 border-t border-rule pt-6">
-              <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
-                Feedback audit
-              </h2>
-              <FeedbackAuditList items={attempt.feedbackAudit} />
-            </section>
-          )}
+            {attempt.feedbackAudit && attempt.feedbackAudit.length > 0 && (
+              <section className="mb-8 border-t border-rule pt-6">
+                <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+                  Feedback audit
+                </h2>
+                <FeedbackAuditList items={attempt.feedbackAudit} />
+              </section>
+            )}
 
-          {attempt.scores && attempt.feedback && (
-            <CriteriaBars scores={attempt.scores} feedback={attempt.feedback} />
-          )}
+            {attempt.scores && attempt.feedback && (
+              <CriteriaBars scores={attempt.scores} feedback={attempt.feedback} />
+            )}
 
-          {attempt.feedback && (
-            <section className="mt-8 border-t border-rule pt-6">
-              <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-vermilion">
-                Next time
-              </h2>
-              <p className="mt-3 font-display text-lg leading-snug">{attempt.feedback.nextFocus}</p>
-              <p className="mt-3 text-sm leading-relaxed text-ink-soft">{attempt.feedback.overview}</p>
-            </section>
-          )}
+            {attempt.feedback && (
+              <section className="mt-8 border-t border-rule pt-6">
+                <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-vermilion">
+                  Next time
+                </h2>
+                <p className="mt-3 font-display text-lg leading-snug">{attempt.feedback.nextFocus}</p>
+                <p className="mt-3 text-sm leading-relaxed text-ink-soft">{attempt.feedback.overview}</p>
+              </section>
+            )}
 
-          {snapshot && (
-            <div className="mt-8 border-t border-rule pt-6">
-              <StyleProfile snapshot={snapshot} level={attempt.level} />
-            </div>
-          )}
-        </aside>
+            {snapshot && (
+              <div className="mt-8 border-t border-rule pt-6">
+                <StyleProfile snapshot={snapshot} level={attempt.level} />
+              </div>
+            )}
+          </div>
+        </SidePanel>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <Editor
