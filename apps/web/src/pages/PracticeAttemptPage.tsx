@@ -141,10 +141,10 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex items-center gap-4 border-b border-rule px-6 py-3">
-        <BrandLockup to="/practice" />
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+        <BrandLockup to="/practice" size="sm" />
         {isRevision ? (
-          <span className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-vermilion">
+          <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion sm:text-[0.7rem]">
             Bản sửa {attempt.revisionRound}/2
           </span>
         ) : (
@@ -156,29 +156,30 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
           </span>
         )}
         <span
-          className={`font-mono text-[0.7rem] uppercase tracking-[0.15em] ${
+          className={`font-mono text-[0.65rem] uppercase tracking-[0.15em] sm:text-[0.7rem] ${
             tone === "under" ? "text-vermilion" : "text-ink-soft"
           }`}
         >
-          {wordCount} / {spec.minWords}–{spec.maxWords} words
+          {wordCount}/{spec.minWords}–{spec.maxWords}
+          <span className="hidden sm:inline"> words</span>
         </span>
         <button
           ref={promptTriggerRef}
           type="button"
           onClick={() => setPromptOpen((current) => !current)}
           aria-expanded={promptOpen}
-          className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion lg:hidden"
+          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion sm:text-[0.7rem] lg:hidden"
         >
           Prompt
         </button>
-        <span className="ml-auto font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+        <span className="ml-auto font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           {save.isPending ? "Saving…" : save.isSuccess ? "Saved" : null}
         </span>
         <button
           type="button"
           onClick={() => void handleSubmit()}
           disabled={submitting}
-          className="bg-ink px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
+          className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
         >
           {submitting ? "Marking…" : "Submit"}
         </button>
@@ -341,9 +342,9 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex items-center gap-4 border-b border-rule px-6 py-3">
-        <BrandLockup to="/practice" />
-        <span className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+        <BrandLockup to="/practice" size="sm" />
+        <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           {spec.label}
         </span>
         <button
@@ -351,7 +352,7 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
           type="button"
           onClick={() => setScoresOpen((current) => !current)}
           aria-expanded={scoresOpen}
-          className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion lg:hidden"
+          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion sm:text-[0.7rem] lg:hidden"
         >
           Scores
         </button>
@@ -360,7 +361,7 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
             type="button"
             onClick={() => revise.mutate()}
             disabled={revise.isPending}
-            className="ml-auto bg-ink px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
+            className="ml-auto bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
           >
             Sửa lại bài này
           </button>

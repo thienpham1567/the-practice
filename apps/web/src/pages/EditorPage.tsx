@@ -101,11 +101,11 @@ export function EditorPage() {
 
   return (
     <div className="flex h-screen flex-col">
-      <header className="flex items-center gap-4 border-b border-rule px-6 py-3">
-        <BrandLockup to={signedIn ? "/practice" : "/"} />
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+        <BrandLockup to={signedIn ? "/practice" : "/"} size="sm" />
         <Link
           to="/practice"
-          className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion"
+          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion sm:text-[0.7rem]"
         >
           Practice
         </Link>
@@ -114,7 +114,7 @@ export function EditorPage() {
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           aria-label="Document title"
-          className="min-w-0 flex-1 border-b border-transparent bg-transparent px-1 py-0.5 text-ink-soft outline-none transition-colors hover:border-rule focus:border-vermilion focus:text-ink"
+          className="min-w-[8rem] flex-1 basis-40 border-b border-transparent bg-transparent px-1 py-0.5 text-ink-soft outline-none transition-colors hover:border-rule focus:border-vermilion focus:text-ink"
         />
 
         <SaveState status={status} />
@@ -125,7 +125,7 @@ export function EditorPage() {
               key={option}
               type="button"
               onClick={() => setMode(option)}
-              className={`px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.15em] transition-colors ${
+              className={`px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.15em] transition-colors sm:px-3 sm:text-[0.7rem] ${
                 mode === option ? "bg-ink text-paper" : "text-ink-soft hover:text-vermilion"
               }`}
             >
@@ -139,7 +139,7 @@ export function EditorPage() {
           type="button"
           onClick={() => setPanelOpen((current) => !current)}
           aria-expanded={panelOpen}
-          className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion lg:hidden"
+          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion sm:text-[0.7rem] lg:hidden"
         >
           {panelLabel}
         </button>
@@ -157,7 +157,7 @@ export function EditorPage() {
               }
               save.mutate(currentInput());
             }}
-            className="bg-ink px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion"
+            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
           >
             Save
           </button>
