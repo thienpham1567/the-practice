@@ -1,5 +1,6 @@
 import type { AnalysisResult } from "@writing-helper/analysis";
 import type { Level } from "@writing-helper/practice";
+import { readStyleSnapshot } from "./style-snapshot";
 
 interface StyleProfileProps {
   snapshot: AnalysisResult;
@@ -11,10 +12,7 @@ interface StyleProfileProps {
  * Passive and spare adverbs stay as real faults; sentence length is descriptive.
  */
 export function StyleProfile({ snapshot, level }: StyleProfileProps) {
-  const counts = snapshot.counts ?? { passives: 0, adverbs: 0 };
-  const stats = snapshot.stats ?? { sentences: 0, words: 0 };
-  const average =
-    stats.sentences === 0 ? 0 : Math.round((stats.words / stats.sentences) * 10) / 10;
+  const { passives, adverbs, average } = readStyleSnapshot(snapshot);
 
   return (
     <section>
@@ -23,19 +21,21 @@ export function StyleProfile({ snapshot, level }: StyleProfileProps) {
       </h2>
 
       <ul className="mt-3 space-y-2 text-sm leading-relaxed">
-        <li className={counts.passives > 0 ? "text-vermilion" : "text-ink-soft"}>
-          {counts.passives === 0
+        <li className={passives > 0 ? "text-vermilion" : "text-ink-soft"}>
+          {passives === 0
             ? "No passive constructions stood out."
-            : `${counts.passives} passive ${counts.passives === 1 ? "construction" : "constructions"}.`}
+            : `${passives} passive ${passives === 1 ? "construction" : "constructions"}.`}
         </li>
-        <li className={counts.adverbs > 0 ? "text-vermilion" : "text-ink-soft"}>
-          {counts.adverbs === 0
+        <li className={adverbs > 0 ? "text-vermilion" : "text-ink-soft"}>
+          {adverbs === 0
             ? "No spare adverbs."
-            : `${counts.adverbs} spare ${counts.adverbs === 1 ? "adverb" : "adverbs"}.`}
+            : `${adverbs} spare ${adverbs === 1 ? "adverb" : "adverbs"}.`}
         </li>
-        <li className="text-ink-soft">
-          Average {average} words a sentence — {sentenceFit(average, level)}.
-        </li>
+        {average !== null ? (
+          <li className="text-ink-soft">
+            Average {average} words a sentence — {sentenceFit(average, level)}.
+          </li>
+        ) : null}
       </ul>
     </section>
   );
