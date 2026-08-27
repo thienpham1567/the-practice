@@ -66,6 +66,7 @@ describe("AuthPage", () => {
     expect(brand.getAttribute("href")).toBe("/");
     expect(brand.className).toContain("text-3xl");
     expect(screen.getByRole("heading", { name: "Welcome back" })).toBeTruthy();
+    expect(screen.getByText("Your papers and drafts are waiting.")).toBeTruthy();
     expect(document.querySelector("header.border-b")).toBeNull();
   });
 

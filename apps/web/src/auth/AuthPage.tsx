@@ -13,7 +13,7 @@ interface AuthPageProps {
 const COPY = {
   login: {
     heading: "Welcome back",
-    lede: "Sit the next paper, or pick up a draft.",
+    lede: "Your papers and drafts are waiting.",
     action: "Sign in",
     path: "/auth/login",
     switchText: "No account yet?",
