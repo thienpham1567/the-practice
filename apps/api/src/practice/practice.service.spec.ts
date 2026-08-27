@@ -122,6 +122,59 @@ describe("PracticeService", () => {
         NotFoundException,
       );
     });
+
+    it("returns parentBand from the parent include for a revision", async () => {
+      const { service, prisma } = serviceWith({
+        attempt: {
+          id: "rev-1",
+          userId: "user-1",
+          parentAttemptId: "a1",
+          revisionRound: 1,
+          feedbackAudit: [{ point: "Use complex sentences", status: "resolved" }],
+          band: 6.5,
+          parent: { band: 5.5 },
+        },
+      });
+
+      const result = await service.findOne("user-1", "rev-1");
+
+      expect(prisma.practiceAttempt.findFirst).toHaveBeenCalledWith({
+        where: { id: "rev-1", userId: "user-1" },
+        include: { parent: { select: { band: true } } },
+      });
+      expect(result).toMatchObject({
+        id: "rev-1",
+        parentAttemptId: "a1",
+        revisionRound: 1,
+        feedbackAudit: [{ point: "Use complex sentences", status: "resolved" }],
+        parentBand: 5.5,
+      });
+      expect(result).not.toHaveProperty("parent");
+    });
+
+    it("returns parentBand null for a root attempt", async () => {
+      const { service } = serviceWith({
+        attempt: {
+          id: "a1",
+          userId: "user-1",
+          parentAttemptId: null,
+          revisionRound: 0,
+          feedbackAudit: null,
+          band: 5.5,
+          parent: null,
+        },
+      });
+
+      const result = await service.findOne("user-1", "a1");
+
+      expect(result).toMatchObject({
+        id: "a1",
+        parentAttemptId: null,
+        revisionRound: 0,
+        parentBand: null,
+      });
+      expect(result).not.toHaveProperty("parent");
+    });
   });
 
   describe("submit", () => {
