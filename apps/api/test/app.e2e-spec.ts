@@ -731,6 +731,122 @@ describe("API (e2e)", () => {
       expect(ids1.filter((id: string) => ids2.includes(id))).toEqual([]);
     });
 
+    it("GET /practice/vocab lists unused first, hides others, paginates without overlap", async () => {
+      const alice = await registerUser("vocab-list-alice@example.com");
+      const bob = await registerUser("vocab-list-bob@example.com");
+      const aliceAuth = { Authorization: `Bearer ${alice.accessToken}` };
+      const bobAuth = { Authorization: `Bearer ${bob.accessToken}` };
+      const aliceUser = await prisma.user.findUniqueOrThrow({
+        where: { email: "vocab-list-alice@example.com" },
+      });
+      const bobUser = await prisma.user.findUniqueOrThrow({
+        where: { email: "vocab-list-bob@example.com" },
+      });
+
+      const t = (offsetMin: number) => new Date(Date.now() - offsetMin * 60_000);
+
+      // Mix of unused/used with staggered lastSuggestedAt — unused must lead.
+      await prisma.vocabEntry.createMany({
+        data: [
+          {
+            userId: aliceUser.id,
+            word: "used-old",
+            meaning: "m",
+            example: "e",
+            level: "B1",
+            usedCount: 2,
+            lastSuggestedAt: t(10),
+          },
+          {
+            userId: aliceUser.id,
+            word: "unused-newer",
+            meaning: "m",
+            example: "e",
+            level: "B1",
+            usedCount: 0,
+            lastSuggestedAt: t(1),
+          },
+          {
+            userId: aliceUser.id,
+            word: "unused-older",
+            meaning: "m",
+            example: "e",
+            level: "B1",
+            usedCount: 0,
+            lastSuggestedAt: t(5),
+          },
+          {
+            userId: aliceUser.id,
+            word: "used-newer",
+            meaning: "m",
+            example: "e",
+            level: "B1",
+            usedCount: 1,
+            lastSuggestedAt: t(2),
+          },
+          {
+            userId: aliceUser.id,
+            word: "extra",
+            meaning: "m",
+            example: "e",
+            level: "A2",
+            usedCount: 0,
+            lastSuggestedAt: t(3),
+          },
+          {
+            userId: bobUser.id,
+            word: "secret",
+            meaning: "m",
+            example: "e",
+            level: "B1",
+            usedCount: 0,
+          },
+        ],
+      });
+
+      await server().get("/practice/vocab").expect(401);
+
+      const all = await server().get("/practice/vocab").set(aliceAuth).expect(200);
+      const words = all.body.items.map((item: { word: string }) => item.word);
+      expect(words).toEqual([
+        "unused-newer",
+        "extra",
+        "unused-older",
+        "used-newer",
+        "used-old",
+      ]);
+      expect(all.body.items.every((item: { word: string }) => item.word !== "secret")).toBe(
+        true,
+      );
+
+      const bobList = await server().get("/practice/vocab").set(bobAuth).expect(200);
+      expect(bobList.body.items.map((item: { word: string }) => item.word)).toEqual([
+        "secret",
+      ]);
+
+      const page1 = await server().get("/practice/vocab?limit=2").set(aliceAuth).expect(200);
+      expect(page1.body.items).toHaveLength(2);
+      expect(page1.body.nextCursor).toEqual(expect.any(String));
+      expect(page1.body.items.map((item: { word: string }) => item.word)).toEqual([
+        "unused-newer",
+        "extra",
+      ]);
+
+      const page2 = await server()
+        .get(`/practice/vocab?limit=2&cursor=${page1.body.nextCursor}`)
+        .set(aliceAuth)
+        .expect(200);
+      expect(page2.body.items).toHaveLength(2);
+
+      const ids1 = page1.body.items.map((item: { id: string }) => item.id);
+      const ids2 = page2.body.items.map((item: { id: string }) => item.id);
+      expect(ids1.filter((id: string) => ids2.includes(id))).toEqual([]);
+      expect(page2.body.items.map((item: { word: string }) => item.word)).toEqual([
+        "unused-older",
+        "used-newer",
+      ]);
+    });
+
     it("vocab notebook: create records words, submit marks used, next create flags review", async () => {
       const firstGenerate = {
         ...generated,

@@ -1,4 +1,6 @@
 import { Injectable } from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
+import { DEFAULT_PAGE_SIZE, toCursorPage } from "../common/cursor-page";
 import { PrismaService } from "../prisma/prisma.service";
 import { matchVocab, normalizeWord } from "./vocab-match";
 
@@ -8,9 +10,39 @@ export type VocabSuggestItem = {
   example: string;
 };
 
+const LIST_FIELDS = {
+  id: true,
+  word: true,
+  meaning: true,
+  example: true,
+  level: true,
+  usedCount: true,
+  suggestedCount: true,
+  lastSuggestedAt: true,
+  firstUsedAt: true,
+  createdAt: true,
+} satisfies Prisma.VocabEntrySelect;
+
 @Injectable()
 export class VocabService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async list(userId: string, opts: { cursor?: string; limit?: number } = {}) {
+    const limit = opts.limit ?? DEFAULT_PAGE_SIZE;
+    const rows = await this.prisma.vocabEntry.findMany({
+      where: { userId },
+      select: LIST_FIELDS,
+      // Unused (usedCount = 0) before used; within group newest suggestion first.
+      orderBy: [
+        { usedCount: "asc" },
+        { lastSuggestedAt: "desc" },
+        { id: "desc" },
+      ],
+      take: limit + 1,
+      ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
+    });
+    return toCursorPage(rows, limit);
+  }
 
   async recordSuggested(
     userId: string,

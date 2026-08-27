@@ -22,6 +22,68 @@ function serviceWith(overrides: {
 }
 
 describe("VocabService", () => {
+  describe("list", () => {
+    it("lists own entries unused-first with cursor page size", async () => {
+      const rows = [
+        {
+          id: "a",
+          word: "fresh",
+          meaning: "m",
+          example: "e",
+          level: "B1",
+          usedCount: 0,
+          suggestedCount: 1,
+          lastSuggestedAt: new Date("2026-08-20"),
+          firstUsedAt: null,
+          createdAt: new Date("2026-08-20"),
+        },
+        {
+          id: "b",
+          word: "used",
+          meaning: "m",
+          example: "e",
+          level: "B1",
+          usedCount: 1,
+          suggestedCount: 1,
+          lastSuggestedAt: new Date("2026-08-19"),
+          firstUsedAt: new Date("2026-08-19"),
+          createdAt: new Date("2026-08-19"),
+        },
+      ];
+      const findMany = jest.fn().mockResolvedValue(rows);
+      const { service, prisma } = serviceWith({ findMany });
+
+      const page = await service.list("user-1", { limit: 2 });
+
+      expect(prisma.vocabEntry.findMany).toHaveBeenCalledWith({
+        where: { userId: "user-1" },
+        select: expect.objectContaining({ word: true, usedCount: true }),
+        orderBy: [
+          { usedCount: "asc" },
+          { lastSuggestedAt: "desc" },
+          { id: "desc" },
+        ],
+        take: 3,
+      });
+      expect(page).toEqual({ items: rows, nextCursor: null });
+    });
+
+    it("applies cursor skip when paging", async () => {
+      const findMany = jest.fn().mockResolvedValue([]);
+      const { service } = serviceWith({ findMany });
+
+      await service.list("user-1", { cursor: "cursor-id", limit: 10 });
+
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 11,
+          cursor: { id: "cursor-id" },
+          skip: 1,
+        }),
+      );
+    });
+  });
+
   describe("recordSuggested", () => {
     it("creates a new entry with normalized word, meaning, example, and level", async () => {
       const { service, prisma } = serviceWith();
