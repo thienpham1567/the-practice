@@ -20,7 +20,8 @@ import {
   remainingSeconds,
   wordCountTone,
 } from "../practice/exam-math";
-import { canRevise } from "../practice/revise-availability";
+import { FeedbackAuditList } from "../practice/FeedbackAuditList";
+import { canRevise, formatBandDelta } from "../practice/revise-availability";
 import { StyleProfile } from "../practice/StyleProfile";
 
 const AUTOSAVE_DELAY_MS = 2000;
@@ -333,7 +334,21 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
           {attempt.band !== null && (
             <div className="mb-8">
               <BandStamp band={attempt.band} />
+              {attempt.parentBand != null && (
+                <p className="mt-3 font-mono text-sm tabular-nums text-ink-soft">
+                  {formatBandDelta(attempt.parentBand, attempt.band)}
+                </p>
+              )}
             </div>
+          )}
+
+          {attempt.feedbackAudit && attempt.feedbackAudit.length > 0 && (
+            <section className="mb-8 border-t border-rule pt-6">
+              <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+                Feedback audit
+              </h2>
+              <FeedbackAuditList items={attempt.feedbackAudit} />
+            </section>
           )}
 
           {attempt.scores && attempt.feedback && (

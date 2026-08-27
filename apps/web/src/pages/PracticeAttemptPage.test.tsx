@@ -192,3 +192,82 @@ describe("PracticeAttemptPage ExamRoom revision", () => {
     expect(screen.queryByLabelText("Time remaining")).toBeNull();
   });
 });
+
+const gradedRevision: PracticeAttemptDetail = {
+  ...gradedAttempt,
+  id: "rev-1",
+  band: 6.5,
+  parentAttemptId: "a1",
+  revisionRound: 1,
+  parentBand: 5.5,
+  hasRevision: false,
+  feedbackAudit: [
+    { point: "Task address fixed.", status: "resolved" },
+    { point: "Cohesion partly improved.", status: "partial" },
+    { point: "Grammar still weak.", status: "unresolved" },
+  ],
+};
+
+describe("PracticeAttemptPage ResultView revision results", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+    vi.mocked(reviseAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("shows band delta next to the stamp on a revision result", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(gradedRevision);
+    renderPage("rev-1");
+
+    expect(await screen.findByText("Band 6.5")).toBeTruthy();
+    expect(screen.getByText("5.5 → 6.5")).toBeTruthy();
+  });
+
+  it("marks resolved audit points with ✓", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(gradedRevision);
+    renderPage("rev-1");
+
+    const item = await screen.findByText(/Task address fixed/);
+    expect(item.closest("li")?.textContent).toMatch(/✓/);
+    expect(item.closest("li")?.className).not.toMatch(/text-vermilion/);
+  });
+
+  it("marks partial audit points with ±", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(gradedRevision);
+    renderPage("rev-1");
+
+    const item = await screen.findByText(/Cohesion partly improved/);
+    expect(item.closest("li")?.textContent).toMatch(/±/);
+  });
+
+  it("marks unresolved audit points with ✗ in vermilion", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(gradedRevision);
+    renderPage("rev-1");
+
+    const item = await screen.findByText(/Grammar still weak/);
+    expect(item.closest("li")?.textContent).toMatch(/✗/);
+    expect(item.closest("li")?.className).toMatch(/text-vermilion/);
+  });
+
+  it("shows delta only when feedbackAudit is null", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({ ...gradedRevision, feedbackAudit: null });
+    renderPage("rev-1");
+
+    expect(await screen.findByText("5.5 → 6.5")).toBeTruthy();
+    expect(screen.queryByText(/Task address fixed/)).toBeNull();
+    expect(screen.queryByText(/Cohesion partly improved/)).toBeNull();
+    expect(screen.queryByText(/Grammar still weak/)).toBeNull();
+    expect(screen.queryByText(/✓|±|✗/)).toBeNull();
+  });
+
+  it("keeps the revise button available on revision round 1 without a child", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(gradedRevision);
+    renderPage("rev-1");
+
+    expect(await screen.findByRole("button", { name: "Sửa lại bài này" })).toBeTruthy();
+  });
+});
