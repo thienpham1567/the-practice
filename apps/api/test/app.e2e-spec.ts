@@ -593,6 +593,42 @@ describe("API (e2e)", () => {
         .expect(409);
     });
 
+    it("revise trả 201 với attempt mới; revise lần hai trả 409", async () => {
+      mockPracticeAi();
+      const { accessToken } = await registerUser("practice-revise@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const created = await server()
+        .post("/practice/attempts")
+        .set(auth)
+        .send({ level: "A2", taskType: "email" })
+        .expect(201);
+      const id = created.body.id as string;
+
+      await server()
+        .post(`/practice/attempts/${id}/submit`)
+        .set(auth)
+        .send({
+          styleSnapshot: { counts: { passives: 0 } },
+          plainText: "Dear Ms Lee, I went on a school trip to the museum.",
+          wordCount: 12,
+        })
+        .expect(201);
+
+      const revised = await server()
+        .post(`/practice/attempts/${id}/revise`)
+        .set(auth)
+        .expect(201);
+
+      expect(revised.body.id).not.toBe(id);
+      expect(revised.body.parentAttemptId).toBe(id);
+      expect(revised.body.revisionRound).toBe(1);
+      expect(revised.body.submittedAt).toBeNull();
+      expect(revised.body.plainText).toContain("Dear Ms Lee");
+
+      await server().post(`/practice/attempts/${id}/revise`).set(auth).expect(409);
+    });
+
     it("phân trang practice theo cursor — trang 1 và trang 2 không trùng", async () => {
       const { accessToken } = await registerUser("practice-page@example.com");
       const auth = { Authorization: `Bearer ${accessToken}` };

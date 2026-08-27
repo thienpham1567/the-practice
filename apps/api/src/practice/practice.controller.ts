@@ -58,4 +58,11 @@ export class PracticeController {
   ) {
     return this.practice.submit(userId, id, dto);
   }
+
+  @Post(":id/revise")
+  @UseGuards(UserThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  revise(@CurrentUserId() userId: string, @Param("id") id: string) {
+    return this.practice.revise(userId, id);
+  }
 }
