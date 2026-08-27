@@ -44,12 +44,13 @@ export function PracticeAttemptPage() {
   }
 
   const spec = TASK_CATALOG.find((task) => task.type === attempt.data.taskType);
-  if (!spec) {
-    return <CenteredNote>This task type is no longer in the catalog.</CenteredNote>;
-  }
 
   if (attempt.data.submittedAt) {
     return <ResultView attempt={attempt.data} spec={spec} />;
+  }
+
+  if (!spec) {
+    return <CenteredNote>This task type is no longer in the catalog.</CenteredNote>;
   }
 
   return <ExamRoom attempt={attempt.data} spec={spec} />;
@@ -321,7 +322,13 @@ function PromptPane({
   );
 }
 
-function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: TaskSpec }) {
+function ResultView({
+  attempt,
+  spec,
+}: {
+  attempt: PracticeAttemptDetail;
+  spec?: TaskSpec;
+}) {
   const navigate = useNavigate();
   const snapshot = attempt.styleSnapshot;
   const [scoresOpen, setScoresOpen] = useState(true);
@@ -346,7 +353,7 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/practice" size="sm" />
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
-          {spec.label}
+          {spec?.label ?? attempt.taskType}
         </span>
         <button
           ref={scoresTriggerRef}

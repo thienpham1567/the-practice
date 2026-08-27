@@ -330,3 +330,41 @@ describe("PracticeAttemptPage PromptPane review chip", () => {
     expect(punctual?.textContent).not.toMatch(/review/);
   });
 });
+
+describe("PracticeAttemptPage catalog gate", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+    vi.mocked(reviseAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("still renders ResultView when the submitted task type is not in the catalog", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...gradedAttempt,
+      id: "legacy-1",
+      taskType: "essay" as PracticeAttemptDetail["taskType"],
+    });
+    renderPage("legacy-1");
+
+    expect(await screen.findByText("essay")).toBeTruthy();
+    expect(await screen.findByText("Band 5.5")).toBeTruthy();
+    expect(screen.getByText("Next time")).toBeTruthy();
+    expect(screen.getByText("A fair A2 email.")).toBeTruthy();
+    expect(screen.queryByText(/no longer in the catalog/)).toBeNull();
+  });
+
+  it("blocks ExamRoom when an open attempt's task type is not in the catalog", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...openAttemptWithReview,
+      taskType: "essay" as PracticeAttemptDetail["taskType"],
+    });
+    renderPage("open-1");
+
+    expect(await screen.findByText("This task type is no longer in the catalog.")).toBeTruthy();
+    expect(screen.queryByTestId("editor")).toBeNull();
+  });
+});
