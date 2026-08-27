@@ -97,12 +97,17 @@ describe("PracticeAttemptPage ResultView revise button", () => {
     expect(await screen.findByRole("button", { name: "Revise this paper" })).toBeTruthy();
   });
 
-  it("hides the revise button when a child revision already exists", async () => {
-    vi.mocked(getAttempt).mockResolvedValue({ ...gradedAttempt, hasRevision: true });
+  it("hides the revise button when a submitted child revision already exists", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...gradedAttempt,
+      hasRevision: true,
+      pendingRevisionId: null,
+    });
     renderPage();
 
     await screen.findByText("Next time");
     expect(screen.queryByRole("button", { name: "Revise this paper" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Resume revision" })).toBeNull();
   });
 
   it("hides the revise button at revision round 2", async () => {
@@ -116,6 +121,20 @@ describe("PracticeAttemptPage ResultView revise button", () => {
 
     await screen.findByText("Next time");
     expect(screen.queryByRole("button", { name: "Revise this paper" })).toBeNull();
+  });
+
+  it('shows "Resume revision" and navigates to the pending child', async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...gradedAttempt,
+      hasRevision: true,
+      pendingRevisionId: "rev-orphan",
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Resume revision" }));
+
+    expect(reviseAttempt).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/practice/rev-orphan");
   });
 
   it("calls reviseAttempt and navigates to the new attempt", async () => {

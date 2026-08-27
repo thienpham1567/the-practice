@@ -21,7 +21,7 @@ import {
   wordCountTone,
 } from "../practice/exam-math";
 import { FeedbackAuditList } from "../practice/FeedbackAuditList";
-import { canRevise, formatBandDelta } from "../practice/revise-availability";
+import { formatBandDelta, reviseAction } from "../practice/revise-availability";
 import { StyleProfile } from "../practice/StyleProfile";
 import { SidePanel } from "../SidePanel";
 
@@ -326,11 +326,12 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
   const snapshot = attempt.styleSnapshot;
   const [scoresOpen, setScoresOpen] = useState(true);
   const scoresTriggerRef = useRef<HTMLButtonElement>(null);
-  const showRevise = canRevise({
+  const action = reviseAction({
     band: attempt.band,
     submittedAt: attempt.submittedAt,
     revisionRound: attempt.revisionRound,
     hasRevision: attempt.hasRevision,
+    pendingRevisionId: attempt.pendingRevisionId,
   });
 
   const revise = useMutation({
@@ -356,7 +357,7 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
         >
           Scores
         </button>
-        {showRevise && (
+        {action.kind === "revise" && (
           <button
             type="button"
             onClick={() => revise.mutate()}
@@ -364,6 +365,15 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
             className="ml-auto bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
           >
             Revise this paper
+          </button>
+        )}
+        {action.kind === "resume" && (
+          <button
+            type="button"
+            onClick={() => navigate(`/practice/${action.attemptId}`)}
+            className="ml-auto bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
+          >
+            Resume revision
           </button>
         )}
       </header>
