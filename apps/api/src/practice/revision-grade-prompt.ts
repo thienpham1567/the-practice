@@ -23,6 +23,34 @@ export interface RevisionGradeResult extends GradeResult {
   feedbackAudit: FeedbackAuditItem[];
 }
 
+const AUDIT_STATUSES = new Set<FeedbackAuditStatus>([
+  "resolved",
+  "partial",
+  "unresolved",
+]);
+
+export function parseFeedbackAudit(raw: unknown): FeedbackAuditItem[] | null {
+  if (!Array.isArray(raw)) return null;
+
+  const items: FeedbackAuditItem[] = [];
+  for (const entry of raw) {
+    if (
+      entry == null ||
+      typeof entry !== "object" ||
+      typeof (entry as { point?: unknown }).point !== "string" ||
+      typeof (entry as { status?: unknown }).status !== "string" ||
+      !AUDIT_STATUSES.has((entry as { status: string }).status as FeedbackAuditStatus)
+    ) {
+      return null;
+    }
+    items.push({
+      point: (entry as { point: string }).point,
+      status: (entry as { status: FeedbackAuditStatus }).status,
+    });
+  }
+  return items;
+}
+
 const gradeSchema = GRADE_TASK_SCHEMA.schema as {
   type: string;
   additionalProperties: boolean;

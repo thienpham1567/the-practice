@@ -2,6 +2,7 @@ import { TASK_CATALOG } from "@writing-helper/practice";
 import type { GradeResult } from "./grade-prompt";
 import {
   buildRevisionGradePrompt,
+  parseFeedbackAudit,
   REVISION_GRADE_SCHEMA,
 } from "./revision-grade-prompt";
 
@@ -87,5 +88,38 @@ describe("REVISION_GRADE_SCHEMA", () => {
     expect(feedbackAudit.items.properties.status.enum).toEqual(
       expect.arrayContaining(["resolved", "partial", "unresolved"]),
     );
+  });
+});
+
+describe("parseFeedbackAudit", () => {
+  it("returns a valid audit array unchanged", () => {
+    const audit = [
+      { point: "Use clearer transitions.", status: "resolved" },
+      { point: "Add an example.", status: "partial" },
+      { point: "Fix article errors.", status: "unresolved" },
+    ];
+
+    expect(parseFeedbackAudit(audit)).toEqual(audit);
+  });
+
+  it("returns null when audit is missing", () => {
+    expect(parseFeedbackAudit(undefined)).toBeNull();
+    expect(parseFeedbackAudit(null)).toBeNull();
+  });
+
+  it("returns null when audit is the wrong type", () => {
+    expect(parseFeedbackAudit("resolved")).toBeNull();
+    expect(parseFeedbackAudit({ point: "x", status: "resolved" })).toBeNull();
+  });
+
+  it("returns null when any item is malformed", () => {
+    expect(
+      parseFeedbackAudit([{ point: "ok", status: "resolved" }, { point: 1, status: "partial" }]),
+    ).toBeNull();
+    expect(
+      parseFeedbackAudit([{ point: "ok", status: "done" }]),
+    ).toBeNull();
+    expect(parseFeedbackAudit([{ status: "resolved" }])).toBeNull();
+    expect(parseFeedbackAudit([{ point: "ok" }])).toBeNull();
   });
 });

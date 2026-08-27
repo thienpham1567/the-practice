@@ -1,4 +1,4 @@
-import { ConflictException, NotFoundException } from "@nestjs/common";
+import { ConflictException, Logger, NotFoundException } from "@nestjs/common";
 import { overallBand } from "@writing-helper/practice";
 import type { AiService } from "../ai/ai.service";
 import type { PrismaService } from "../prisma/prisma.service";
@@ -293,6 +293,84 @@ describe("PracticeService", () => {
           }),
         }),
       );
+    });
+
+    it("saves band and null feedbackAudit when audit array is missing", async () => {
+      jest.spyOn(Logger.prototype, "warn").mockImplementation();
+      const revisionDraft = {
+        ...draft,
+        id: "rev-1",
+        parentAttemptId: "a1",
+        revisionRound: 1,
+        parent: { band: 5.5 },
+      };
+      const scores = {
+        taskResponse: 6.5,
+        coherenceCohesion: 6.5,
+        lexicalResource: 6,
+        grammaticalRange: 6.5,
+      };
+      const { service, prisma, complete } = serviceWith({
+        findFirstResults: [revisionDraft, { feedback: graded.feedback, band: 5.5 }],
+        updated: { id: "rev-1", band: 6.5 },
+      });
+      complete.mockResolvedValueOnce({ scores, feedback: graded.feedback });
+
+      await service.submit("user-1", "rev-1", { styleSnapshot: {} });
+
+      expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            band: overallBand(scores),
+            scores,
+            feedback: graded.feedback,
+            feedbackAudit: null,
+          }),
+        }),
+      );
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+      jest.restoreAllMocks();
+    });
+
+    it("saves band and null feedbackAudit when audit is wrong-typed", async () => {
+      jest.spyOn(Logger.prototype, "warn").mockImplementation();
+      const revisionDraft = {
+        ...draft,
+        id: "rev-1",
+        parentAttemptId: "a1",
+        revisionRound: 1,
+        parent: { band: 5.5 },
+      };
+      const revisionGraded = {
+        ...graded,
+        scores: {
+          taskResponse: 6.5,
+          coherenceCohesion: 6.5,
+          lexicalResource: 6,
+          grammaticalRange: 6.5,
+        },
+        feedbackAudit: "not-an-array",
+      };
+      const { service, prisma, complete } = serviceWith({
+        findFirstResults: [revisionDraft, { feedback: graded.feedback, band: 5.5 }],
+        updated: { id: "rev-1", band: 6.5 },
+      });
+      complete.mockResolvedValueOnce(revisionGraded);
+
+      await service.submit("user-1", "rev-1", { styleSnapshot: {} });
+
+      expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            band: overallBand(revisionGraded.scores),
+            scores: revisionGraded.scores,
+            feedback: revisionGraded.feedback,
+            feedbackAudit: null,
+          }),
+        }),
+      );
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+      jest.restoreAllMocks();
     });
 
     it("rejects a second submit with 409", async () => {

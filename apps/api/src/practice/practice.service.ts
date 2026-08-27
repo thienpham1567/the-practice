@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
@@ -26,6 +27,7 @@ import { GRADE_TASK_SCHEMA, buildGradePrompt, type GradeResult } from "./grade-p
 import {
   REVISION_GRADE_SCHEMA,
   buildRevisionGradePrompt,
+  parseFeedbackAudit,
   type RevisionGradeResult,
 } from "./revision-grade-prompt";
 
@@ -46,6 +48,8 @@ const GRADING_LOCK_STALE_MS = 2 * 60 * 1000;
 
 @Injectable()
 export class PracticeService {
+  private readonly logger = new Logger(PracticeService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly ai: AiService,
@@ -223,8 +227,17 @@ export class PracticeService {
         0,
         Math.round((submittedAt.getTime() - attempt.startedAt.getTime()) / 1000),
       );
-      const feedbackAudit =
-        isRevision && "feedbackAudit" in graded ? graded.feedbackAudit : undefined;
+      let feedbackAudit: ReturnType<typeof parseFeedbackAudit> | undefined;
+      if (isRevision) {
+        feedbackAudit = parseFeedbackAudit(
+          "feedbackAudit" in graded ? graded.feedbackAudit : undefined,
+        );
+        if (feedbackAudit === null) {
+          this.logger.warn(
+            `event=revision_feedback_audit_dropped attemptId=${id} reason=invalid_or_missing`,
+          );
+        }
+      }
 
       return await this.prisma.practiceAttempt.update({
         where: { id },
