@@ -9,6 +9,13 @@ import type {
 import type { SerializedEditorState } from "lexical";
 import { apiFetch, apiJson } from "./client";
 
+export type FeedbackAuditStatus = "resolved" | "partial" | "unresolved";
+
+export interface FeedbackAuditItem {
+  point: string;
+  status: FeedbackAuditStatus;
+}
+
 export interface PracticeAttemptSummary {
   id: string;
   level: Level;
@@ -30,6 +37,10 @@ export interface PracticeAttemptDetail extends PracticeAttemptSummary {
   scores: CriterionScores | null;
   feedback: Feedback | null;
   styleSnapshot: AnalysisResult | null;
+  parentAttemptId: string | null;
+  revisionRound: number;
+  feedbackAudit: FeedbackAuditItem[] | null;
+  parentBand: number | null;
 }
 
 export interface CreateAttemptInput {
@@ -69,3 +80,6 @@ export const updateAttempt = (id: string, input: UpdateAttemptInput) =>
 
 export const submitAttempt = (id: string, input: SubmitAttemptInput) =>
   apiJson<PracticeAttemptDetail>(`/practice/attempts/${id}/submit`, "POST", input);
+
+export const reviseAttempt = (id: string) =>
+  apiJson<PracticeAttemptDetail>(`/practice/attempts/${id}/revise`, "POST", {});
