@@ -11,7 +11,8 @@ interface StyleProfileProps {
  * Passive and spare adverbs stay as real faults; sentence length is descriptive.
  */
 export function StyleProfile({ snapshot, level }: StyleProfileProps) {
-  const { counts, stats } = snapshot;
+  const counts = snapshot.counts ?? { passives: 0, adverbs: 0 };
+  const stats = snapshot.stats ?? { sentences: 0, words: 0 };
   const average =
     stats.sentences === 0 ? 0 : Math.round((stats.words / stats.sentences) * 10) / 10;
 
