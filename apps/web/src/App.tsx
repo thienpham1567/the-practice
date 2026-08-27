@@ -10,6 +10,7 @@ import { DocumentsPage } from "./pages/DocumentsPage";
 import { EditorPage } from "./pages/EditorPage";
 import { PracticeAttemptPage } from "./pages/PracticeAttemptPage";
 import { PracticePage } from "./pages/PracticePage";
+import { VocabPage } from "./pages/VocabPage";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -68,6 +69,14 @@ export function App() {
             element={
               <RequireAuth>
                 <PracticeAttemptPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/vocab"
+            element={
+              <RequireAuth>
+                <VocabPage />
               </RequireAuth>
             }
           />
