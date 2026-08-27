@@ -1,0 +1,132 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { PracticeAttemptDetail } from "../api/practice";
+import { PracticeAttemptPage } from "./PracticeAttemptPage";
+
+vi.mock("../editor/Editor", () => ({
+  Editor: () => <div data-testid="editor" />,
+}));
+
+vi.mock("../api/practice", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../api/practice")>();
+  return {
+    ...actual,
+    getAttempt: vi.fn(),
+    reviseAttempt: vi.fn(),
+  };
+});
+
+const navigate = vi.fn();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return { ...actual, useNavigate: () => navigate };
+});
+
+import { getAttempt, reviseAttempt } from "../api/practice";
+
+const gradedAttempt: PracticeAttemptDetail = {
+  id: "a1",
+  level: "A2",
+  taskType: "email",
+  band: 5.5,
+  wordCount: 100,
+  hintsOpened: false,
+  startedAt: "2026-08-25T10:00:00.000Z",
+  submittedAt: "2026-08-25T10:20:00.000Z",
+  elapsedSeconds: 1200,
+  prompt: "Write to your teacher.",
+  ideas: ["thank them"],
+  vocabulary: [{ word: "grateful", meaning: "thankful", example: "I am grateful." }],
+  content: null,
+  plainText: "Dear teacher, thank you.",
+  scores: {
+    taskResponse: 5.5,
+    coherenceCohesion: 5.5,
+    lexicalResource: 5.5,
+    grammaticalRange: 5.5,
+  },
+  feedback: {
+    taskResponse: "You answered the task.",
+    coherenceCohesion: "Ideas are ordered.",
+    lexicalResource: "Vocabulary is adequate.",
+    grammaticalRange: "Mostly simple sentences.",
+    overview: "A fair A2 email.",
+    nextFocus: "Use one complex sentence next time.",
+  },
+  styleSnapshot: null,
+  parentAttemptId: null,
+  revisionRound: 0,
+  feedbackAudit: null,
+  parentBand: null,
+  hasRevision: false,
+};
+
+function renderPage(attemptId = "a1") {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
+  });
+  return render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={[`/practice/${attemptId}`]}>
+        <Routes>
+          <Route path="/practice/:id" element={<PracticeAttemptPage />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+describe("PracticeAttemptPage ResultView revise button", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+    vi.mocked(reviseAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('shows "Sửa lại bài này" when the attempt can be revised', async () => {
+    vi.mocked(getAttempt).mockResolvedValue(gradedAttempt);
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Sửa lại bài này" })).toBeTruthy();
+  });
+
+  it("hides the revise button when a child revision already exists", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({ ...gradedAttempt, hasRevision: true });
+    renderPage();
+
+    await screen.findByText("Next time");
+    expect(screen.queryByRole("button", { name: "Sửa lại bài này" })).toBeNull();
+  });
+
+  it("hides the revise button at revision round 2", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...gradedAttempt,
+      revisionRound: 2,
+      parentAttemptId: "root",
+      parentBand: 5.5,
+    });
+    renderPage();
+
+    await screen.findByText("Next time");
+    expect(screen.queryByRole("button", { name: "Sửa lại bài này" })).toBeNull();
+  });
+
+  it("calls reviseAttempt and navigates to the new attempt", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(gradedAttempt);
+    vi.mocked(reviseAttempt).mockResolvedValue({ ...gradedAttempt, id: "rev-1", revisionRound: 1 });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Sửa lại bài này" }));
+
+    await waitFor(() => {
+      expect(reviseAttempt).toHaveBeenCalledWith("a1");
+      expect(navigate).toHaveBeenCalledWith("/practice/rev-1");
+    });
+  });
+});

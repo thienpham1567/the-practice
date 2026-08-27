@@ -2,9 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { analyze } from "@writing-helper/analysis";
 import { TASK_CATALOG, type TaskSpec } from "@writing-helper/practice";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { BrandLockup } from "../BrandLockup";
-import { getAttempt, submitAttempt, updateAttempt, type PracticeAttemptDetail } from "../api/practice";
+import {
+  getAttempt,
+  reviseAttempt,
+  submitAttempt,
+  updateAttempt,
+  type PracticeAttemptDetail,
+} from "../api/practice";
 import { Editor, type EditorChange } from "../editor/Editor";
 import { BandStamp } from "../practice/BandStamp";
 import { CriteriaBars } from "../practice/CriteriaBars";
@@ -14,6 +20,7 @@ import {
   remainingSeconds,
   wordCountTone,
 } from "../practice/exam-math";
+import { canRevise } from "../practice/revise-availability";
 import { StyleProfile } from "../practice/StyleProfile";
 
 const AUTOSAVE_DELAY_MS = 2000;
@@ -240,7 +247,21 @@ function PromptPane({
 }
 
 function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: TaskSpec }) {
+  const navigate = useNavigate();
   const snapshot = attempt.styleSnapshot;
+  const showRevise = canRevise({
+    band: attempt.band,
+    submittedAt: attempt.submittedAt,
+    revisionRound: attempt.revisionRound,
+    hasRevision: attempt.hasRevision,
+  });
+
+  const revise = useMutation({
+    mutationFn: () => reviseAttempt(attempt.id),
+    onSuccess: (created) => {
+      navigate(`/practice/${created.id}`);
+    },
+  });
 
   return (
     <div className="flex h-screen flex-col">
@@ -249,6 +270,16 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
         <span className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
           {spec.label}
         </span>
+        {showRevise && (
+          <button
+            type="button"
+            onClick={() => revise.mutate()}
+            disabled={revise.isPending}
+            className="ml-auto bg-ink px-4 py-1.5 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
+          >
+            Sửa lại bài này
+          </button>
+        )}
       </header>
 
       <div className="flex min-h-0 flex-1">
