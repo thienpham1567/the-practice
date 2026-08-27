@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canRevise, formatBandDelta } from "./revise-availability";
+import { canRevise, formatBandDelta, formatChainSummary } from "./revise-availability";
 
 describe("canRevise", () => {
   const graded = {
@@ -46,5 +46,23 @@ describe("formatBandDelta", () => {
 
   it("keeps whole bands as one decimal", () => {
     expect(formatBandDelta(6, 7)).toBe("6.0 → 7.0");
+  });
+});
+
+describe("formatChainSummary", () => {
+  it("formats root → latest with Vietnamese revision count", () => {
+    expect(formatChainSummary(5.5, 6.5, 2)).toBe("5.5 → 6.5 · 2 lần sửa");
+  });
+
+  it("returns null when there are no revisions", () => {
+    expect(formatChainSummary(5.5, null, 0)).toBeNull();
+  });
+
+  it("returns null when latestBand is missing", () => {
+    expect(formatChainSummary(5.5, null, 1)).toBeNull();
+  });
+
+  it("returns null when root band is missing", () => {
+    expect(formatChainSummary(null, 6.5, 1)).toBeNull();
   });
 });

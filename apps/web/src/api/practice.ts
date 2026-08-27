@@ -26,9 +26,14 @@ export interface PracticeAttemptSummary {
   startedAt: string;
   submittedAt: string | null;
   elapsedSeconds: number | null;
+  /** Number of revisions in the chain (0 for unreised roots). */
+  revisionCount: number;
+  /** Band of the furthest graded revision; null when revisionCount === 0. */
+  latestBand: number | null;
 }
 
-export interface PracticeAttemptDetail extends PracticeAttemptSummary {
+export interface PracticeAttemptDetail
+  extends Omit<PracticeAttemptSummary, "revisionCount" | "latestBand"> {
   prompt: string;
   ideas: string[];
   vocabulary: VocabularyItem[];

@@ -20,3 +20,13 @@ export function canRevise(attempt: ReviseAttempt): boolean {
 export function formatBandDelta(from: number, to: number): string {
   return `${from.toFixed(1)} → ${to.toFixed(1)}`;
 }
+
+/** Papers-list chain label, e.g. `5.5 → 6.5 · 2 lần sửa`. */
+export function formatChainSummary(
+  rootBand: number | null,
+  latestBand: number | null,
+  revisionCount: number,
+): string | null {
+  if (revisionCount === 0 || rootBand == null || latestBand == null) return null;
+  return `${formatBandDelta(rootBand, latestBand)} · ${revisionCount} lần sửa`;
+}

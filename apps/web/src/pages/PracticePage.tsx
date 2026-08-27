@@ -8,6 +8,7 @@ import { createAttempt, listAttempts } from "../api/practice";
 import { Masthead } from "../folio/Masthead";
 import { BandChart } from "../practice/BandChart";
 import { BandStamp } from "../practice/BandStamp";
+import { formatChainSummary } from "../practice/revise-availability";
 import { StreakStrip } from "../practice/StreakStrip";
 
 const LEVELS: Level[] = ["A2", "B1", "B2", "C1"];
@@ -133,7 +134,11 @@ export function PracticePage() {
                       </span>
                     )}
                   </span>
-                  {attempt.band !== null && <BandStamp band={attempt.band} size="sm" />}
+                  <PaperBandMeta
+                    band={attempt.band}
+                    latestBand={attempt.latestBand}
+                    revisionCount={attempt.revisionCount}
+                  />
                 </Link>
               </li>
             );
@@ -142,4 +147,25 @@ export function PracticePage() {
       </section>
     </main>
   );
+}
+
+function PaperBandMeta({
+  band,
+  latestBand,
+  revisionCount,
+}: {
+  band: number | null;
+  latestBand: number | null;
+  revisionCount: number;
+}) {
+  const summary = formatChainSummary(band, latestBand, revisionCount);
+  if (summary) {
+    return (
+      <span className="shrink-0 font-mono text-[0.75rem] tracking-wide text-ink-soft">
+        {summary}
+      </span>
+    );
+  }
+  if (band !== null) return <BandStamp band={band} size="sm" />;
+  return null;
 }
