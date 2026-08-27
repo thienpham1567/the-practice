@@ -50,8 +50,12 @@ describe("formatBandDelta", () => {
 });
 
 describe("formatChainSummary", () => {
-  it("formats root → latest with Vietnamese revision count", () => {
-    expect(formatChainSummary(5.5, 6.5, 2)).toBe("5.5 → 6.5 · 2 lần sửa");
+  it("formats root → latest with English revision count", () => {
+    expect(formatChainSummary(5.5, 6.5, 2)).toBe("5.5 → 6.5 · 2 revisions");
+  });
+
+  it("uses singular revision for a count of one", () => {
+    expect(formatChainSummary(5.5, 6.0, 1)).toBe("5.5 → 6.0 · 1 revision");
   });
 
   it("returns null when there are no revisions", () => {

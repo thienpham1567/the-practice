@@ -6,7 +6,7 @@ export type ReviseAttempt = {
   hasRevision?: boolean;
 };
 
-/** Whether the result UI may offer “Sửa lại bài này”. */
+/** Whether the result UI may offer “Revise this paper”. */
 export function canRevise(attempt: ReviseAttempt): boolean {
   return (
     attempt.band != null &&
@@ -21,12 +21,13 @@ export function formatBandDelta(from: number, to: number): string {
   return `${from.toFixed(1)} → ${to.toFixed(1)}`;
 }
 
-/** Papers-list chain label, e.g. `5.5 → 6.5 · 2 lần sửa`. */
+/** Papers-list chain label, e.g. `5.5 → 6.5 · 2 revisions`. */
 export function formatChainSummary(
   rootBand: number | null,
   latestBand: number | null,
   revisionCount: number,
 ): string | null {
   if (revisionCount === 0 || rootBand == null || latestBand == null) return null;
-  return `${formatBandDelta(rootBand, latestBand)} · ${revisionCount} lần sửa`;
+  const revisionsLabel = revisionCount === 1 ? "1 revision" : `${revisionCount} revisions`;
+  return `${formatBandDelta(rootBand, latestBand)} · ${revisionsLabel}`;
 }

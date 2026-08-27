@@ -66,7 +66,7 @@ export function levelUpVerdict(
 
   return {
     suggest,
-    reason: `${WINDOW_SIZE} bài ${modal} gần nhất đều ≥ ${BAND_THRESHOLD}`,
+    reason: `Last ${WINDOW_SIZE} ${modal} papers all ≥ ${BAND_THRESHOLD}`,
   };
 }
 

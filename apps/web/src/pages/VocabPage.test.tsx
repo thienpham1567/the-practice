@@ -81,8 +81,8 @@ describe("VocabPage", () => {
 
     expect(await screen.findByText("lively")).toBeTruthy();
     expect(screen.getByText("commute")).toBeTruthy();
-    expect(screen.getByText("chưa dùng")).toBeTruthy();
-    expect(screen.getByText("đã dùng ×2")).toBeTruthy();
+    expect(screen.getByText("unused")).toBeTruthy();
+    expect(screen.getByText("used ×2")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Unused" }));
     expect(screen.getByText("lively")).toBeTruthy();

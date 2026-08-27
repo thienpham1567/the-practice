@@ -29,7 +29,7 @@ export function CriteriaSparklines({ series, now }: CriteriaSparklinesProps) {
       </h2>
       {summary && weakestLabel && (
         <p className="mt-2 text-sm text-ink-soft">
-          yếu nhất 30 ngày: {weakestLabel}
+          weakest over 30 days: {weakestLabel}
         </p>
       )}
       <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">

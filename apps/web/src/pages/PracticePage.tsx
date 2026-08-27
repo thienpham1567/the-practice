@@ -51,7 +51,7 @@ export function PracticePage() {
             to="/progress"
             className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
           >
-            Xem tiến bộ →
+            View progress →
           </Link>
           <Link
             to="/docs"

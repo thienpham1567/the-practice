@@ -69,15 +69,15 @@ describe("PracticePage papers list", () => {
     renderPage();
 
     expect(await screen.findByText(/Band 5\.5/)).toBeTruthy();
-    expect(screen.queryByText(/lần sửa/)).toBeNull();
+    expect(screen.queryByText(/revision/)).toBeNull();
   });
 
   it("links to the progress page", async () => {
     vi.mocked(listAttempts).mockResolvedValue([]);
     renderPage();
 
-    expect(await screen.findByRole("link", { name: "Xem tiến bộ →" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Xem tiến bộ →" }).getAttribute("href")).toBe(
+    expect(await screen.findByRole("link", { name: "View progress →" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "View progress →" }).getAttribute("href")).toBe(
       "/progress",
     );
   });
@@ -86,6 +86,6 @@ describe("PracticePage papers list", () => {
     vi.mocked(listAttempts).mockResolvedValue([rootWithRevisions]);
     renderPage();
 
-    expect(await screen.findByText("5.5 → 6.5 · 2 lần sửa")).toBeTruthy();
+    expect(await screen.findByText("5.5 → 6.5 · 2 revisions")).toBeTruthy();
   });
 });

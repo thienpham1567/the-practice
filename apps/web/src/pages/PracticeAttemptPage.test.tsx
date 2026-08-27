@@ -89,11 +89,11 @@ describe("PracticeAttemptPage ResultView revise button", () => {
     cleanup();
   });
 
-  it('shows "Sửa lại bài này" when the attempt can be revised', async () => {
+  it('shows "Revise this paper" when the attempt can be revised', async () => {
     vi.mocked(getAttempt).mockResolvedValue(gradedAttempt);
     renderPage();
 
-    expect(await screen.findByRole("button", { name: "Sửa lại bài này" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Revise this paper" })).toBeTruthy();
   });
 
   it("hides the revise button when a child revision already exists", async () => {
@@ -101,7 +101,7 @@ describe("PracticeAttemptPage ResultView revise button", () => {
     renderPage();
 
     await screen.findByText("Next time");
-    expect(screen.queryByRole("button", { name: "Sửa lại bài này" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Revise this paper" })).toBeNull();
   });
 
   it("hides the revise button at revision round 2", async () => {
@@ -114,7 +114,7 @@ describe("PracticeAttemptPage ResultView revise button", () => {
     renderPage();
 
     await screen.findByText("Next time");
-    expect(screen.queryByRole("button", { name: "Sửa lại bài này" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Revise this paper" })).toBeNull();
   });
 
   it("calls reviseAttempt and navigates to the new attempt", async () => {
@@ -122,7 +122,7 @@ describe("PracticeAttemptPage ResultView revise button", () => {
     vi.mocked(reviseAttempt).mockResolvedValue({ ...gradedAttempt, id: "rev-1", revisionRound: 1 });
     renderPage();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Sửa lại bài này" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Revise this paper" }));
 
     await waitFor(() => {
       expect(reviseAttempt).toHaveBeenCalledWith("a1");
@@ -156,7 +156,7 @@ describe("PracticeAttemptPage ExamRoom revision", () => {
     cleanup();
   });
 
-  it("hides the countdown and shows Bản sửa 1/2 with parent feedback", async () => {
+  it("hides the countdown and shows Revision 1/2 with parent feedback", async () => {
     vi.mocked(getAttempt).mockImplementation(async (id: string) => {
       if (id === "rev-1") return revisionAttempt;
       if (id === "a1") return gradedAttempt;
@@ -165,11 +165,11 @@ describe("PracticeAttemptPage ExamRoom revision", () => {
 
     renderPage("rev-1");
 
-    expect(await screen.findByText("Bản sửa 1/2")).toBeTruthy();
+    expect(await screen.findByText("Revision 1/2")).toBeTruthy();
     expect(screen.queryByLabelText("Time remaining")).toBeNull();
     expect(screen.queryByText(/Time is up/)).toBeNull();
 
-    expect(await screen.findByText("Góp ý lần trước")).toBeTruthy();
+    expect(await screen.findByText("Previous feedback")).toBeTruthy();
     expect(screen.getByText(gradedAttempt.feedback!.taskResponse)).toBeTruthy();
     expect(screen.getByText(gradedAttempt.feedback!.coherenceCohesion)).toBeTruthy();
     expect(screen.getByText(gradedAttempt.feedback!.lexicalResource)).toBeTruthy();
@@ -178,7 +178,7 @@ describe("PracticeAttemptPage ExamRoom revision", () => {
     expect(screen.getByText(gradedAttempt.feedback!.nextFocus)).toBeTruthy();
   });
 
-  it("shows Bản sửa 2/2 on the second revision round", async () => {
+  it("shows Revision 2/2 on the second revision round", async () => {
     const round2 = { ...revisionAttempt, id: "rev-2", revisionRound: 2, parentAttemptId: "rev-1" };
     vi.mocked(getAttempt).mockImplementation(async (id: string) => {
       if (id === "rev-2") return round2;
@@ -188,7 +188,7 @@ describe("PracticeAttemptPage ExamRoom revision", () => {
 
     renderPage("rev-2");
 
-    expect(await screen.findByText("Bản sửa 2/2")).toBeTruthy();
+    expect(await screen.findByText("Revision 2/2")).toBeTruthy();
     expect(screen.queryByLabelText("Time remaining")).toBeNull();
   });
 });
@@ -268,7 +268,7 @@ describe("PracticeAttemptPage ResultView revision results", () => {
     vi.mocked(getAttempt).mockResolvedValue(gradedRevision);
     renderPage("rev-1");
 
-    expect(await screen.findByRole("button", { name: "Sửa lại bài này" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Revise this paper" })).toBeTruthy();
   });
 });
 
@@ -297,16 +297,16 @@ describe("PracticeAttemptPage PromptPane review chip", () => {
     cleanup();
   });
 
-  it('shows "ôn lại" only on vocabulary items marked review', async () => {
+  it('shows "review" only on vocabulary items marked review', async () => {
     vi.mocked(getAttempt).mockResolvedValue(openAttemptWithReview);
     renderPage("open-1");
 
     fireEvent.click(await screen.findByRole("button", { name: "Show hints" }));
 
-    expect(await screen.findByText("ôn lại")).toBeTruthy();
+    expect(await screen.findByText("review")).toBeTruthy();
     const commute = screen.getByText("commute").closest("li");
     const punctual = screen.getByText("punctual").closest("li");
-    expect(commute?.textContent).toMatch(/ôn lại/);
-    expect(punctual?.textContent).not.toMatch(/ôn lại/);
+    expect(commute?.textContent).toMatch(/review/);
+    expect(punctual?.textContent).not.toMatch(/review/);
   });
 });

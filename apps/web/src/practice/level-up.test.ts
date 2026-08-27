@@ -57,7 +57,7 @@ describe("levelUpVerdict", () => {
 
     expect(levelUpVerdict(series, now)).toEqual({
       suggest: "B2",
-      reason: "5 bài B1 gần nhất đều ≥ 6.5",
+      reason: "Last 5 B1 papers all ≥ 6.5",
     });
   });
 
@@ -104,7 +104,7 @@ describe("levelUpVerdict", () => {
 
     expect(levelUpVerdict(series, now)).toEqual({
       suggest: "B1",
-      reason: "5 bài A2 gần nhất đều ≥ 6.5",
+      reason: "Last 5 A2 papers all ≥ 6.5",
     });
   });
 
@@ -138,7 +138,7 @@ describe("levelUpVerdict", () => {
 
     expect(levelUpVerdict(series, now)).toEqual({
       suggest: "B2",
-      reason: "5 bài B1 gần nhất đều ≥ 6.5",
+      reason: "Last 5 B1 papers all ≥ 6.5",
     });
   });
 
@@ -168,7 +168,7 @@ describe("levelUpVerdict", () => {
 
     expect(levelUpVerdict(series, now)).toEqual({
       suggest: "C1",
-      reason: "5 bài B2 gần nhất đều ≥ 6.5",
+      reason: "Last 5 B2 papers all ≥ 6.5",
     });
   });
 

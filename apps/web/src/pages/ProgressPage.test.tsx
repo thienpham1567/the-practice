@@ -118,7 +118,7 @@ describe("ProgressPage", () => {
     );
     renderPage();
 
-    expect(await screen.findByText("yếu nhất 30 ngày: Lexical")).toBeTruthy();
+    expect(await screen.findByText("weakest over 30 days: Lexical")).toBeTruthy();
   });
 
   it("plots style series while skipping null per100 points", async () => {
@@ -159,7 +159,7 @@ describe("ProgressPage", () => {
 
     expect(await screen.findByLabelText("Level-up suggestion")).toBeTruthy();
     expect(screen.getByText("B2")).toBeTruthy();
-    expect(screen.getByText(/5 bài B1 gần nhất đều ≥ 6\.5/)).toBeTruthy();
+    expect(screen.getByText(/Last 5 B1 papers all ≥ 6\.5/)).toBeTruthy();
 
     cleanup();
 

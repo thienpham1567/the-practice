@@ -167,13 +167,13 @@ function UsageBadge({ usedCount }: { usedCount: number }) {
   if (usedCount === 0) {
     return (
       <span className="inline-block border border-rule px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-ink-faint">
-        chưa dùng
+        unused
       </span>
     );
   }
   return (
     <span className="inline-block border border-vermilion/40 px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-vermilion">
-      đã dùng ×{usedCount}
+      used ×{usedCount}
     </span>
   );
 }

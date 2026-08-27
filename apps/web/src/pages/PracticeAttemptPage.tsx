@@ -145,7 +145,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
         <BrandLockup to="/practice" size="sm" />
         {isRevision ? (
           <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion sm:text-[0.7rem]">
-            Bản sửa {attempt.revisionRound}/2
+            Revision {attempt.revisionRound}/2
           </span>
         ) : (
           <span
@@ -264,7 +264,7 @@ function PromptPane({
       {feedbackPoints.length > 0 && (
         <div className="mt-8 border-t border-rule pt-6">
           <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-vermilion">
-            Góp ý lần trước
+            Previous feedback
           </h2>
           <ul className="mt-3 list-disc space-y-2 pl-4 text-sm leading-relaxed text-ink-soft">
             {feedbackPoints.map((point) => (
@@ -305,7 +305,7 @@ function PromptPane({
                     <span className="font-display">{item.word}</span>
                     {item.review && (
                       <span className="ml-2 inline-block border border-vermilion px-1.5 py-px font-mono text-[0.6rem] uppercase tracking-[0.12em] text-vermilion">
-                        ôn lại
+                        review
                       </span>
                     )}
                     <span className="text-ink-soft"> — {item.meaning}</span>
@@ -363,7 +363,7 @@ function ResultView({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: T
             disabled={revise.isPending}
             className="ml-auto bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
           >
-            Sửa lại bài này
+            Revise this paper
           </button>
         )}
       </header>
