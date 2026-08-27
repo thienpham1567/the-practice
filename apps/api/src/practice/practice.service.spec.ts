@@ -403,6 +403,48 @@ describe("PracticeService", () => {
       expect(rejected.reason).toBeInstanceOf(ConflictException);
     });
 
+    it("hai lần submit đồng thời trên bản sửa chỉ gọi AI một lần", async () => {
+      const revisionDraft = {
+        ...draft,
+        id: "rev-1",
+        parentAttemptId: "a1",
+        revisionRound: 1,
+      };
+      const parentGraded = {
+        feedback: graded.feedback,
+        band: 5.5,
+      };
+      const revisionGraded = {
+        ...graded,
+        feedbackAudit: [
+          { point: "Mostly simple sentences.", status: "resolved" as const },
+        ],
+      };
+      // Both concurrent submits look up the draft first; only the winner loads parent.
+      const { service, complete } = serviceWith({
+        findFirstResults: [revisionDraft, revisionDraft, parentGraded],
+        claimCounts: [1, 0],
+      });
+      complete.mockResolvedValue(revisionGraded);
+
+      const results = await Promise.allSettled([
+        service.submit("user-1", "rev-1", { styleSnapshot: {} }),
+        service.submit("user-1", "rev-1", { styleSnapshot: {} }),
+      ]);
+
+      expect(complete).toHaveBeenCalledTimes(1);
+      expect(complete).toHaveBeenCalledWith(
+        expect.objectContaining({
+          schema: REVISION_GRADE_SCHEMA,
+          usage: { userId: "user-1", endpoint: "practice.grade" },
+        }),
+      );
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
+      const rejected = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
+      expect(rejected.reason).toBeInstanceOf(ConflictException);
+    });
+
     it("xoá gradingStartedAt khi chấm AI thất bại", async () => {
       const { service, prisma, complete } = serviceWith({ attempt: draft });
       complete.mockRejectedValueOnce(new Error("AI down"));

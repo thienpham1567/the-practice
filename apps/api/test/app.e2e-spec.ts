@@ -466,10 +466,21 @@ describe("API (e2e)", () => {
         const body = JSON.parse(String((init as RequestInit).body)) as {
           response_format?: { json_schema?: { name?: string } };
         };
-        const content =
-          body.response_format?.json_schema?.name === "practice_grade"
-            ? JSON.stringify(graded)
-            : JSON.stringify(generated);
+        const schemaName = body.response_format?.json_schema?.name;
+        let content: string;
+        if (schemaName === "practice_grade") {
+          content = JSON.stringify(graded);
+        } else if (schemaName === "practice_revision_grade") {
+          content = JSON.stringify({
+            ...graded,
+            feedbackAudit: [
+              { point: "Mostly simple sentences.", status: "resolved" },
+              { point: "Try one longer sentence next time.", status: "partial" },
+            ],
+          });
+        } else {
+          content = JSON.stringify(generated);
+        }
 
         return {
           ok: true,
@@ -627,6 +638,56 @@ describe("API (e2e)", () => {
       expect(revised.body.plainText).toContain("Dear Ms Lee");
 
       await server().post(`/practice/attempts/${id}/revise`).set(auth).expect(409);
+    });
+
+    it("submit bản sửa tính vào quota ngày — vượt hạn mức → 429", async () => {
+      const previous = process.env.AI_DAILY_QUOTA;
+      // create (generate) + root submit (grade) fill the quota; revise is free; revision submit must 429.
+      process.env.AI_DAILY_QUOTA = "2";
+      mockPracticeAi();
+
+      try {
+        const { accessToken } = await registerUser("practice-revision-quota@example.com");
+        const auth = { Authorization: `Bearer ${accessToken}` };
+
+        const created = await server()
+          .post("/practice/attempts")
+          .set(auth)
+          .send({ level: "A2", taskType: "email" })
+          .expect(201);
+        const id = created.body.id as string;
+
+        await server()
+          .post(`/practice/attempts/${id}/submit`)
+          .set(auth)
+          .send({
+            styleSnapshot: { counts: { passives: 0 } },
+            plainText: "Dear Ms Lee, I went on a school trip to the museum.",
+            wordCount: 12,
+          })
+          .expect(201);
+
+        const revised = await server()
+          .post(`/practice/attempts/${id}/revise`)
+          .set(auth)
+          .expect(201);
+
+        const blocked = await server()
+          .post(`/practice/attempts/${revised.body.id}/submit`)
+          .set(auth)
+          .send({
+            styleSnapshot: { counts: { passives: 0 } },
+            plainText: "Dear Ms Lee, I went on a school trip and learned a lot.",
+            wordCount: 14,
+          })
+          .expect(429);
+
+        expect(blocked.body.message).toMatch(/Daily AI quota exceeded/i);
+        expect(blocked.body.resetsAt).toEqual(expect.stringMatching(/Z$/));
+      } finally {
+        if (previous === undefined) delete process.env.AI_DAILY_QUOTA;
+        else process.env.AI_DAILY_QUOTA = previous;
+      }
     });
 
     it("phân trang practice theo cursor — trang 1 và trang 2 không trùng", async () => {
