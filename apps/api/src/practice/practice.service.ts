@@ -43,6 +43,52 @@ const LIST_FIELDS = {
   elapsedSeconds: true,
 } satisfies Prisma.PracticeAttemptSelect;
 
+const LIST_REVISION_FIELDS = {
+  band: true,
+  revisionRound: true,
+} satisfies Prisma.PracticeAttemptSelect;
+
+/** Nested include for root→rev1→rev2 chain summary on list rows. */
+const LIST_CHAIN_SELECT = {
+  ...LIST_FIELDS,
+  revisions: {
+    select: {
+      ...LIST_REVISION_FIELDS,
+      revisions: { select: LIST_REVISION_FIELDS },
+    },
+  },
+} satisfies Prisma.PracticeAttemptSelect;
+
+type ListRevisionNode = {
+  band: number | null;
+  revisionRound: number;
+  revisions?: ListRevisionNode[];
+};
+
+/** Flatten root→rev1→rev2 into revisionCount + furthest graded band. */
+function summarizeRevisionChain(revisions: ListRevisionNode[]): {
+  revisionCount: number;
+  latestBand: number | null;
+} {
+  const flat: Array<{ band: number | null; revisionRound: number }> = [];
+  for (const rev of revisions) {
+    flat.push(rev);
+    if (rev.revisions) flat.push(...rev.revisions);
+  }
+  const revisionCount = flat.length;
+  if (revisionCount === 0) return { revisionCount: 0, latestBand: null };
+
+  let latestBand: number | null = null;
+  let latestRound = -1;
+  for (const rev of flat) {
+    if (rev.band != null && rev.revisionRound > latestRound) {
+      latestBand = rev.band;
+      latestRound = rev.revisionRound;
+    }
+  }
+  return { revisionCount, latestBand };
+}
+
 /** Khoá chấm quá 2 phút coi là chết — cho phép chiếm lại. */
 const GRADING_LOCK_STALE_MS = 2 * 60 * 1000;
 
@@ -81,13 +127,17 @@ export class PracticeService {
   async list(userId: string, opts: { cursor?: string; limit?: number } = {}) {
     const limit = opts.limit ?? DEFAULT_PAGE_SIZE;
     const rows = await this.prisma.practiceAttempt.findMany({
-      where: { userId },
-      select: LIST_FIELDS,
+      where: { userId, parentAttemptId: null },
+      select: LIST_CHAIN_SELECT,
       orderBy: [{ startedAt: "desc" }, { id: "desc" }],
       take: limit + 1,
       ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
     });
-    return toCursorPage(rows, limit);
+    const items = rows.map(({ revisions, ...rest }) => ({
+      ...rest,
+      ...summarizeRevisionChain(revisions),
+    }));
+    return toCursorPage(items, limit);
   }
 
   async findOne(userId: string, id: string) {

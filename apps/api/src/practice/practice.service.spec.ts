@@ -512,6 +512,149 @@ describe("PracticeService", () => {
     });
   });
 
+  describe("list", () => {
+    const rootRow = {
+      id: "root-1",
+      level: "B1",
+      taskType: "email",
+      band: 5.5,
+      wordCount: 100,
+      hintsOpened: false,
+      startedAt: new Date("2026-08-25T10:00:00Z"),
+      submittedAt: new Date("2026-08-25T10:20:00Z"),
+      elapsedSeconds: 1200,
+    };
+
+    it("queries only root attempts with nested revision chain fields", async () => {
+      const { service, prisma } = serviceWith({});
+      prisma.practiceAttempt.findMany.mockResolvedValueOnce([]);
+
+      await service.list("user-1");
+
+      expect(prisma.practiceAttempt.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "user-1", parentAttemptId: null },
+          select: expect.objectContaining({
+            id: true,
+            band: true,
+            revisions: {
+              select: {
+                band: true,
+                revisionRound: true,
+                revisions: {
+                  select: {
+                    band: true,
+                    revisionRound: true,
+                  },
+                },
+              },
+            },
+          }),
+          orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+          take: 21,
+        }),
+      );
+    });
+
+    it("maps the revision chain to revisionCount and latestBand", async () => {
+      const { service, prisma } = serviceWith({});
+      prisma.practiceAttempt.findMany.mockResolvedValueOnce([
+        {
+          ...rootRow,
+          revisions: [
+            {
+              band: 6.0,
+              revisionRound: 1,
+              revisions: [{ band: 6.5, revisionRound: 2 }],
+            },
+          ],
+        },
+      ]);
+
+      const page = await service.list("user-1");
+
+      expect(page.items).toHaveLength(1);
+      expect(page.items[0]).toMatchObject({
+        id: "root-1",
+        band: 5.5,
+        revisionCount: 2,
+        latestBand: 6.5,
+      });
+      expect(page.items[0]).not.toHaveProperty("revisions");
+    });
+
+    it("uses the furthest graded revision for latestBand", async () => {
+      const { service, prisma } = serviceWith({});
+      prisma.practiceAttempt.findMany.mockResolvedValueOnce([
+        {
+          ...rootRow,
+          revisions: [
+            {
+              band: 6.0,
+              revisionRound: 1,
+              revisions: [{ band: null, revisionRound: 2 }],
+            },
+          ],
+        },
+      ]);
+
+      const page = await service.list("user-1");
+
+      expect(page.items[0]).toMatchObject({
+        revisionCount: 2,
+        latestBand: 6.0,
+      });
+    });
+
+    it("sets revisionCount 0 and latestBand null when there are no revisions", async () => {
+      const { service, prisma } = serviceWith({});
+      prisma.practiceAttempt.findMany.mockResolvedValueOnce([
+        { ...rootRow, revisions: [] },
+      ]);
+
+      const page = await service.list("user-1");
+
+      expect(page.items[0]).toMatchObject({
+        id: "root-1",
+        revisionCount: 0,
+        latestBand: null,
+      });
+    });
+
+    it("paginates roots with cursor without surfacing revisions as rows", async () => {
+      const { service, prisma } = serviceWith({});
+      const roots = [
+        { ...rootRow, id: "root-a", revisions: [] },
+        { ...rootRow, id: "root-b", revisions: [{ band: 6.5, revisionRound: 1, revisions: [] }] },
+        { ...rootRow, id: "root-c", revisions: [] },
+      ];
+      prisma.practiceAttempt.findMany.mockResolvedValueOnce(roots);
+
+      const page = await service.list("user-1", { limit: 2 });
+
+      expect(prisma.practiceAttempt.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: "user-1", parentAttemptId: null },
+          take: 3,
+        }),
+      );
+      expect(page.items.map((item) => item.id)).toEqual(["root-a", "root-b"]);
+      expect(page.nextCursor).toBe("root-b");
+      expect(page.items.every((item) => !("revisions" in item))).toBe(true);
+
+      prisma.practiceAttempt.findMany.mockResolvedValueOnce([]);
+      await service.list("user-1", { cursor: "root-b", limit: 2 });
+      expect(prisma.practiceAttempt.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: { userId: "user-1", parentAttemptId: null },
+          cursor: { id: "root-b" },
+          skip: 1,
+          take: 3,
+        }),
+      );
+    });
+  });
+
   describe("revise", () => {
     const gradedParent = {
       id: "a1",
