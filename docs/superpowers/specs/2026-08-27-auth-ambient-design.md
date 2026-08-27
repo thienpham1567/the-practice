@@ -16,7 +16,7 @@ Landing, editor, practice, progress; WebGL/canvas; thư viện motion mới; đ�
 | Quyết định | Chọn | Lý do |
 |---|---|---|
 | Hướng thẩm mỹ | **Mix editorial:** ink wash + ruled paper + vài dấu editorial | Khớp palette giấy/mực/son; không nhảy vibe tech |
-| Cường độ | **Vừa** — nhận ra ngay là sống, form vẫn trung tâm | User chọn mức 2 |
+| Cường độ | **Rất tinh** — khí quyển gần như không thấy, form vẫn trung tâm | User chọn mức rất tinh (sau tune) |
 | Kỹ thuật | **CSS/SVG layers** trong component trang trí | Nhẹ, không lib mới, dễ `prefers-reduced-motion` |
 | Phạm vi trang | **Login + register** (`AuthPage` chung) | Cùng một khung auth |
 | Tương tác | `aria-hidden`, `pointer-events: none` | Không tranh focus / click với form |
@@ -45,6 +45,6 @@ Mobile: cùng motif; có thể bớt mật độ marks nếu chen form, nhưng k
 
 ## 6. Kiểm chứng
 
-- Nhìn thật `/login` và `/register` ở desktop + mobile: form đọc rõ, nền “có sống” mức vừa.
+- Nhìn thật `/login` và `/register` ở desktop + mobile: form đọc rõ, nền “có sống” mức rất tinh.
 - Bật reduced-motion (OS): không còn drift.
 - Snapshot/component test: ambient có mặt, `aria-hidden`, không làm vỡ test AuthPage hiện có.
