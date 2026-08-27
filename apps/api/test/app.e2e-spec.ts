@@ -25,7 +25,7 @@ describe("API (e2e)", () => {
 
   beforeEach(async () => {
     await prisma.$executeRawUnsafe(
-      'TRUNCATE TABLE "AiUsage", "AuthNonce", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
+      'TRUNCATE TABLE "AiUsage", "AuthNonce", "PracticeAttempt", "VocabEntry", "Document", "RefreshToken", "User" CASCADE',
     );
   });
 
@@ -461,7 +461,10 @@ describe("API (e2e)", () => {
       jest.restoreAllMocks();
     });
 
-    function mockPracticeAi() {
+    function mockPracticeAi(options?: {
+      generateQueue?: Array<typeof generated>;
+    }) {
+      const generateQueue = [...(options?.generateQueue ?? [])];
       return jest.spyOn(global, "fetch").mockImplementation(async (_url, init) => {
         const body = JSON.parse(String((init as RequestInit).body)) as {
           response_format?: { json_schema?: { name?: string } };
@@ -479,7 +482,8 @@ describe("API (e2e)", () => {
             ],
           });
         } else {
-          content = JSON.stringify(generated);
+          const next = generateQueue.length > 0 ? generateQueue.shift()! : generated;
+          content = JSON.stringify(next);
         }
 
         return {
@@ -725,6 +729,153 @@ describe("API (e2e)", () => {
       const ids1 = page1.body.items.map((item: { id: string }) => item.id);
       const ids2 = page2.body.items.map((item: { id: string }) => item.id);
       expect(ids1.filter((id: string) => ids2.includes(id))).toEqual([]);
+    });
+
+    it("vocab notebook: create records words, submit marks used, next create flags review", async () => {
+      const firstGenerate = {
+        ...generated,
+        vocabulary: [
+          {
+            word: "explore",
+            meaning: "to look around a place",
+            example: "We explore the museum.",
+          },
+          {
+            word: "memorable",
+            meaning: "worth remembering",
+            example: "It was a memorable day.",
+          },
+        ],
+      };
+      const secondGenerate = {
+        ...generated,
+        prompt: "Write to a friend about your daily commute to school.",
+        vocabulary: [
+          {
+            word: "commute",
+            meaning: "travel to work or school",
+            example: "I commute by bus.",
+          },
+          {
+            word: "punctual",
+            meaning: "on time",
+            example: "She is always punctual.",
+          },
+        ],
+      };
+
+      mockPracticeAi({ generateQueue: [firstGenerate, secondGenerate] });
+      const { accessToken } = await registerUser("practice-vocab@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { email: "practice-vocab@example.com" },
+      });
+
+      // Seed an unused word that will not appear on the first attempt, so the
+      // second create can pick it as a review candidate (previous vocab excluded).
+      await prisma.vocabEntry.create({
+        data: {
+          userId: user.id,
+          word: "commute",
+          meaning: "travel to work or school",
+          example: "I commute by bus.",
+          level: "A2",
+        },
+      });
+
+      const created = await server()
+        .post("/practice/attempts")
+        .set(auth)
+        .send({ level: "A2", taskType: "email" })
+        .expect(201);
+
+      const entriesAfterCreate = await prisma.vocabEntry.findMany({
+        where: { userId: user.id },
+        orderBy: { word: "asc" },
+      });
+      expect(entriesAfterCreate.map((e) => e.word).sort()).toEqual([
+        "commute",
+        "explore",
+        "memorable",
+      ]);
+      expect(entriesAfterCreate.find((e) => e.word === "explore")?.usedCount).toBe(0);
+
+      const id = created.body.id as string;
+      await server()
+        .post(`/practice/attempts/${id}/submit`)
+        .set(auth)
+        .send({
+          styleSnapshot: { counts: { passives: 0 } },
+          plainText: "Dear Ms Lee, we were exploring the museum all afternoon.",
+          wordCount: 12,
+        })
+        .expect(201);
+
+      const explore = await prisma.vocabEntry.findUniqueOrThrow({
+        where: { userId_word: { userId: user.id, word: "explore" } },
+      });
+      expect(explore.usedCount).toBeGreaterThan(0);
+      expect(explore.firstUsedAt).not.toBeNull();
+
+      const second = await server()
+        .post("/practice/attempts")
+        .set(auth)
+        .send({ level: "A2", taskType: "email" })
+        .expect(201);
+
+      const vocab = second.body.vocabulary as Array<{
+        word: string;
+        review?: boolean;
+      }>;
+      expect(vocab.some((item) => item.word === "commute" && item.review === true)).toBe(
+        true,
+      );
+      expect(vocab.find((item) => item.word === "punctual")?.review).toBeUndefined();
+
+      // Revision submit still runs markUsed; revise does not add new vocab entries.
+      await server()
+        .post(`/practice/attempts/${second.body.id}/submit`)
+        .set(auth)
+        .send({
+          styleSnapshot: {},
+          plainText: "Dear friend, my commute is short.",
+          wordCount: 6,
+        })
+        .expect(201);
+
+      const beforeReviseCount = await prisma.vocabEntry.count({
+        where: { userId: user.id },
+      });
+
+      const revised = await server()
+        .post(`/practice/attempts/${second.body.id}/revise`)
+        .set(auth)
+        .expect(201);
+
+      await server()
+        .post(`/practice/attempts/${revised.body.id}/submit`)
+        .set(auth)
+        .send({
+          styleSnapshot: {},
+          plainText: "Dear friend, it was a memorable trip and I was punctual.",
+          wordCount: 12,
+        })
+        .expect(201);
+
+      const afterReviseCount = await prisma.vocabEntry.count({
+        where: { userId: user.id },
+      });
+      expect(afterReviseCount).toBe(beforeReviseCount);
+
+      const memorable = await prisma.vocabEntry.findUniqueOrThrow({
+        where: { userId_word: { userId: user.id, word: "memorable" } },
+      });
+      expect(memorable.usedCount).toBeGreaterThan(0);
+
+      const punctual = await prisma.vocabEntry.findUniqueOrThrow({
+        where: { userId_word: { userId: user.id, word: "punctual" } },
+      });
+      expect(punctual.usedCount).toBeGreaterThan(0);
     });
   });
 
