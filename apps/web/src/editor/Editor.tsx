@@ -86,7 +86,7 @@ export function Editor({
         nodes: [HeadingNode, QuoteNode, ListNode, ListItemNode, LinkNode],
         editorState: initialEditorState ? JSON.stringify(initialEditorState) : null,
         onError: (error) => {
-          throw error;
+          console.error("Lexical editor error", error);
         },
       }}
     >
@@ -363,7 +363,7 @@ function SavedHighlightsPlugin({
       const root = editor.getRootElement();
       if (!root) return;
       const index = buildTextIndex(root);
-      paintHighlights(index, result.highlights);
+      paintHighlights(index, result.highlights ?? []);
       onReadyRef.current(result, index);
     };
 
