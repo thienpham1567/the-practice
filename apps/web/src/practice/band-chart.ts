@@ -38,3 +38,30 @@ export function chartDots(points: BandPoint[], width: number, height: number): C
 export function polyline(dots: ChartDot[]): string {
   return dots.map((dot) => `${dot.x},${dot.y}`).join(" ");
 }
+
+/** List-root fields used to build BandChart points. */
+export type ChartRoot = {
+  band: number | null;
+  submittedAt: string | null;
+  /** Present on list roots; deliberately ignored — chart uses first-draft `band`. */
+  latestBand?: number | null;
+};
+
+/**
+ * BandChart input from practice list roots.
+ * Uses first-draft `attempt.band`, never `latestBand` from the revision chain.
+ * Expects newest-first roots (API order); returns chronological points.
+ */
+export function firstDraftChartPoints(roots: ChartRoot[]): BandPoint[] {
+  return roots
+    .filter(
+      (item): item is ChartRoot & { band: number; submittedAt: string } =>
+        item.submittedAt != null && item.band !== null,
+    )
+    .slice()
+    .reverse()
+    .map((item) => ({
+      at: new Date(item.submittedAt).getTime(),
+      band: item.band,
+    }));
+}

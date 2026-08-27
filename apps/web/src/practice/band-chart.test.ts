@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chartDots, polyline } from "./band-chart";
+import { chartDots, firstDraftChartPoints, polyline } from "./band-chart";
 
 describe("chartDots", () => {
   it("returns nothing when there are no scores", () => {
@@ -34,5 +34,36 @@ describe("chartDots", () => {
 describe("polyline", () => {
   it("joins dots into an SVG polyline string", () => {
     expect(polyline([{ x: 8, y: 10 }, { x: 20, y: 12 }])).toBe("8,10 20,12");
+  });
+});
+
+describe("firstDraftChartPoints", () => {
+  it("uses root first-draft band, not latestBand from the revision chain", () => {
+    const roots = [
+      {
+        band: 5.5,
+        latestBand: 6.5,
+        submittedAt: "2026-08-26T10:00:00.000Z",
+      },
+      {
+        band: 6.0,
+        latestBand: 7.0,
+        submittedAt: "2026-08-25T10:00:00.000Z",
+      },
+    ];
+
+    const points = firstDraftChartPoints(roots);
+
+    expect(points.map((point) => point.band)).toEqual([6.0, 5.5]);
+    expect(points.every((point) => point.band !== 6.5 && point.band !== 7.0)).toBe(true);
+  });
+
+  it("skips unsubmitted or ungraded roots", () => {
+    expect(
+      firstDraftChartPoints([
+        { band: null, latestBand: null, submittedAt: "2026-08-25T10:00:00.000Z" },
+        { band: 5.5, latestBand: null, submittedAt: null },
+      ]),
+    ).toEqual([]);
   });
 });

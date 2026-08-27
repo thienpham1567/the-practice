@@ -8,6 +8,7 @@ import { createAttempt, listAttempts } from "../api/practice";
 import { Masthead } from "../folio/Masthead";
 import { BandChart } from "../practice/BandChart";
 import { BandStamp } from "../practice/BandStamp";
+import { firstDraftChartPoints } from "../practice/band-chart";
 import { formatChainSummary } from "../practice/revise-availability";
 import { StreakStrip } from "../practice/StreakStrip";
 
@@ -28,11 +29,7 @@ export function PracticePage() {
   const submitted = (attempts.data ?? []).filter((item) => item.submittedAt);
   const submittedDates = submitted.map((item) => new Date(item.submittedAt!));
   const streak = computeStreak(submittedDates);
-  const chartPoints = submitted
-    .slice()
-    .reverse()
-    .filter((item) => item.band !== null)
-    .map((item) => ({ at: new Date(item.submittedAt!).getTime(), band: item.band! }));
+  const chartPoints = firstDraftChartPoints(attempts.data ?? []);
 
   const signOut = async () => {
     await apiFetch<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
