@@ -17,6 +17,15 @@
   --color-vermilion-soft: #e8d3cb;
 
   /*
+   * Bốn series band-over-time theo CEFR — phân biệt rõ trên nền giấy,
+   * cùng họ mực/son/ôliu/nâu ấm (không purple glow).
+   */
+  --color-level-a2: #1f1c18;
+  --color-level-b1: #3f6f5c;
+  --color-level-b2: #8a5a3a;
+  --color-level-c1: #c14324;
+
+  /*
    * Năm màu highlight, chỉnh theo nền giấy ấm thay vì màu web mặc định.
    * Đủ đậm để phân biệt, đủ nhạt để đọc chữ đen bên trên không mỏi mắt.
    */

@@ -8,12 +8,12 @@ const HEIGHT = 140;
 
 const LEVEL_ORDER: Level[] = ["A2", "B1", "B2", "C1"];
 
-/** Ink variations per CEFR level — no purple glow. */
-const LEVEL_INK: Record<Level, string> = {
-  A2: "text-ink-faint",
-  B1: "text-ink-soft",
-  B2: "text-ink",
-  C1: "text-vermilion",
+/** Distinct series colors per CEFR level (tokens in index.css). */
+const LEVEL_COLOR: Record<Level, string> = {
+  A2: "text-level-a2",
+  B1: "text-level-b1",
+  B2: "text-level-b2",
+  C1: "text-level-c1",
 };
 
 interface ProgressBandChartProps {
@@ -62,9 +62,9 @@ export function ProgressBandChart({ series }: ProgressBandChartProps) {
         {levels.map((level) => {
           const points = byLevel.get(level) as BandPoint[];
           const dots = chartDots(points, WIDTH, HEIGHT, scale);
-          const ink = LEVEL_INK[level];
+          const color = LEVEL_COLOR[level];
           return (
-            <g key={level} className={ink}>
+            <g key={level} className={color}>
               {dots.length > 1 && (
                 <polyline
                   data-level={level}
@@ -93,7 +93,7 @@ export function ProgressBandChart({ series }: ProgressBandChartProps) {
         {levels.map((level) => (
           <li
             key={level}
-            className={`flex items-center gap-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] ${LEVEL_INK[level]}`}
+            className={`flex items-center gap-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] ${LEVEL_COLOR[level]}`}
           >
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
             {level}
