@@ -2,7 +2,9 @@ import { ConflictException, NotFoundException } from "@nestjs/common";
 import { overallBand } from "@writing-helper/practice";
 import type { AiService } from "../ai/ai.service";
 import type { PrismaService } from "../prisma/prisma.service";
+import { GRADE_TASK_SCHEMA } from "./grade-prompt";
 import { PracticeService } from "./practice.service";
+import { REVISION_GRADE_SCHEMA } from "./revision-grade-prompt";
 
 const generated = {
   prompt: "You are writing to a friend about a concert you went to last weekend.",
@@ -193,7 +195,7 @@ describe("PracticeService", () => {
 
     it("computes overall band on the server from the four criteria", async () => {
       const { service, prisma, complete } = serviceWith({
-        attempt: draft,
+        attempt: { ...draft, parentAttemptId: null, parent: null },
         updated: { id: "a1", band: 6 },
       });
       complete.mockResolvedValueOnce(graded);
@@ -210,8 +212,10 @@ describe("PracticeService", () => {
       expect(complete).toHaveBeenCalledWith(
         expect.objectContaining({
           prompt: expect.stringContaining("Write to your teacher."),
+          schema: GRADE_TASK_SCHEMA,
         }),
       );
+      expect(complete.mock.calls[0]![0].prompt).not.toContain("Previous feedback points to audit");
       expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -223,7 +227,72 @@ describe("PracticeService", () => {
           }),
         }),
       );
+      expect(prisma.practiceAttempt.update.mock.calls[0]![0].data).not.toHaveProperty(
+        "feedbackAudit",
+      );
       expect(overallBand(graded.scores)).toBe(6);
+    });
+
+    it("grades a revision with comparative prompt and saves feedbackAudit", async () => {
+      const revisionDraft = {
+        ...draft,
+        id: "rev-1",
+        parentAttemptId: "a1",
+        revisionRound: 1,
+        plainText: "Dear teacher, thank you for your help with complex sentences.",
+        wordCount: 110,
+        parent: { band: 5.5 },
+      };
+      const parentGraded = {
+        feedback: graded.feedback,
+        band: 5.5,
+      };
+      const revisionGraded = {
+        ...graded,
+        scores: {
+          taskResponse: 6.5,
+          coherenceCohesion: 6.5,
+          lexicalResource: 6,
+          grammaticalRange: 6.5,
+        },
+        feedbackAudit: [
+          { point: "Mostly simple sentences.", status: "resolved" },
+          { point: "Use one complex sentence next time.", status: "partial" },
+        ],
+      };
+      const { service, prisma, complete } = serviceWith({
+        findFirstResults: [revisionDraft, parentGraded],
+        updated: { id: "rev-1", band: 6.5 },
+      });
+      complete.mockResolvedValueOnce(revisionGraded);
+
+      await service.submit("user-1", "rev-1", {
+        styleSnapshot: { counts: { passives: 0 } },
+      });
+
+      expect(prisma.practiceAttempt.findFirst).toHaveBeenCalledWith({
+        where: { id: "a1" },
+        select: { feedback: true, band: true },
+      });
+      expect(complete).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("Previous feedback points to audit"),
+          schema: REVISION_GRADE_SCHEMA,
+        }),
+      );
+      expect(complete.mock.calls[0]![0].prompt).toContain("band 5.5");
+      expect(complete.mock.calls[0]![0].prompt).toContain(graded.feedback.nextFocus);
+      expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            band: overallBand(revisionGraded.scores),
+            scores: revisionGraded.scores,
+            feedback: revisionGraded.feedback,
+            feedbackAudit: revisionGraded.feedbackAudit,
+            gradingStartedAt: null,
+          }),
+        }),
+      );
     });
 
     it("rejects a second submit with 409", async () => {

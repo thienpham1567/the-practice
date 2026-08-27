@@ -23,6 +23,11 @@ import type {
 } from "./dto/practice.dto";
 import { GENERATE_TASK_SCHEMA, buildGeneratePrompt, type GeneratedTask } from "./generate-prompt";
 import { GRADE_TASK_SCHEMA, buildGradePrompt, type GradeResult } from "./grade-prompt";
+import {
+  REVISION_GRADE_SCHEMA,
+  buildRevisionGradePrompt,
+  type RevisionGradeResult,
+} from "./revision-grade-prompt";
 
 const LIST_FIELDS = {
   id: true,
@@ -169,27 +174,57 @@ export class PracticeService {
     const task = this.taskByType(attempt.taskType as TaskType);
     const plainText = dto.plainText ?? attempt.plainText;
     const wordCount = dto.wordCount ?? attempt.wordCount;
+    const isRevision = Boolean(attempt.parentAttemptId);
 
     try {
-      const graded = await this.ai.complete<GradeResult>({
-        prompt: buildGradePrompt({
-          task,
-          promptText: attempt.prompt,
-          essay: plainText,
-          wordCount,
-        }),
-        schema: GRADE_TASK_SCHEMA,
-        maxTokens: 1500,
-        timeoutMs: PRACTICE_TIMEOUT_MS,
-        deadlineMs: PRACTICE_DEADLINE_MS,
-        usage: { userId, endpoint: "practice.grade" },
-      });
+      let graded: GradeResult | RevisionGradeResult;
+      if (isRevision) {
+        const parent = await this.prisma.practiceAttempt.findFirst({
+          where: { id: attempt.parentAttemptId! },
+          select: { feedback: true, band: true },
+        });
+        if (!parent || parent.band == null || parent.feedback == null) {
+          throw new NotFoundException("Parent practice attempt not found");
+        }
+        graded = await this.ai.complete<RevisionGradeResult>({
+          prompt: buildRevisionGradePrompt({
+            task,
+            promptText: attempt.prompt,
+            essay: plainText,
+            wordCount,
+            parentFeedback: parent.feedback as GradeResult["feedback"],
+            parentBand: parent.band,
+            level: attempt.level,
+          }),
+          schema: REVISION_GRADE_SCHEMA,
+          maxTokens: 1500,
+          timeoutMs: PRACTICE_TIMEOUT_MS,
+          deadlineMs: PRACTICE_DEADLINE_MS,
+          usage: { userId, endpoint: "practice.grade" },
+        });
+      } else {
+        graded = await this.ai.complete<GradeResult>({
+          prompt: buildGradePrompt({
+            task,
+            promptText: attempt.prompt,
+            essay: plainText,
+            wordCount,
+          }),
+          schema: GRADE_TASK_SCHEMA,
+          maxTokens: 1500,
+          timeoutMs: PRACTICE_TIMEOUT_MS,
+          deadlineMs: PRACTICE_DEADLINE_MS,
+          usage: { userId, endpoint: "practice.grade" },
+        });
+      }
 
       const submittedAt = new Date();
       const elapsedSeconds = Math.max(
         0,
         Math.round((submittedAt.getTime() - attempt.startedAt.getTime()) / 1000),
       );
+      const feedbackAudit =
+        isRevision && "feedbackAudit" in graded ? graded.feedbackAudit : undefined;
 
       return await this.prisma.practiceAttempt.update({
         where: { id },
@@ -203,6 +238,9 @@ export class PracticeService {
           band: overallBand(graded.scores),
           scores: graded.scores as unknown as Prisma.InputJsonValue,
           feedback: graded.feedback as unknown as Prisma.InputJsonValue,
+          ...(feedbackAudit !== undefined && {
+            feedbackAudit: feedbackAudit as unknown as Prisma.InputJsonValue,
+          }),
           styleSnapshot: dto.styleSnapshot as Prisma.InputJsonValue,
         },
       });
