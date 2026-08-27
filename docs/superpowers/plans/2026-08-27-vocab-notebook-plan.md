@@ -34,7 +34,7 @@ Chưa đụng luồng nào đang chạy.
 | 3.1 | `GET /practice/vocab` (JwtAuthGuard, cursor pagination theo nếp chung): chưa-dùng trước, trong nhóm `lastSuggestedAt` giảm dần | E2E: thứ tự đúng; không thấy sổ người khác; trang 1/2 không trùng |
 | 3.2 | `api/vocab.ts` (web) + trang `/vocab` (RequireAuth): bảng từ/nghĩa/ví dụ, badge `chưa dùng`/`đã dùng ×n`, filter trạng thái; link từ trang Practice | Component test ba trạng thái (rỗng/có từ/lỗi) |
 | 3.3 | `PracticeAttemptPage`: chip "ôn lại" viền vermilion cho item `review: true` | Component test: chip hiện đúng item, item thường không có |
-| 3.4 | Đi hết vòng thật trong browser với OpenRouter thật: hai đề liên tiếp — đề sau phải có từ ôn lại; nộp bài dùng 2 từ → sổ cập nhật | Screenshot trang `/vocab` trước/sau |
+| 3.4 | Đi hết vòng thật trong browser với OpenRouter thật: hai đề liên tiếp — đề sau phải có từ ôn lại; nộp bài dùng 2 từ → sổ cập nhật | **2026-08-27:** create1 ~8.6s (8 từ vào sổ); submit ~11.2s đánh dấu `suggest`+`attractions` đã dùng; create2 ~4.1s — model không nhét từ ôn lại (review=[]), đúng rủi ro đã ghi; `/vocab` hiện badge chưa dùng/đã dùng. |
 | 3.5 | Full suite + e2e + lint; cập nhật spec nếu phát hiện sai lệch | Tất cả xanh |
 
 ## Rủi ro đã biết
