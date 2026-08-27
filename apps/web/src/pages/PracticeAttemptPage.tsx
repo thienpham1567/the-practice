@@ -23,6 +23,7 @@ import {
 import { FeedbackAuditList } from "../practice/FeedbackAuditList";
 import { canRevise, formatBandDelta } from "../practice/revise-availability";
 import { StyleProfile } from "../practice/StyleProfile";
+import { SidePanel } from "../SidePanel";
 
 const AUTOSAVE_DELAY_MS = 2000;
 
@@ -64,9 +65,11 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+  const [promptOpen, setPromptOpen] = useState(false);
 
   const draftRef = useRef<EditorChange | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const promptTriggerRef = useRef<HTMLButtonElement>(null);
 
   const parent = useQuery({
     queryKey: ["practice-attempt", attempt.parentAttemptId],
@@ -159,6 +162,15 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
         >
           {wordCount} / {spec.minWords}–{spec.maxWords} words
         </span>
+        <button
+          ref={promptTriggerRef}
+          type="button"
+          onClick={() => setPromptOpen((current) => !current)}
+          aria-expanded={promptOpen}
+          className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion lg:hidden"
+        >
+          Prompt
+        </button>
         <span className="ml-auto font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
           {save.isPending ? "Saving…" : save.isSuccess ? "Saved" : null}
         </span>
@@ -184,13 +196,23 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
       )}
 
       <div className="flex min-h-0 flex-1">
-        <PromptPane
-          attempt={attempt}
-          spec={spec}
-          hintsOpen={hintsOpen}
-          onOpenHints={openHints}
-          parentFeedback={parent.data?.feedback ?? null}
-        />
+        <SidePanel
+          open={promptOpen}
+          onOpenChange={setPromptOpen}
+          title="Prompt"
+          triggerLabel="Prompt"
+          triggerRef={promptTriggerRef}
+          side="left"
+          className="w-96"
+        >
+          <PromptPane
+            attempt={attempt}
+            spec={spec}
+            hintsOpen={hintsOpen}
+            onOpenHints={openHints}
+            parentFeedback={parent.data?.feedback ?? null}
+          />
+        </SidePanel>
         <div className="flex min-w-0 flex-1 flex-col">
           <Editor
             key={attempt.id}
@@ -231,7 +253,7 @@ function PromptPane({
     : [];
 
   return (
-    <aside className="prompt-scroll w-96 shrink-0 overflow-y-auto border-r border-rule bg-paper-deep px-6 py-8">
+    <div className="prompt-scroll px-6 py-8">
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">{spec.label}</p>
       <p className="mt-3 text-sm leading-relaxed">{attempt.prompt}</p>
       <p className="mt-4 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
@@ -294,7 +316,7 @@ function PromptPane({
           </div>
         )}
       </div>
-    </aside>
+    </div>
   );
 }
 

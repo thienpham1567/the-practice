@@ -23,12 +23,19 @@ export type SidePanelProps = {
   triggerRef?: RefObject<HTMLElement | null>;
 };
 
+function readIsLgUp(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return true;
+  }
+  return window.matchMedia(LG_QUERY).matches;
+}
+
 function useIsLgUp(): boolean {
-  const [isLgUp, setIsLgUp] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia(LG_QUERY).matches : true,
-  );
+  const [isLgUp, setIsLgUp] = useState(readIsLgUp);
 
   useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+
     const media = window.matchMedia(LG_QUERY);
     const sync = () => setIsLgUp(media.matches);
     sync();
