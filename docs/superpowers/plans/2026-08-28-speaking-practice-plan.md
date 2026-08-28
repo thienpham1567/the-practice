@@ -15,15 +15,42 @@ Bước 1.1 phải làm **trước mọi thứ khác**: nó là rủi ro lớn n
 
 | # | Việc | Kiểm chứng |
 |---|------|-----------|
-| 1.1 | **Spike định dạng audio.** Script tạm: sinh một WAV 16 kHz mono ~15 giây (đọc sẵn hoặc tone + giọng thật), base64, gọi thẳng OpenRouter `gemini-2.5-flash` với `input_audio`, in nguyên response | Nhận được transcript đúng. **Ghi vào plan:** định dạng được chấp nhận, số audio token thật, thời gian phản hồi, chi phí thật. Nếu `wav` bị từ chối → thử `mp3` và cập nhật spec trước khi đi tiếp |
-| 1.2 | `apps/web/src/speaking/wav-encode.ts` (thuần, TDD): Float32 PCM → WAV 16 kHz mono 16-bit; downsample; ghép header 44 byte | Unit test: header đúng chuẩn (RIFF/fmt/data, sampleRate, bitsPerSample), độ dài khớp, buffer rỗng không nổ, stereo → mono |
-| 1.3 | `apps/web/src/speaking/speaking-fluency.ts` (thuần, TDD): `{ wordsPerMinute, fillerCount }` từ transcript + `durationMs` | Unit test: WPM đúng; đếm filler (`um, uh, er, like, you know`) không bắt nhầm trong từ khác; `durationMs = 0` → WPM 0 chứ không NaN; transcript rỗng |
-| 1.4 | `apps/api/src/speaking/locate-marks.ts` (thuần, TDD): `[{quote, kind, note}]` + transcript → `[{start, end, kind, note}]` | Unit test: định vị đúng; **quote không tìm thấy → loại bỏ, không ném**; quote trùng → lấy lần đầu; quote rỗng → loại |
-| 1.5 | `SPEAKING_CATALOG` trong `packages/practice`: cue card theo level (topic + 3 bullets), kèm `pickSpeakingTask()` | Unit test theo nếp `task-catalog.test.ts`: mỗi level có ≥3 đề, cấu trúc đúng khuôn Part 2 |
+| 1.1 | **Spike định dạng audio.** Sinh một WAV 16 kHz mono bằng giọng thật, base64, gọi thẳng OpenRouter với `input_audio` | Nhận được transcript đúng. **Ghi vào plan:** định dạng được chấp nhận, audio token thật, thời gian, chi phí. `wav` bị từ chối → thử `mp3`, cập nhật spec trước khi đi tiếp |
+| 1.2 | **Bake-off model** trên *cùng một* bản ghi (xem phương pháp bên dưới): `google/gemini-2.5-flash`, `openai/gpt-audio-mini`, `google/gemini-2.5-flash-lite` | Bảng điểm 5 cột đã điền; chọn được model kèm lý do ghi vào plan |
+| 1.3 | **Model override theo endpoint.** `AI_MODEL` hiện là một biến toàn cục cho mọi call ([ai.service.ts:99](apps/api/src/ai/ai.service.ts:99)); `.env.example` đang ghi `claude-haiku-4.5` — model **không nghe được audio**. Thêm `AI_MODEL_AUDIO` (fallback về `AI_MODEL`) và sửa `.env.example` | Unit test: endpoint speaking dùng model audio; các endpoint cũ không đổi model. Đặt `AI_MODEL=claude-haiku-4.5` mà speaking vẫn chạy |
+| 1.4 | `apps/web/src/speaking/wav-encode.ts` (thuần, TDD): Float32 PCM → WAV 16 kHz mono 16-bit; downsample; ghép header 44 byte | Unit test: header đúng chuẩn (RIFF/fmt/data, sampleRate, bitsPerSample), độ dài khớp, buffer rỗng không nổ, stereo → mono |
+| 1.5 | `apps/web/src/speaking/speaking-fluency.ts` (thuần, TDD): `{ wordsPerMinute, fillerCount }` từ transcript + `durationMs` | Unit test: WPM đúng; đếm filler (`um, uh, er, like, you know`) không bắt nhầm trong từ khác; `durationMs = 0` → WPM 0 chứ không NaN; transcript rỗng |
+| 1.6 | `apps/api/src/speaking/locate-marks.ts` (thuần, TDD): `[{quote, kind, note}]` + transcript → `[{start, end, kind, note}]` | Unit test: định vị đúng; **quote không tìm thấy → loại bỏ, không ném**; quote trùng → lấy lần đầu; quote rỗng → loại |
+| 1.7 | `SPEAKING_CATALOG` trong `packages/practice`: cue card theo level (topic + 3 bullets), kèm `pickSpeakingTask()` | Unit test theo nếp `task-catalog.test.ts`: mỗi level có ≥3 đề, cấu trúc đúng khuôn Part 2 |
 
-### Ghi chú 1.1
+### Phương pháp bake-off (bước 1.2)
 
-*(điền sau khi chạy spike: định dạng, token, thời gian, chi phí)*
+Chi phí **không phải** tiêu chí: ở nhịp 1 bài/ngày, model rẻ nhất và đắt nhất chênh nhau $0.05 vs $0.13 một tháng. Chọn theo chất lượng nghe.
+
+Thu **một** bản ghi 2 phút, cố ý cài sẵn lỗi để biết đáp án đúng trước khi chấm:
+
+- 3 từ phát âm sai có chủ đích (ghi lại là từ nào)
+- 2 khoảng ngừng dài ≥ 3 giây
+- 5–6 filler (`um`, `uh`, `you know`)
+- 1 lỗi ngữ pháp cố ý (vd. sai thì)
+
+Gửi **cùng file đó** tới cả ba model, chấm theo bảng:
+
+| Tiêu chí | Cách đo |
+|---|---|
+| Độ chính xác transcript | Đếm từ sai so với điều bạn thực sự nói (bạn là nguồn đúng duy nhất) |
+| Bắt lỗi phát âm | Bắt được mấy trong 3 từ cài sẵn |
+| Bắt ngập ngừng / filler | Bắt được mấy trong 2 khoảng ngừng và 5–6 filler |
+| JSON hợp lệ | Có đúng schema không, có bị cắt giữa chừng không |
+| Thời gian | Giây từ lúc gửi tới lúc có kết quả |
+
+**Ưu tiên khi hoà:** giữ `google/gemini-2.5-flash` — app đã dùng, đã chứng minh structured output ổn định trong chính codebase này, đổi model chỉ là một biến môi trường.
+
+**Cảnh báo maxTokens:** mọi model Gemini đều là reasoning model. Bài nói cần ~900+ token output (transcript + marks + feedback); cấp `maxTokens` chật sẽ lặp lại đúng lỗi `gemini-3.7-flash` cũ — reasoning ăn hết ngân sách, `finish_reason: length`, trả ra rác. `openai/gpt-audio-mini` **không** phải reasoning model nên ngân sách output tất định — đó là lợi thế thật của nó.
+
+### Ghi chú 1.1 / 1.2
+
+*(điền sau khi chạy: định dạng chấp nhận, token, thời gian, chi phí, bảng bake-off, model đã chọn)*
 
 ## Milestone 2 — Backend
 
@@ -68,7 +95,8 @@ Bước 1.1 phải làm **trước mọi thứ khác**: nó là rủi ro lớn n
 - **Định dạng audio là rủi ro số một.** Nếu OpenRouter từ chối WAV thô thì phải đổi sang MP3 (cần thư viện encode trong trình duyệt) — đó là lý do 1.1 đứng trước mọi bước khác, trước cả migration.
 - **Payload ~5 MB.** Body limit là một; timeout upload trên mạng chậm là hai. Nếu 4.2 cho thấy quá chậm, cân nhắc hạ xuống 12 kHz — nhưng chỉ sau khi có số liệu thật, không đoán trước.
 - **Model có thể trả `quote` không khớp nguyên văn transcript** (tự sửa chính tả khi trích). 1.4 phải khoan dung; nếu tỉ lệ mất mark cao ở 4.2 thì cân nhắc so khớp bỏ qua hoa thường và dấu câu.
-- **`gemini-2.5-flash` chấm phát âm có đáng tin không** thì chưa ai kiểm. 4.2 nên thử cố tình phát âm sai vài từ xem AI có bắt được không — nếu không, tiêu chí Pronunciation chỉ là trang trí và phải nói thật điều đó trong UI.
+- **Không model nào được kiểm chứng là chấm phát âm đáng tin.** Metadata API không trả lời được câu đó; bake-off 1.2 là chỗ duy nhất biết được. Nếu **không model nào** bắt được lỗi phát âm cài sẵn thì tiêu chí Pronunciation chỉ là trang trí — phải nói thật điều đó trong UI thay vì để người học tin vào một con điểm rỗng.
+- **`AI_MODEL` là biến toàn cục.** Trước 1.3, đổi model cho speaking sẽ đổi luôn model chấm bài viết — không được để lẫn.
 - **Quyền micro trên Safari/iOS** khắt khe hơn Chrome desktop; 4.3 kiểm trên thiết bị thật nếu có.
 
 ## Ghi chú chung
