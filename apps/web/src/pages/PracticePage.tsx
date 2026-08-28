@@ -6,6 +6,7 @@ import { useAuthStore } from "../api/auth-store";
 import { apiFetch } from "../api/client";
 import { createAttempt, listAttempts } from "../api/practice";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
+import { FolioNav } from "../folio/FolioNav";
 import { Masthead } from "../folio/Masthead";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { BandChart } from "../practice/BandChart";
@@ -33,47 +34,12 @@ export function PracticePage() {
   const streak = computeStreak(submittedDates);
   const chartPoints = firstDraftChartPoints(attempts.data ?? []);
 
-  const signOut = async () => {
-    await apiFetch<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
-    clearSession();
-    void navigate("/");
-  };
 
   return (
     <main className="relative mx-auto max-w-3xl px-6 py-14">
       <PageAtmosphere kind="practice" />
       <Masthead lockupTo="/practice">
-        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
-          <Link
-            to="/speaking"
-            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
-          >
-            Speaking
-          </Link>
-          <Link
-            to="/vocab"
-            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
-          >
-            Vocabulary
-          </Link>
-          <Link
-            to="/progress"
-            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
-          >
-            View progress →
-          </Link>
-          <Link
-            to="/docs"
-            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
-          >
-            Drafts
-          </Link>
-          {user && (
-            <button type="button" onClick={() => void signOut()} className="text-ink-faint hover:text-vermilion">
-              Sign out
-            </button>
-          )}
-        </div>
+        <FolioNav current="/practice" />
       </Masthead>
       <h1 className="animate-fade-up mt-8 font-display text-3xl font-semibold">Practice</h1>
 

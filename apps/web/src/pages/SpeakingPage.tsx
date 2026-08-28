@@ -6,6 +6,7 @@ import { useAuthStore } from "../api/auth-store";
 import { apiFetch } from "../api/client";
 import { createSpeakingAttempt, listSpeakingAttempts } from "../api/speaking";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
+import { FolioNav } from "../folio/FolioNav";
 import { Masthead } from "../folio/Masthead";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { BandChart } from "../practice/BandChart";
@@ -36,47 +37,12 @@ export function SpeakingPage() {
   const streak = computeStreak(submittedDates);
   const chartPoints = firstDraftChartPoints(attempts.data ?? []);
 
-  const signOut = async () => {
-    await apiFetch<void>("/auth/logout", { method: "POST" }).catch(() => undefined);
-    clearSession();
-    void navigate("/");
-  };
 
   return (
     <main className="relative mx-auto min-w-0 max-w-3xl overflow-x-hidden px-6 py-14">
       <PageAtmosphere kind="speaking" />
       <Masthead lockupTo="/speaking">
-        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
-          <Link
-            to="/practice"
-            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
-          >
-            Writing
-          </Link>
-          <Link
-            to="/vocab"
-            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
-          >
-            Vocabulary
-          </Link>
-          <Link
-            to="/progress"
-            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
-          >
-            View progress →
-          </Link>
-          <Link
-            to="/docs"
-            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
-          >
-            Drafts
-          </Link>
-          {user && (
-            <button type="button" onClick={() => void signOut()} className="text-ink-faint hover:text-vermilion">
-              Sign out
-            </button>
-          )}
-        </div>
+        <FolioNav current="/speaking" />
       </Masthead>
       <h1 className="animate-fade-up mt-8 font-display text-3xl font-semibold">Speaking</h1>
       <p className="mt-2 max-w-xl text-ink-soft">

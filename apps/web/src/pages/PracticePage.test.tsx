@@ -78,8 +78,8 @@ describe("PracticePage papers list", () => {
     vi.mocked(listAttempts).mockResolvedValue([]);
     renderPage();
 
-    expect(await screen.findByRole("link", { name: "View progress →" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "View progress →" }).getAttribute("href")).toBe(
+    expect(await screen.findByRole("link", { name: "Progress" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Progress" }).getAttribute("href")).toBe(
       "/progress",
     );
   });
