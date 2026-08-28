@@ -50,7 +50,23 @@ Gửi **cùng file đó** tới cả ba model, chấm theo bảng:
 
 ### Ghi chú 1.1 / 1.2
 
-*(điền sau khi chạy: định dạng chấp nhận, token, thời gian, chi phí, bảng bake-off, model đã chọn)*
+#### 1.1 — Spike định dạng audio (2026-08-28)
+
+**Kết quả: thành công.** OpenRouter chấp nhận **WAV 16 kHz mono 16-bit** qua `input_audio` với `google/gemini-2.5-flash`. Không cần fallback MP3.
+
+| Mục | Giá trị |
+|---|---|
+| Nguồn audio | **macOS `say` → AIFF → ffmpeg WAV** (mic avfoundation thất bại / treo quyền; spike định dạng vẫn hợp lệ; bake-off phát âm sẽ yếu hơn nếu dùng TTS) |
+| File | `/tmp/speaking-spike/spike-16k-mono.wav` (~17.8s, 570 478 bytes) — không commit |
+| Script | `apps/api/scripts/spike-speaking-audio.mjs` |
+| Model | `google/gemini-2.5-flash` |
+| HTTP | 200 |
+| Latency | **~3109 ms** |
+| Tokens | prompt **479** (trong đó **audio_tokens: 450**), completion **56**, total **535** |
+| Chi phí ước tính | ~**$0.0006** / lần (~18s): audio ~$1.00/1M + text in $0.30/1M + out $2.50/1M (OpenRouter/Gemini Flash); clip 2 phút scale ~6–7× → khoảng **$0.004** |
+| Transcript snippet | `Good morning Today I would like to talk about learning English through speaking practice When we speak aloud we train our brain to retrieve words quickly and build confidence Short daily sessions of 15 to 30 seconds… Thank you for listening` — khớp nội dung `say` |
+
+**Bake-off 1.2:** *(chưa chạy — điền bảng + model đã chọn sau)*
 
 ## Milestone 2 — Backend
 
