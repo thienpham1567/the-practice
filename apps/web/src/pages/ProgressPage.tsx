@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../api/auth-store";
-import { apiFetch } from "../api/client";
+import { Link } from "react-router-dom";
 import { getProgress } from "../api/progress";
 import { FolioNav } from "../folio/FolioNav";
 import { Masthead } from "../folio/Masthead";
@@ -14,8 +12,6 @@ import { SpeakingProgressCharts } from "../practice/SpeakingProgressCharts";
 import { StyleTrendsChart } from "../practice/StyleTrendsChart";
 
 export function ProgressPage() {
-  const navigate = useNavigate();
-  const { user, clearSession } = useAuthStore();
   const progress = useQuery({ queryKey: ["practice-progress"], queryFn: getProgress });
 
 

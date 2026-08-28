@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../api/auth-store";
-import { apiFetch } from "../api/client";
+import { Link } from "react-router-dom";
 import { listVocab, type VocabEntry, type VocabStatusFilter } from "../api/vocab";
 import { FolioNav } from "../folio/FolioNav";
 import { Masthead } from "../folio/Masthead";
@@ -21,8 +19,6 @@ function matchesFilter(entry: VocabEntry, filter: VocabStatusFilter): boolean {
 }
 
 export function VocabPage() {
-  const navigate = useNavigate();
-  const { user, clearSession } = useAuthStore();
   const [filter, setFilter] = useState<VocabStatusFilter>("all");
 
   const vocab = useQuery({ queryKey: ["practice-vocab"], queryFn: listVocab });

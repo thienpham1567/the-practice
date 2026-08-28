@@ -1,8 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { gradeLabelFor } from "@writing-helper/analysis";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../api/auth-store";
-import { apiFetch } from "../api/client";
+import { Link } from "react-router-dom";
 import { deleteDocument, listDocuments } from "../api/documents";
 import { FolioNav } from "../folio/FolioNav";
 import { Masthead } from "../folio/Masthead";
@@ -10,9 +8,7 @@ import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { GradeStamp } from "../sidebar/GradeStamp";
 
 export function DocumentsPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, clearSession } = useAuthStore();
 
   const documents = useQuery({ queryKey: ["documents"], queryFn: listDocuments });
 

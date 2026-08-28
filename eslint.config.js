@@ -9,6 +9,8 @@ export default tseslint.config(
       "**/build/**",
       "**/coverage/**",
       "**/node_modules/**",
+      // Worktree là bản sao của chính repo — lint sẽ soi lặp và báo lỗi trùng.
+      "**/.worktrees/**",
       // One-off Node spikes — use process/console/fetch without a browser lint env.
       "apps/api/scripts/**",
     ],

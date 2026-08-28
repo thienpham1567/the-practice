@@ -2,8 +2,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { computeStreak, TASK_CATALOG, type Level } from "@writing-helper/practice";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../api/auth-store";
-import { apiFetch } from "../api/client";
 import { createAttempt, listAttempts } from "../api/practice";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
 import { FolioNav } from "../folio/FolioNav";
@@ -19,7 +17,6 @@ const LEVELS: Level[] = ["A2", "B1", "B2", "C1"];
 
 export function PracticePage() {
   const navigate = useNavigate();
-  const { user, clearSession } = useAuthStore();
   const [level, setLevel] = useState<Level>("B1");
 
   const attempts = useQuery({ queryKey: ["practice-attempts"], queryFn: listAttempts });
