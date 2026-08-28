@@ -118,6 +118,20 @@ Lý do: ba model đều HTTP 200 + JSON hợp lệ + transcript tốt (hoà về
 | 4.3 | Kiểm mobile 375px cả 4 pha (dùng `SidePanel` nếu cần cột phụ) | Không trang nào cuộn ngang; nút ghi âm đủ lớn để bấm bằng ngón tay |
 | 4.4 | Full suite + e2e + lint; cập nhật spec nếu phát hiện lệch | Tất cả xanh |
 
+### Ghi chú 4.2 — Live OpenRouter smoke (2026-08-28)
+
+**Kết quả: pipeline đầu-cuối OK** (register → create → submit WAV → revise → submit lại → `parentBand` delta). Mic thật không dùng được trên máy này → **macOS `say` + ffmpeg WAV 16 kHz mono**, gọi API worktree + `OPENROUTER` thật (`AI_MODEL_AUDIO=google/gemini-2.5-flash`).
+
+| Bước | Latency | Ghi chú |
+|---|---|---|
+| `POST /speaking/attempts` (generate cue) | **~2.3 s** | Cue: “Describe a time you helped someone.” |
+| `POST …/submit` lần 1 (~25.5 s WAV, ~797 KiB → ~1.1M base64 chars) | **~4.8 s** | Band **5.0**; scores tất cả 5; transcript khớp nội dung `say` (chủ đề trip — khác cue, chứng tỏ model **nghe**); `marks: []`; WPM 212 |
+| `POST …/revise` | **~16 ms** | Không gọi AI |
+| `POST …/submit` lần 2 (~14.1 s WAV) | **~10.5 s** | Band **6.0**; `parentBand` **5** → delta +1.0 |
+| `GET /ai/usage` (3 calls: generate + 2 grade) | — | prompt **1564** / completion **2593** / **$0.007670** |
+
+**Quan sát chất lượng:** lần 2 transcript **không khớp** clip `say` (model bịa theo cue, fillerCount/WPM vô lý — 63 fillers / 1228 WPM trên 14s). Body 8mb + WAV 16k ổn; rủi ro còn lại là model “viết lại” thay vì nghe khi clip ngắn/TTS lệch đề. Cần bake-off mic thật trước khi tin pronunciation.
+
 ---
 
 ## Rủi ro đã biết
