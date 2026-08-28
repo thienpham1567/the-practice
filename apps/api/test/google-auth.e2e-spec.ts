@@ -37,7 +37,7 @@ describe("Google sign-in HTTP (e2e)", () => {
   beforeEach(async () => {
     googleVerifier.verify.mockReset();
     await prisma.$executeRawUnsafe(
-      'TRUNCATE TABLE "AiUsage", "AuthNonce", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
+      'TRUNCATE TABLE "AiUsage", "AuthNonce", "SpeakingAttempt", "PracticeAttempt", "Document", "RefreshToken", "User" CASCADE',
     );
   });
 

@@ -27,4 +27,9 @@ describe("overallBand", () => {
   it("rounds a mean just below a quarter down", () => {
     expect(overallBand(scores(5, 5, 5, 5))).toBe(5);
   });
+
+  it("averages any four numbers the same way (speaking criteria)", () => {
+    expect(overallBand([6, 6, 6, 5])).toBe(6);
+    expect(overallBand([7, 7, 6, 6])).toBe(6.5);
+  });
 });

@@ -8,6 +8,7 @@ import { DocumentsModule } from "./documents/documents.module";
 import { HealthController } from "./health.controller";
 import { PracticeModule } from "./practice/practice.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { SpeakingModule } from "./speaking/speaking.module";
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     AuthModule,
     DocumentsModule,
     PracticeModule,
+    SpeakingModule,
     AiModule,
   ],
   controllers: [HealthController],

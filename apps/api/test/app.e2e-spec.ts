@@ -27,7 +27,7 @@ describe("API (e2e)", () => {
 
   beforeEach(async () => {
     await prisma.$executeRawUnsafe(
-      'TRUNCATE TABLE "AiUsage", "AuthNonce", "PracticeAttempt", "VocabEntry", "Document", "RefreshToken", "User" CASCADE',
+      'TRUNCATE TABLE "AiUsage", "AuthNonce", "SpeakingAttempt", "PracticeAttempt", "VocabEntry", "Document", "RefreshToken", "User" CASCADE',
     );
   });
 
@@ -1134,6 +1134,156 @@ describe("API (e2e)", () => {
       expect(bobProgress.body.series).toHaveLength(1);
       expect(bobProgress.body.series[0].level).toBe("C1");
       expect(bobProgress.body.series[0].at).toBe(newer.toISOString());
+    });
+  });
+
+  describe("speaking", () => {
+    const generatedCue = {
+      topic: "Describe a festival you enjoyed",
+      bullets: ["what the festival was", "who you went with", "why you enjoyed it"],
+    };
+
+    const graded = {
+      transcript: "Um, I went to a festival last year with my friends and we danced.",
+      marks: [{ quote: "Um,", kind: "filler", note: "Filler word." }],
+      scores: {
+        fluencyCoherence: 6,
+        lexicalResource: 6,
+        grammaticalRange: 6,
+        pronunciation: 5,
+      },
+      feedback: {
+        fluencyCoherence: "Mostly steady.",
+        lexicalResource: "Adequate words.",
+        grammaticalRange: "Simple sentences.",
+        pronunciation: "Clear enough.",
+        overview: "A fair B1 talk.",
+        nextFocus: "Cut fillers at the start.",
+      },
+    };
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    function mockSpeakingAi() {
+      return jest.spyOn(global, "fetch").mockImplementation(async (_url, init) => {
+        const body = JSON.parse(String((init as RequestInit).body)) as {
+          response_format?: { json_schema?: { name?: string } };
+          messages?: { content?: unknown }[];
+        };
+        const schemaName = body.response_format?.json_schema?.name;
+        let content: string;
+        if (schemaName === "speaking_grade") {
+          content = JSON.stringify(graded);
+        } else {
+          content = JSON.stringify(generatedCue);
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ choices: [{ message: { content } }] }),
+        } as Response;
+      });
+    }
+
+    it("chặn khi chưa đăng nhập", async () => {
+      await server().get("/speaking/attempts").expect(401);
+      await server().post("/speaking/attempts").send({ level: "A2" }).expect(401);
+    });
+
+    it("tạo attempt với cueCard đúng cấu trúc", async () => {
+      mockSpeakingAi();
+      const { accessToken } = await registerUser("speaking-create@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const created = await server()
+        .post("/speaking/attempts")
+        .set(auth)
+        .send({ level: "B1" })
+        .expect(201);
+
+      expect(created.body.level).toBe("B1");
+      expect(created.body.cueCard).toEqual(generatedCue);
+      expect(created.body.submittedAt).toBeNull();
+      expect(created.body.startedAt).toEqual(expect.any(String));
+    });
+
+    it("audio dưới 10 giây → 400 và không gọi AI chấm", async () => {
+      const fetchSpy = mockSpeakingAi();
+      const { accessToken } = await registerUser("speaking-short@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const created = await server()
+        .post("/speaking/attempts")
+        .set(auth)
+        .send({ level: "A2" })
+        .expect(201);
+      const generateCalls = fetchSpy.mock.calls.length;
+
+      await server()
+        .post(`/speaking/attempts/${created.body.id}/submit`)
+        .set(auth)
+        .send({ audioBase64: "AAAA", format: "wav", durationMs: 5_000 })
+        .expect(400);
+
+      expect(fetchSpy.mock.calls.length).toBe(generateCalls);
+    });
+
+    it("nộp đủ dài → transcript, marks, band; revise → 201 rồi 409", async () => {
+      mockSpeakingAi();
+      const { accessToken } = await registerUser("speaking-flow@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const created = await server()
+        .post("/speaking/attempts")
+        .set(auth)
+        .send({ level: "B1" })
+        .expect(201);
+      const id = created.body.id as string;
+
+      const submitted = await server()
+        .post(`/speaking/attempts/${id}/submit`)
+        .set(auth)
+        .send({ audioBase64: "QUFBQUFB", format: "wav", durationMs: 15_000 })
+        .expect(201);
+
+      expect(submitted.body.band).toBe(6);
+      expect(submitted.body.transcript).toContain("festival");
+      expect(submitted.body.marks).toEqual([
+        { start: 0, end: 3, kind: "filler", note: "Filler word." },
+      ]);
+      expect(submitted.body.fluency).toEqual(
+        expect.objectContaining({
+          wordsPerMinute: expect.any(Number),
+          fillerCount: expect.any(Number),
+        }),
+      );
+
+      const listed = await server().get("/speaking/attempts").set(auth).expect(200);
+      expect(listed.body.items).toHaveLength(1);
+      expect(listed.body.items[0].cueCard).toBeUndefined();
+      expect(listed.body.items[0].band).toBe(6);
+
+      const revised = await server()
+        .post(`/speaking/attempts/${id}/revise`)
+        .set(auth)
+        .expect(201);
+      expect(revised.body.parentAttemptId).toBe(id);
+      expect(revised.body.revisionRound).toBe(1);
+      expect(revised.body.cueCard).toEqual(generatedCue);
+      expect(revised.body.submittedAt).toBeNull();
+
+      const root = await server().get(`/speaking/attempts/${id}`).set(auth).expect(200);
+      expect(root.body.hasRevision).toBe(true);
+      expect(root.body.pendingRevisionId).toBe(revised.body.id);
+
+      await server().post(`/speaking/attempts/${id}/revise`).set(auth).expect(409);
+
+      const listAfter = await server().get("/speaking/attempts").set(auth).expect(200);
+      expect(listAfter.body.items).toHaveLength(1);
+      expect(listAfter.body.items[0].revisionCount).toBe(1);
     });
   });
 
