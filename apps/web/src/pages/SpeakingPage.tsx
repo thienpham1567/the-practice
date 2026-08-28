@@ -41,7 +41,7 @@ export function SpeakingPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
+    <main className="mx-auto min-w-0 max-w-3xl overflow-x-hidden px-6 py-14">
       <Masthead lockupTo="/speaking">
         <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <Link
@@ -100,7 +100,7 @@ export function SpeakingPage() {
           type="button"
           onClick={() => start.mutate()}
           disabled={start.isPending}
-          className="mt-4 bg-ink px-5 py-2 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
+          className="mt-4 min-h-11 bg-ink px-5 py-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
         >
           {start.isPending ? "Setting the cue card…" : "Start speaking"}
         </button>

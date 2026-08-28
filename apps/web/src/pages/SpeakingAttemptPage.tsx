@@ -178,10 +178,10 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+    <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
+      <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
-        <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
+        <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           Part 2 · {attempt.level}
         </span>
         {isRevision && (
@@ -197,7 +197,7 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
         </Link>
       </header>
 
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-6 py-10">
+      <main className="mx-auto flex w-full min-w-0 max-w-2xl flex-1 flex-col px-6 py-10">
         {phase === "prep" && (
           <PrepPhase cue={cue} secondsLeft={prepLeft} onSkip={skipPrep} />
         )}
@@ -258,7 +258,7 @@ function PrepPhase({
       <button
         type="button"
         onClick={onSkip}
-        className="mt-10 bg-ink px-5 py-2 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion"
+        className="mt-10 min-h-11 bg-ink px-5 py-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion"
       >
         Skip prep
       </button>
@@ -304,7 +304,7 @@ function RecordPhase({
         <button
           type="button"
           onClick={onStop}
-          className="mt-10 bg-ink px-5 py-2 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion"
+          className="mt-10 min-h-11 bg-ink px-5 py-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion"
         >
           Stop recording
         </button>
@@ -353,7 +353,7 @@ function ReviewPhase({
           type="button"
           onClick={onRecordAgain}
           disabled={submitting}
-          className="border border-rule px-5 py-2 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-ink transition-colors hover:border-vermilion hover:text-vermilion disabled:opacity-60"
+          className="min-h-11 border border-rule px-5 py-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-ink transition-colors hover:border-vermilion hover:text-vermilion disabled:opacity-60"
         >
           Record again
         </button>
@@ -361,7 +361,7 @@ function ReviewPhase({
           type="button"
           onClick={onSubmit}
           disabled={submitting}
-          className="bg-ink px-5 py-2 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
+          className="min-h-11 bg-ink px-5 py-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
         >
           {submitting ? "Marking…" : "Submit"}
         </button>
@@ -400,8 +400,8 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
   }, [attempt.marks, attempt.transcript]);
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+    <div className="flex h-screen min-w-0 flex-col overflow-x-hidden">
+      <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           Part 2 · {attempt.level}
