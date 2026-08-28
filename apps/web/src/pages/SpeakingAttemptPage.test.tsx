@@ -39,8 +39,9 @@ vi.mock("../speaking/useRecorder", () => ({
 
     const stop = useCallback(() => {
       stopSpy();
-      const samples = Math.max(1, Math.floor((finishConfig.durationMs / 1000) * 16_000));
-      const next = new Float32Array(samples);
+      // Keep durationMs realistic for gate checks, but a tiny PCM buffer so
+      // encodeWav/base64 in Review/Submit stay cheap under parallel vitest load.
+      const next = new Float32Array(1_600);
       if (!finishConfig.silent) {
         for (let i = 0; i < next.length; i++) next[i] = i % 2 === 0 ? 0.2 : -0.2;
       }
