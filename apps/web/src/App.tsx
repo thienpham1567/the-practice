@@ -11,6 +11,8 @@ import { EditorPage } from "./pages/EditorPage";
 import { PracticeAttemptPage } from "./pages/PracticeAttemptPage";
 import { PracticePage } from "./pages/PracticePage";
 import { ProgressPage } from "./pages/ProgressPage";
+import { SpeakingAttemptPage } from "./pages/SpeakingAttemptPage";
+import { SpeakingPage } from "./pages/SpeakingPage";
 import { VocabPage } from "./pages/VocabPage";
 
 const queryClient = new QueryClient({
@@ -70,6 +72,22 @@ export function App() {
             element={
               <RequireAuth>
                 <PracticeAttemptPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/speaking"
+            element={
+              <RequireAuth>
+                <SpeakingPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/speaking/:id"
+            element={
+              <RequireAuth>
+                <SpeakingAttemptPage />
               </RequireAuth>
             }
           />
