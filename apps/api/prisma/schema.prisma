@@ -16,6 +16,7 @@ model User {
   documents     Document[]
   refreshTokens RefreshToken[]
   practiceAttempts PracticeAttempt[]
+  speakingAttempts SpeakingAttempt[]
   vocabEntries  VocabEntry[]
   aiUsages      AiUsage[]
 }
@@ -106,6 +107,42 @@ model PracticeAttempt {
 
   parent    PracticeAttempt?  @relation("Revisions", fields: [parentAttemptId], references: [id], onDelete: Cascade)
   revisions PracticeAttempt[] @relation("Revisions")
+
+  @@index([userId, submittedAt])
+  @@index([parentAttemptId])
+}
+
+model SpeakingAttempt {
+  id       String @id @default(cuid())
+  userId   String
+  level    String            // A2 | B1 | B2 | C1
+  /// { topic, bullets: string[] } — đúng khuôn Part 2, không có follow-up (Part 3 ngoài phạm vi).
+  cueCard  Json
+
+  durationMs Int?
+  /// Transcript AI nghe được (text thuần).
+  transcript String?
+  /// [{ start, end, kind, note }] — offset ký tự do server định vị.
+  marks      Json?
+  /// { wordsPerMinute, fillerCount }
+  fluency    Json?
+
+  startedAt        DateTime  @default(now())
+  /// Chiếm khoá trước khi gọi AI — chống double-submit tính tiền hai lần.
+  gradingStartedAt DateTime?
+  submittedAt      DateTime?
+
+  band     Float?
+  /// { fluencyCoherence, lexicalResource, grammaticalRange, pronunciation }
+  scores   Json?
+  feedback Json?
+
+  parentAttemptId String?
+  revisionRound   Int    @default(0)
+
+  parent     SpeakingAttempt?  @relation("SpeakingRevisions", fields: [parentAttemptId], references: [id], onDelete: Cascade)
+  revisions  SpeakingAttempt[] @relation("SpeakingRevisions")
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, submittedAt])
   @@index([parentAttemptId])
