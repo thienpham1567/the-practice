@@ -66,7 +66,21 @@ Gửi **cùng file đó** tới cả ba model, chấm theo bảng:
 | Chi phí ước tính | ~**$0.0006** / lần (~18s): audio ~$1.00/1M + text in $0.30/1M + out $2.50/1M (OpenRouter/Gemini Flash); clip 2 phút scale ~6–7× → khoảng **$0.004** |
 | Transcript snippet | `Good morning Today I would like to talk about learning English through speaking practice When we speak aloud we train our brain to retrieve words quickly and build confidence Short daily sessions of 15 to 30 seconds… Thank you for listening` — khớp nội dung `say` |
 
-**Bake-off 1.2:** *(chưa chạy — điền bảng + model đã chọn sau)*
+#### 1.2 — Bake-off model (2026-08-28)
+
+**Cùng file 1.1:** `/tmp/speaking-spike.wav` (= `spike-16k-mono.wav`, TTS `say` Samantha — không cài lỗi phát âm/ngập ngừng; cột “bắt lỗi” không đo được trên clip này).  
+**Script:** `apps/api/scripts/spike-speaking-bakeoff.mjs` — prompt chấm IELTS Part 2 yêu cầu JSON schema (`transcript` / `marks` / `scores` / `feedback`), `max_tokens: 4000`.
+
+| Model | Latency | HTTP ok | Valid JSON | finish_reason | Tokens (prompt / completion / total; audio) | Transcript accuracy |
+|---|---|---|---|---|---|---|
+| `google/gemini-2.5-flash` | **3627 ms** | yes (200) | **yes** | `stop` | 664 / 210 / 874 (**audio_tokens: 450**) | ~96% word overlap; `fifteen`/`thirty` → `15`/`30` |
+| `openai/gpt-audio-mini` | **1721 ms** | yes (200) | **yes** | `stop` | 398 / 167 / 565 (**audio_tokens: 178**) | ~100% word overlap (giữ `fifteen`/`thirty`) — **không 404** |
+| `google/gemini-2.5-flash-lite` | **3072 ms** | yes (200) | **yes** | `stop` | 664 / 215 / 879 (**audio_tokens: 450**) | ~96% word overlap; cùng lệch số như Flash |
+
+**Ghi chú chất lượng (TTS sạch):** cả ba trả `marks: []`, schema đủ, `finish_reason: stop` (không cắt). Feedback hợp lý (Flash nhận delivery hơi robotic). Không phân biệt được bắt lỗi phát âm/filler trên clip này.
+
+**Model đã chọn: `google/gemini-2.5-flash`.**  
+Lý do: ba model đều HTTP 200 + JSON hợp lệ + transcript tốt (hoà về chất lượng nghe cho spike TTS); ưu tiên mặc định khi hoà theo plan — đã dùng trong app, structured output đã chứng minh; Flash-lite ngang hàng nhưng không lợi thế rõ; `gpt-audio-mini` nhanh hơn và transcript sát hơn một chút nhưng không đủ để đổi stack khi chưa có bake-off mic thật với lỗi cài sẵn.
 
 ## Milestone 2 — Backend
 
