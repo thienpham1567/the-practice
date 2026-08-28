@@ -3,14 +3,15 @@ import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { configureApp } from "./configure-app";
-
-/** Editor state có thể lớn, nhưng 1MB là trần hợp lý cho một document. */
-const BODY_LIMIT = "1mb";
+import { configureBodyParser } from "./configure-body-parser";
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: true });
+  // bodyParser: false — we install path-specific JSON limits in configureBodyParser.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
 
-  app.useBodyParser("json", { limit: BODY_LIMIT });
+  configureBodyParser(app);
   configureApp(app);
   app.enableCors({
     origin: process.env.WEB_ORIGIN ?? "http://localhost:5173",

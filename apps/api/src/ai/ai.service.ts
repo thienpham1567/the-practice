@@ -59,8 +59,9 @@ export interface CompleteOptions {
   /** Khi có: ghi AiUsage sau lần gọi thành công. */
   usage?: { userId: string; endpoint: AiEndpoint };
   /**
-   * Audio input (wired in milestone 2.2). Presence also selects AI_MODEL_AUDIO.
-   * Format shape is reserved here so speaking callers can pass it early.
+   * Optional audio input for multimodal OpenRouter calls.
+   * When set, attemptOnce sends content as text + input_audio parts
+   * and resolveModel prefers AI_MODEL_AUDIO.
    */
   audio?: { base64: string; format: "wav" | "mp3" };
   /** Explicit model override; wins over AI_MODEL / AI_MODEL_AUDIO. */
@@ -261,6 +262,19 @@ export class AiService {
     const timer = setTimeout(() => controller.abort(), args.timeoutMs);
 
     try {
+      const messageContent = args.options.audio
+        ? [
+            { type: "text" as const, text: args.options.prompt },
+            {
+              type: "input_audio" as const,
+              input_audio: {
+                data: args.options.audio.base64,
+                format: args.options.audio.format,
+              },
+            },
+          ]
+        : args.options.prompt;
+
       const response = await fetch(OPENROUTER_URL, {
         method: "POST",
         headers: {
@@ -269,7 +283,7 @@ export class AiService {
         },
         body: JSON.stringify({
           model: args.model,
-          messages: [{ role: "user", content: args.options.prompt }],
+          messages: [{ role: "user", content: messageContent }],
           max_tokens: args.options.maxTokens,
           ...(args.options.schema
             ? {

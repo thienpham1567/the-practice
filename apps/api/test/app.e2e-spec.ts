@@ -3,6 +3,7 @@ import { Test } from "@nestjs/testing";
 import request from "supertest";
 import { AppModule } from "../src/app.module";
 import { configureApp } from "../src/configure-app";
+import { configureBodyParser } from "../src/configure-body-parser";
 import { PrismaService } from "../src/prisma/prisma.service";
 
 describe("API (e2e)", () => {
@@ -16,7 +17,8 @@ describe("API (e2e)", () => {
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
 
-    app = moduleRef.createNestApplication<NestExpressApplication>();
+    app = moduleRef.createNestApplication<NestExpressApplication>({ bodyParser: false });
+    configureBodyParser(app);
     configureApp(app);
     await app.init();
 
@@ -153,6 +155,25 @@ describe("API (e2e)", () => {
       // Token hợp lệ nhưng ký bằng secret khác thì phải bị từ chối.
       const forged = `${alice.accessToken.split(".").slice(0, 2).join(".")}.forged-signature`;
       await server().get("/documents").set("Authorization", `Bearer ${forged}`).expect(401);
+    });
+  });
+
+  describe("body size limits", () => {
+    /** ~6 MB of JSON — under speaking 8mb, over default 1mb. */
+    function largePayload(bytes = 6 * 1024 * 1024) {
+      return { audioBase64: "A".repeat(bytes), format: "wav", durationMs: 60_000 };
+    }
+
+    it("accepts a ~6 MB body on speaking submit path (not 413)", async () => {
+      const response = await server()
+        .post("/speaking/attempts/any-id/submit")
+        .send(largePayload());
+      // Parsed successfully — route may 401/404 until the module exists; must not be 413.
+      expect(response.status).not.toBe(413);
+    });
+
+    it("rejects a ~6 MB body on other JSON routes with 413", async () => {
+      await server().post("/auth/login").send(largePayload()).expect(413);
     });
   });
 

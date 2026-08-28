@@ -426,6 +426,61 @@ describe("AiService", () => {
 
       expect(result).toEqual({ ok: true });
     });
+
+    it("khi có audio: content là mảng text + input_audio", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const { service } = makeService({ OPENROUTER_API_KEY: "key" });
+      await service.complete({
+        prompt: "Grade this recording",
+        maxTokens: 100,
+        audio: { base64: "QUFB", format: "wav" },
+      });
+
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const body = JSON.parse(init!.body as string) as {
+        messages: {
+          content: Array<{
+            type: string;
+            text?: string;
+            input_audio?: { data: string; format: string };
+          }>;
+        }[];
+      };
+      expect(body.messages[0]?.content).toEqual([
+        { type: "text", text: "Grade this recording" },
+        { type: "input_audio", input_audio: { data: "QUFB", format: "wav" } },
+      ]);
+    });
+
+    it("không có audio: content vẫn là string (byte-identical shape)", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const { service } = makeService({ OPENROUTER_API_KEY: "key", AI_MODEL: "some/model" });
+      await service.complete({ prompt: "plain text only", maxTokens: 10 });
+
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const raw = init!.body as string;
+      const body = JSON.parse(raw) as {
+        model: string;
+        messages: { role: string; content: unknown }[];
+        max_tokens: number;
+      };
+      expect(typeof body.messages[0]?.content).toBe("string");
+      expect(body.messages[0]?.content).toBe("plain text only");
+      // Exact OpenRouter body shape for non-audio callers — no content-parts array.
+      expect(raw).toBe(
+        JSON.stringify({
+          model: "some/model",
+          messages: [{ role: "user", content: "plain text only" }],
+          max_tokens: 10,
+        }),
+      );
+    });
   });
 
   describe("complete retries", () => {
