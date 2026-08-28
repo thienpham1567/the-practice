@@ -212,6 +212,151 @@ describe("AiService", () => {
     });
   });
 
+  describe("model selection", () => {
+    it("dùng AI_MODEL khi không có audio và không phải speaking endpoint", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const { service } = makeService({
+        OPENROUTER_API_KEY: "key",
+        AI_MODEL: "anthropic/claude-haiku-4.5",
+        AI_MODEL_AUDIO: "google/gemini-2.5-flash",
+      });
+
+      await service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        usage: { userId: "user-1", endpoint: "practice.grade" },
+      });
+
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const body = JSON.parse(init!.body as string) as { model: string };
+      expect(body.model).toBe("anthropic/claude-haiku-4.5");
+    });
+
+    it("dùng AI_MODEL_AUDIO khi có audio", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const { service } = makeService({
+        OPENROUTER_API_KEY: "key",
+        AI_MODEL: "anthropic/claude-haiku-4.5",
+        AI_MODEL_AUDIO: "google/gemini-2.5-flash",
+      });
+
+      await service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        audio: { base64: "AAAA", format: "wav" },
+        usage: { userId: "user-1", endpoint: "speaking.grade" },
+      });
+
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const body = JSON.parse(init!.body as string) as { model: string };
+      expect(body.model).toBe("google/gemini-2.5-flash");
+    });
+
+    it("dùng AI_MODEL_AUDIO cho speaking.generate dù không có audio", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const { service } = makeService({
+        OPENROUTER_API_KEY: "key",
+        AI_MODEL: "anthropic/claude-haiku-4.5",
+        AI_MODEL_AUDIO: "google/gemini-2.5-flash",
+      });
+
+      await service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        usage: { userId: "user-1", endpoint: "speaking.generate" },
+      });
+
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const body = JSON.parse(init!.body as string) as { model: string };
+      expect(body.model).toBe("google/gemini-2.5-flash");
+    });
+
+    it("fallback về AI_MODEL khi thiếu AI_MODEL_AUDIO mà có audio", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const { service } = makeService({
+        OPENROUTER_API_KEY: "key",
+        AI_MODEL: "google/gemini-2.5-flash",
+      });
+
+      await service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        audio: { base64: "AAAA", format: "wav" },
+      });
+
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const body = JSON.parse(init!.body as string) as { model: string };
+      expect(body.model).toBe("google/gemini-2.5-flash");
+    });
+
+    it("tôn trọng model override tường minh", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const { service } = makeService({
+        OPENROUTER_API_KEY: "key",
+        AI_MODEL: "anthropic/claude-haiku-4.5",
+        AI_MODEL_AUDIO: "google/gemini-2.5-flash",
+      });
+
+      await service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        model: "openai/gpt-audio-mini",
+        audio: { base64: "AAAA", format: "wav" },
+      });
+
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const body = JSON.parse(init!.body as string) as { model: string };
+      expect(body.model).toBe("openai/gpt-audio-mini");
+    });
+
+    it("ghi AiUsage với model audio đã chọn cho speaking.grade", async () => {
+      jest.spyOn(global, "fetch").mockResolvedValue(
+        jsonResponse({
+          choices: [{ message: { content: "ok" } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1, cost: 0 },
+        }),
+      );
+      const create = jest.fn().mockResolvedValue({});
+      const { service } = makeService(
+        {
+          OPENROUTER_API_KEY: "key",
+          AI_MODEL: "anthropic/claude-haiku-4.5",
+          AI_MODEL_AUDIO: "google/gemini-2.5-flash",
+        },
+        fakePrisma({ create }),
+      );
+
+      await service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        audio: { base64: "AAAA", format: "wav" },
+        usage: { userId: "user-1", endpoint: "speaking.grade" },
+      });
+
+      expect(create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          endpoint: "speaking.grade",
+          model: "google/gemini-2.5-flash",
+        }),
+      });
+    });
+  });
+
   describe("complete", () => {
     it("gửi prompt, maxTokens và không kèm response_format khi không có schema", async () => {
       const fetchSpy = jest

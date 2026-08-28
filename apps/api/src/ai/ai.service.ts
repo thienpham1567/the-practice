@@ -27,7 +27,12 @@ const BACKOFF_BASE_MS = [500, 1_500] as const;
 const DEFAULT_DAILY_QUOTA = 100;
 const USAGE_WINDOW_DAYS = 30;
 
-export type AiEndpoint = "rewrite" | "practice.generate" | "practice.grade";
+export type AiEndpoint =
+  | "rewrite"
+  | "practice.generate"
+  | "practice.grade"
+  | "speaking.generate"
+  | "speaking.grade";
 
 interface OpenRouterResponse {
   choices?: { message?: { content?: string } }[];
@@ -53,6 +58,13 @@ export interface CompleteOptions {
   deadlineMs?: number;
   /** Khi có: ghi AiUsage sau lần gọi thành công. */
   usage?: { userId: string; endpoint: AiEndpoint };
+  /**
+   * Audio input (wired in milestone 2.2). Presence also selects AI_MODEL_AUDIO.
+   * Format shape is reserved here so speaking callers can pass it early.
+   */
+  audio?: { base64: string; format: "wav" | "mp3" };
+  /** Explicit model override; wins over AI_MODEL / AI_MODEL_AUDIO. */
+  model?: string;
 }
 
 class OpenRouterAttemptError extends Error {
@@ -96,7 +108,7 @@ export class AiService {
     const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     const deadlineMs = options.deadlineMs ?? DEFAULT_DEADLINE_MS;
     const deadlineAt = Date.now() + deadlineMs;
-    const model = this.config.get<string>("AI_MODEL") ?? DEFAULT_MODEL;
+    const model = this.resolveModel(options);
 
     let lastError: OpenRouterAttemptError | undefined;
 
@@ -193,6 +205,22 @@ export class AiService {
       costUsd: cost.toFixed(6),
       calls: rows.length,
     };
+  }
+
+  private resolveModel(options: CompleteOptions): string {
+    if (options.model) return options.model;
+
+    const defaultModel = this.config.get<string>("AI_MODEL") ?? DEFAULT_MODEL;
+    const endpoint = options.usage?.endpoint;
+    const useAudioModel =
+      Boolean(options.audio) ||
+      endpoint === "speaking.generate" ||
+      endpoint === "speaking.grade";
+
+    if (useAudioModel) {
+      return this.config.get<string>("AI_MODEL_AUDIO") ?? defaultModel;
+    }
+    return defaultModel;
   }
 
   private dailyQuotaLimit(): number {
