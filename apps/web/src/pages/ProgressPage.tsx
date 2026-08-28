@@ -4,6 +4,7 @@ import { useAuthStore } from "../api/auth-store";
 import { apiFetch } from "../api/client";
 import { getProgress } from "../api/progress";
 import { Masthead } from "../folio/Masthead";
+import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { CriteriaSparklines } from "../practice/CriteriaSparklines";
 import { LevelUpStamp } from "../practice/LevelUpStamp";
 import { levelUpVerdict } from "../practice/level-up";
@@ -30,7 +31,8 @@ export function ProgressPage() {
   const verdict = hasWriting ? levelUpVerdict(series) : null;
 
   return (
-    <main className="mx-auto min-w-0 max-w-3xl px-6 py-14">
+    <main className="relative mx-auto min-w-0 max-w-3xl px-6 py-14">
+      <PageAtmosphere kind="progress" />
       <Masthead lockupTo="/practice">
         <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <Link

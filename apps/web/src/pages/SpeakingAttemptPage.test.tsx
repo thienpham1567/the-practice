@@ -70,10 +70,16 @@ vi.mock("../api/speaking", async (importOriginal) => {
     getSpeakingAttempt: vi.fn(),
     submitSpeakingAttempt: vi.fn(),
     reviseSpeakingAttempt: vi.fn(),
+    deleteSpeakingAttempt: vi.fn(),
   };
 });
 
-import { getSpeakingAttempt, reviseSpeakingAttempt, submitSpeakingAttempt } from "../api/speaking";
+import {
+  deleteSpeakingAttempt,
+  getSpeakingAttempt,
+  reviseSpeakingAttempt,
+  submitSpeakingAttempt,
+} from "../api/speaking";
 
 const navigate = vi.fn();
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -130,6 +136,7 @@ describe("SpeakingAttemptPage phases", () => {
     vi.mocked(getSpeakingAttempt).mockReset();
     vi.mocked(submitSpeakingAttempt).mockReset();
     vi.mocked(reviseSpeakingAttempt).mockReset();
+    vi.mocked(deleteSpeakingAttempt).mockReset();
     vi.stubGlobal("URL", {
       createObjectURL: vi.fn(() => "blob:mock-audio"),
       revokeObjectURL: vi.fn(),
@@ -154,6 +161,8 @@ describe("SpeakingAttemptPage phases", () => {
 
     expect(await screen.findByRole("button", { name: /Stop recording/i })).toBeTruthy();
     expect(startSpy).toHaveBeenCalled();
+    expect(screen.getByRole("status").textContent).toMatch(/Recording — microphone live/);
+    expect(screen.getByText("Rec")).toBeTruthy();
   });
 
   it("moves from Prep to Record when the minute ends", async () => {
@@ -348,5 +357,19 @@ describe("SpeakingAttemptPage phases", () => {
       expect(reviseSpeakingAttempt).toHaveBeenCalledWith("s1");
       expect(navigate).toHaveBeenCalledWith("/speaking/rev-1");
     });
+  });
+
+  it("asks before deleting a talk and navigates to the talks list", async () => {
+    vi.useRealTimers();
+    vi.mocked(getSpeakingAttempt).mockResolvedValue(openAttempt);
+    vi.mocked(deleteSpeakingAttempt).mockResolvedValue(undefined);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete this talk" }));
+    expect(screen.getByRole("dialog", { name: "Delete this talk?" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(deleteSpeakingAttempt).toHaveBeenCalledWith("s1"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/speaking"));
   });
 });

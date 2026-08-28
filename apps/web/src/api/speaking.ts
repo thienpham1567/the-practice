@@ -91,3 +91,6 @@ export const submitSpeakingAttempt = (id: string, input: SubmitSpeakingInput) =>
 
 export const reviseSpeakingAttempt = (id: string) =>
   apiJson<SpeakingAttemptDetail>(`/speaking/attempts/${id}/revise`, "POST", {});
+
+export const deleteSpeakingAttempt = (id: string) =>
+  apiFetch<void>(`/speaking/attempts/${id}`, { method: "DELETE" });

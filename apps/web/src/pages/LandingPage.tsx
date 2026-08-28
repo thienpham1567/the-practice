@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 import { AppMark } from "../AppMark";
 import { folioDateline } from "../folio/folio-dateline";
-import { LANDING_HEADLINE, LANDING_LEDE, LANDING_PAPER } from "../folio/landing-copy";
+import { LANDING_HEADLINE, LANDING_LEDE, LANDING_PAPER, LANDING_TALK } from "../folio/landing-copy";
 import { Masthead } from "../folio/Masthead";
+import { PageAtmosphere } from "../folio/PageAtmosphere";
 
 export function LandingPage({ now = new Date() }: { now?: Date }) {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
+    <main className="relative mx-auto max-w-3xl px-6 py-14">
+      <PageAtmosphere kind="folio" />
       <div className="animate-fade-up">
         <Masthead>
           <p className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
@@ -37,15 +39,32 @@ export function LandingPage({ now = new Date() }: { now?: Date }) {
         <p className="mt-4 font-display text-xl leading-snug">{LANDING_PAPER.prompt}</p>
       </article>
 
+      <article
+        className="animate-fade-up relative mt-4 overflow-hidden border border-rule px-5 py-8 sm:px-8 sm:py-10"
+        style={{ animationDelay: "140ms" }}
+      >
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-1 -top-4 font-display text-7xl leading-none text-vermilion/25 sm:-right-2 sm:-top-5 sm:text-8xl"
+        >
+          “
+        </span>
+        <p className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+          {LANDING_TALK.kicker}
+        </p>
+        <p className="mt-4 text-ink-soft">{LANDING_TALK.instruction}</p>
+        <p className="mt-4 font-display text-xl leading-snug">{LANDING_TALK.prompt}</p>
+      </article>
+
       <div
         className="animate-fade-up mt-8 flex flex-wrap items-baseline gap-x-6 gap-y-3"
-        style={{ animationDelay: "150ms" }}
+        style={{ animationDelay: "170ms" }}
       >
         <Link
           to="/register"
           className="bg-ink px-5 py-2 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion"
         >
-          Sit a paper
+          Begin practice
         </Link>
         <Link
           to="/write"
@@ -54,7 +73,7 @@ export function LandingPage({ now = new Date() }: { now?: Date }) {
           Open a draft
         </Link>
       </div>
-      <p className="animate-fade-up mt-6 text-sm text-ink-soft" style={{ animationDelay: "180ms" }}>
+      <p className="animate-fade-up mt-6 text-sm text-ink-soft" style={{ animationDelay: "200ms" }}>
         Already have an account?{" "}
         <Link to="/login" className="text-vermilion underline underline-offset-2">
           Sign in

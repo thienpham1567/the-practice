@@ -91,3 +91,6 @@ export const submitAttempt = (id: string, input: SubmitAttemptInput) =>
 
 export const reviseAttempt = (id: string) =>
   apiJson<PracticeAttemptDetail>(`/practice/attempts/${id}/revise`, "POST", {});
+
+export const deleteAttempt = (id: string) =>
+  apiFetch<void>(`/practice/attempts/${id}`, { method: "DELETE" });

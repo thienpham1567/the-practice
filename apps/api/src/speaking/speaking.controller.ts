@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { CurrentUserId } from "../auth/current-user.decorator";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
@@ -28,6 +39,12 @@ export class SpeakingController {
   @Get(":id")
   findOne(@CurrentUserId() userId: string, @Param("id") id: string) {
     return this.speaking.findOne(userId, id);
+  }
+
+  @Delete(":id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@CurrentUserId() userId: string, @Param("id") id: string) {
+    return this.speaking.remove(userId, id);
   }
 
   @Post(":id/submit")

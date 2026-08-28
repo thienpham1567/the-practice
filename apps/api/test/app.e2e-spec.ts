@@ -1135,6 +1135,50 @@ describe("API (e2e)", () => {
       expect(bobProgress.body.series[0].level).toBe("C1");
       expect(bobProgress.body.series[0].at).toBe(newer.toISOString());
     });
+
+    it("DELETE /practice/attempts/:id xoá bài của mình, 404 với bài người khác, cascade revisions", async () => {
+      const alice = await registerUser("practice-delete-alice@example.com");
+      const bob = await registerUser("practice-delete-bob@example.com");
+      const aliceAuth = { Authorization: `Bearer ${alice.accessToken}` };
+      const bobAuth = { Authorization: `Bearer ${bob.accessToken}` };
+      const aliceUser = await prisma.user.findUniqueOrThrow({
+        where: { email: "practice-delete-alice@example.com" },
+      });
+
+      const root = await prisma.practiceAttempt.create({
+        data: {
+          userId: aliceUser.id,
+          level: "B1",
+          taskType: "email",
+          prompt: "Write to a friend.",
+          ideas: [],
+          vocabulary: [],
+        },
+      });
+      const revision = await prisma.practiceAttempt.create({
+        data: {
+          userId: aliceUser.id,
+          level: "B1",
+          taskType: "email",
+          prompt: "Write to a friend.",
+          ideas: [],
+          vocabulary: [],
+          parentAttemptId: root.id,
+          revisionRound: 1,
+        },
+      });
+
+      await server().delete(`/practice/attempts/${root.id}`).expect(401);
+
+      await server().delete(`/practice/attempts/${root.id}`).set(bobAuth).expect(404);
+      expect(await prisma.practiceAttempt.findUnique({ where: { id: root.id } })).not.toBeNull();
+
+      await server().delete(`/practice/attempts/${root.id}`).set(aliceAuth).expect(204);
+      expect(await prisma.practiceAttempt.findUnique({ where: { id: root.id } })).toBeNull();
+      expect(await prisma.practiceAttempt.findUnique({ where: { id: revision.id } })).toBeNull();
+
+      await server().delete(`/practice/attempts/${root.id}`).set(aliceAuth).expect(404);
+    });
   });
 
   describe("speaking", () => {
@@ -1284,6 +1328,46 @@ describe("API (e2e)", () => {
       const listAfter = await server().get("/speaking/attempts").set(auth).expect(200);
       expect(listAfter.body.items).toHaveLength(1);
       expect(listAfter.body.items[0].revisionCount).toBe(1);
+    });
+
+    it("DELETE /speaking/attempts/:id xoá talk của mình, 404 với talk người khác, cascade re-recordings", async () => {
+      const alice = await registerUser("speaking-delete-alice@example.com");
+      const bob = await registerUser("speaking-delete-bob@example.com");
+      const aliceAuth = { Authorization: `Bearer ${alice.accessToken}` };
+      const bobAuth = { Authorization: `Bearer ${bob.accessToken}` };
+      const aliceUser = await prisma.user.findUniqueOrThrow({
+        where: { email: "speaking-delete-alice@example.com" },
+      });
+
+      const cueCard = {
+        topic: "Describe a festival you enjoyed",
+        bullets: ["what it was", "who you went with", "why you enjoyed it"],
+      };
+      const root = await prisma.speakingAttempt.create({
+        data: {
+          userId: aliceUser.id,
+          level: "B1",
+          cueCard,
+        },
+      });
+      const revision = await prisma.speakingAttempt.create({
+        data: {
+          userId: aliceUser.id,
+          level: "B1",
+          cueCard,
+          parentAttemptId: root.id,
+          revisionRound: 1,
+        },
+      });
+
+      await server().delete(`/speaking/attempts/${root.id}`).expect(401);
+
+      await server().delete(`/speaking/attempts/${root.id}`).set(bobAuth).expect(404);
+      expect(await prisma.speakingAttempt.findUnique({ where: { id: root.id } })).not.toBeNull();
+
+      await server().delete(`/speaking/attempts/${root.id}`).set(aliceAuth).expect(204);
+      expect(await prisma.speakingAttempt.findUnique({ where: { id: root.id } })).toBeNull();
+      expect(await prisma.speakingAttempt.findUnique({ where: { id: revision.id } })).toBeNull();
     });
   });
 

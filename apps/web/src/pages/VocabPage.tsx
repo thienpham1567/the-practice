@@ -5,6 +5,7 @@ import { useAuthStore } from "../api/auth-store";
 import { apiFetch } from "../api/client";
 import { listVocab, type VocabEntry, type VocabStatusFilter } from "../api/vocab";
 import { Masthead } from "../folio/Masthead";
+import { PageAtmosphere } from "../folio/PageAtmosphere";
 
 const FILTERS: { id: VocabStatusFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -37,7 +38,8 @@ export function VocabPage() {
   };
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-14">
+    <main className="relative mx-auto max-w-3xl px-6 py-14">
+      <PageAtmosphere kind="vocab" />
       <Masthead lockupTo="/practice">
         <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <Link

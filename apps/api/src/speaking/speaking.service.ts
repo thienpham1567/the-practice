@@ -176,6 +176,15 @@ export class SpeakingService {
     };
   }
 
+  async remove(userId: string, id: string) {
+    const existing = await this.prisma.speakingAttempt.findFirst({
+      where: { id, userId },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException("Speaking attempt not found");
+    await this.prisma.speakingAttempt.delete({ where: { id } });
+  }
+
   async revise(userId: string, id: string) {
     return this.prisma.$transaction(async (tx) => {
       const parent = await tx.speakingAttempt.findFirst({ where: { id, userId } });

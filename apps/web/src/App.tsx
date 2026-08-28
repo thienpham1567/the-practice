@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useAuthStore } from "./api/auth-store";
 import { tryRefreshSession } from "./api/client";
 import { AuthPage } from "./auth/AuthPage";
+import { CursorLamp } from "./folio/CursorLamp";
 import { HomeGate } from "./folio/HomeGate";
 import { SessionSplash } from "./folio/SessionSplash";
 import { DocumentsPage } from "./pages/DocumentsPage";
@@ -46,6 +47,7 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <CursorLamp />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<HomeGate />} />

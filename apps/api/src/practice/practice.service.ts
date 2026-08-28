@@ -184,6 +184,15 @@ export class PracticeService {
     };
   }
 
+  async remove(userId: string, id: string) {
+    const existing = await this.prisma.practiceAttempt.findFirst({
+      where: { id, userId },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException("Practice attempt not found");
+    await this.prisma.practiceAttempt.delete({ where: { id } });
+  }
+
   async revise(userId: string, id: string) {
     return this.prisma.$transaction(async (tx) => {
       const parent = await tx.practiceAttempt.findFirst({ where: { id, userId } });

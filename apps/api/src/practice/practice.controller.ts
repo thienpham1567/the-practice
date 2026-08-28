@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -37,6 +40,12 @@ export class PracticeController {
   @Get(":id")
   findOne(@CurrentUserId() userId: string, @Param("id") id: string) {
     return this.practice.findOne(userId, id);
+  }
+
+  @Delete(":id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@CurrentUserId() userId: string, @Param("id") id: string) {
+    return this.practice.remove(userId, id);
   }
 
   @Patch(":id")

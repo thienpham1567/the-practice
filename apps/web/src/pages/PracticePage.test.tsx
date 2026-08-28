@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PracticeAttemptSummary } from "../api/practice";
@@ -11,6 +11,7 @@ vi.mock("../api/practice", async (importOriginal) => {
     ...actual,
     listAttempts: vi.fn(),
     createAttempt: vi.fn(),
+    deleteAttempt: vi.fn(),
   };
 });
 
@@ -18,7 +19,7 @@ vi.mock("../api/auth-store", () => ({
   useAuthStore: () => ({ user: { id: "u1", email: "a@b.c" }, clearSession: vi.fn() }),
 }));
 
-import { listAttempts } from "../api/practice";
+import { deleteAttempt, listAttempts } from "../api/practice";
 
 const rootNoRevisions: PracticeAttemptSummary = {
   id: "root-1",
@@ -58,6 +59,7 @@ function renderPage() {
 describe("PracticePage papers list", () => {
   beforeEach(() => {
     vi.mocked(listAttempts).mockReset();
+    vi.mocked(deleteAttempt).mockReset();
   });
 
   afterEach(() => {
@@ -95,5 +97,30 @@ describe("PracticePage papers list", () => {
     renderPage();
 
     expect(await screen.findByText("5.5 → 6.5 · 2 revisions")).toBeTruthy();
+  });
+
+  it("asks before deleting a paper and cancels without calling the API", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([rootNoRevisions]);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete this paper" }));
+    expect(screen.getByRole("dialog", { name: "Delete this paper?" })).toBeTruthy();
+    expect(screen.getByText(/permanently delete this paper and any revisions/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deleteAttempt).not.toHaveBeenCalled();
+  });
+
+  it("deletes a paper after confirming", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([rootNoRevisions]);
+    vi.mocked(deleteAttempt).mockResolvedValue(undefined);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete this paper" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(deleteAttempt).toHaveBeenCalledWith("root-1"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 });

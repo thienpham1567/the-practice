@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuthStore } from "../api/auth-store";
 import { createDocument, getDocument, updateDocument, type DocumentInput } from "../api/documents";
 import { BrandLockup } from "../BrandLockup";
+import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { Editor, type EditorChange, type EditorMode } from "../editor/Editor";
 import { SidePanel } from "../SidePanel";
 import { analysisIssueCount, Sidebar } from "../sidebar/Sidebar";
@@ -101,6 +102,7 @@ export function EditorPage() {
 
   return (
     <div className="flex h-screen flex-col">
+      <PageAtmosphere kind="manuscript" />
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to={signedIn ? "/practice" : "/"} size="sm" />
         <Link

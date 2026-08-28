@@ -58,6 +58,7 @@ function serviceWith(overrides: {
         )
       : jest.fn().mockResolvedValue(overrides.attempt ?? null),
     create: jest.fn().mockResolvedValue(overrides.created ?? { id: "a1", ...generated }),
+    delete: jest.fn().mockResolvedValue({ id: "a1" }),
     update: jest.fn().mockResolvedValue(overrides.updated ?? { id: "a1" }),
     updateMany: jest.fn().mockImplementation(async () => {
       const count = claimCounts.length > 0 ? claimCounts.shift()! : 0;
@@ -332,6 +333,27 @@ describe("PracticeService", () => {
         pendingRevisionId: null,
       });
       expect(result).not.toHaveProperty("revisions");
+    });
+  });
+
+  describe("remove", () => {
+    it("404 when the attempt is missing or belongs to someone else", async () => {
+      const { service, prisma } = serviceWith({ attempt: null });
+
+      await expect(service.remove("user-1", "missing")).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.practiceAttempt.delete).not.toHaveBeenCalled();
+    });
+
+    it("deletes the attempt after confirming ownership", async () => {
+      const { service, prisma } = serviceWith({ attempt: { id: "a1" } });
+
+      await service.remove("user-1", "a1");
+
+      expect(prisma.practiceAttempt.findFirst).toHaveBeenCalledWith({
+        where: { id: "a1", userId: "user-1" },
+        select: { id: true },
+      });
+      expect(prisma.practiceAttempt.delete).toHaveBeenCalledWith({ where: { id: "a1" } });
     });
   });
 

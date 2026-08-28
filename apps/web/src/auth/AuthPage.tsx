@@ -14,7 +14,7 @@ interface AuthPageProps {
 const COPY = {
   login: {
     heading: "Welcome back",
-    lede: "Your papers and drafts are waiting.",
+    lede: "Your papers and talks are waiting.",
     action: "Sign in",
     path: "/auth/login",
     switchText: "No account yet?",
@@ -23,7 +23,7 @@ const COPY = {
   },
   register: {
     heading: "Begin practice",
-    lede: "An account keeps your papers and drafts.",
+    lede: "An account keeps your papers and talks.",
     action: "Create account",
     path: "/auth/register",
     switchText: "Already have an account?",

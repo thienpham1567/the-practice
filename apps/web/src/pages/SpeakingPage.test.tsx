@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SpeakingAttemptSummary } from "../api/speaking";
@@ -11,6 +11,7 @@ vi.mock("../api/speaking", async (importOriginal) => {
     ...actual,
     listSpeakingAttempts: vi.fn(),
     createSpeakingAttempt: vi.fn(),
+    deleteSpeakingAttempt: vi.fn(),
   };
 });
 
@@ -18,7 +19,7 @@ vi.mock("../api/auth-store", () => ({
   useAuthStore: () => ({ user: { id: "u1", email: "a@b.c" }, clearSession: vi.fn() }),
 }));
 
-import { listSpeakingAttempts } from "../api/speaking";
+import { deleteSpeakingAttempt, listSpeakingAttempts } from "../api/speaking";
 
 const rootNoRevisions: SpeakingAttemptSummary = {
   id: "s1",
@@ -54,6 +55,7 @@ function renderPage() {
 describe("SpeakingPage", () => {
   beforeEach(() => {
     vi.mocked(listSpeakingAttempts).mockReset();
+    vi.mocked(deleteSpeakingAttempt).mockReset();
   });
 
   afterEach(() => {
@@ -96,5 +98,30 @@ describe("SpeakingPage", () => {
 
     expect(await screen.findByRole("link", { name: "Writing" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Writing" }).getAttribute("href")).toBe("/practice");
+  });
+
+  it("asks before deleting a talk and cancels without calling the API", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisions]);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete this talk" }));
+    expect(screen.getByRole("dialog", { name: "Delete this talk?" })).toBeTruthy();
+    expect(screen.getByText(/permanently delete this talk and any re-recordings/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(deleteSpeakingAttempt).not.toHaveBeenCalled();
+  });
+
+  it("deletes a talk after confirming", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisions]);
+    vi.mocked(deleteSpeakingAttempt).mockResolvedValue(undefined);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete this talk" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(deleteSpeakingAttempt).toHaveBeenCalledWith("s1"));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 });

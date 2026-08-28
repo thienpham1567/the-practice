@@ -5,7 +5,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../api/auth-store";
 import { apiFetch } from "../api/client";
 import { createSpeakingAttempt, listSpeakingAttempts } from "../api/speaking";
+import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
 import { Masthead } from "../folio/Masthead";
+import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { BandChart } from "../practice/BandChart";
 import { BandStamp } from "../practice/BandStamp";
 import { firstDraftChartPoints } from "../practice/band-chart";
@@ -41,7 +43,8 @@ export function SpeakingPage() {
   };
 
   return (
-    <main className="mx-auto min-w-0 max-w-3xl overflow-x-hidden px-6 py-14">
+    <main className="relative mx-auto min-w-0 max-w-3xl overflow-x-hidden px-6 py-14">
+      <PageAtmosphere kind="speaking" />
       <Masthead lockupTo="/speaking">
         <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <Link
@@ -136,33 +139,36 @@ export function SpeakingPage() {
                 className="animate-fade-up"
                 style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
               >
-                <Link
-                  to={`/speaking/${attempt.id}`}
-                  className="group flex flex-wrap items-center gap-x-4 gap-y-2 py-4"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="font-display text-lg transition-colors group-hover:text-vermilion">
-                      Part 2 · {attempt.level}
-                    </span>
-                    <span className="ml-3 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
-                      {when.toLocaleDateString(undefined, {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                    {!attempt.submittedAt && (
-                      <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion">
-                        In progress
+                <div className="flex items-center gap-x-3">
+                  <Link
+                    to={`/speaking/${attempt.id}`}
+                    className="group flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 py-4"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="font-display text-lg transition-colors group-hover:text-vermilion">
+                        Part 2 · {attempt.level}
                       </span>
-                    )}
-                  </span>
-                  <TalkBandMeta
-                    band={attempt.band}
-                    latestBand={attempt.latestBand}
-                    revisionCount={attempt.revisionCount}
-                  />
-                </Link>
+                      <span className="ml-3 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+                        {when.toLocaleDateString(undefined, {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                      {!attempt.submittedAt && (
+                        <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion">
+                          In progress
+                        </span>
+                      )}
+                    </span>
+                    <TalkBandMeta
+                      band={attempt.band}
+                      latestBand={attempt.latestBand}
+                      revisionCount={attempt.revisionCount}
+                    />
+                  </Link>
+                  <AttemptDeleteControl kind="talk" attemptId={attempt.id} />
+                </div>
               </li>
             );
           })}

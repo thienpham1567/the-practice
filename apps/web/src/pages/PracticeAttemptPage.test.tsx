@@ -15,6 +15,7 @@ vi.mock("../api/practice", async (importOriginal) => {
     ...actual,
     getAttempt: vi.fn(),
     reviseAttempt: vi.fn(),
+    deleteAttempt: vi.fn(),
   };
 });
 
@@ -24,7 +25,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
   return { ...actual, useNavigate: () => navigate };
 });
 
-import { getAttempt, reviseAttempt } from "../api/practice";
+import { deleteAttempt, getAttempt, reviseAttempt } from "../api/practice";
 
 const gradedAttempt: PracticeAttemptDetail = {
   id: "a1",
@@ -84,6 +85,7 @@ describe("PracticeAttemptPage ResultView revise button", () => {
     navigate.mockReset();
     vi.mocked(getAttempt).mockReset();
     vi.mocked(reviseAttempt).mockReset();
+    vi.mocked(deleteAttempt).mockReset();
   });
 
   afterEach(() => {
@@ -170,6 +172,7 @@ describe("PracticeAttemptPage ExamRoom revision", () => {
     navigate.mockReset();
     vi.mocked(getAttempt).mockReset();
     vi.mocked(reviseAttempt).mockReset();
+    vi.mocked(deleteAttempt).mockReset();
   });
 
   afterEach(() => {
@@ -233,6 +236,7 @@ describe("PracticeAttemptPage ResultView revision results", () => {
     navigate.mockReset();
     vi.mocked(getAttempt).mockReset();
     vi.mocked(reviseAttempt).mockReset();
+    vi.mocked(deleteAttempt).mockReset();
   });
 
   afterEach(() => {
@@ -290,6 +294,19 @@ describe("PracticeAttemptPage ResultView revision results", () => {
 
     expect(await screen.findByRole("button", { name: "Revise this paper" })).toBeTruthy();
   });
+
+  it("asks before deleting a result and navigates to the papers list", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(gradedAttempt);
+    vi.mocked(deleteAttempt).mockResolvedValue(undefined);
+    renderPage("a1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete this paper" }));
+    expect(screen.getByRole("dialog", { name: "Delete this paper?" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(deleteAttempt).toHaveBeenCalledWith("a1"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/practice"));
+  });
 });
 
 const openAttemptWithReview: PracticeAttemptDetail = {
@@ -311,6 +328,7 @@ describe("PracticeAttemptPage PromptPane review chip", () => {
     navigate.mockReset();
     vi.mocked(getAttempt).mockReset();
     vi.mocked(reviseAttempt).mockReset();
+    vi.mocked(deleteAttempt).mockReset();
   });
 
   afterEach(() => {
@@ -336,6 +354,7 @@ describe("PracticeAttemptPage catalog gate", () => {
     navigate.mockReset();
     vi.mocked(getAttempt).mockReset();
     vi.mocked(reviseAttempt).mockReset();
+    vi.mocked(deleteAttempt).mockReset();
   });
 
   afterEach(() => {

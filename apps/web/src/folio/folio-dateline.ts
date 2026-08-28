@@ -4,5 +4,5 @@ export function folioDateline(date: Date): string {
     month: "long",
     year: "numeric",
   });
-  return `Vol. 1 · ${day} · English writing`;
+  return `Vol. 1 · ${day} · Writing & speaking`;
 }

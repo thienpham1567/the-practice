@@ -12,10 +12,13 @@ import {
   type SpeakingScores,
 } from "../api/speaking";
 import { BandStamp } from "../practice/BandStamp";
+import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
+import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { formatClock } from "../practice/exam-math";
 import { formatBandDelta, reviseAction } from "../practice/revise-availability";
 import { SidePanel } from "../SidePanel";
 import { recordingBlockReason } from "../speaking/rms-silence";
+import { RecordingPulse } from "../speaking/RecordingPulse";
 import { SpeakingCriteriaBars } from "../speaking/SpeakingCriteriaBars";
 import { paintSpeakingHighlights, clearSpeakingHighlights } from "../speaking/speaking-highlights";
 import { recordingSupported, useRecorder } from "../speaking/useRecorder";
@@ -179,6 +182,7 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
+      <PageAtmosphere kind="talk" />
       <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
@@ -195,6 +199,7 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
         >
           All talks
         </Link>
+        <AttemptDeleteControl kind="talk" attemptId={attempt.id} after="list" />
       </header>
 
       <main className="mx-auto flex w-full min-w-0 max-w-2xl flex-1 flex-col px-6 py-10">
@@ -280,7 +285,6 @@ function RecordPhase({
   onStop: () => void;
 }) {
   const seconds = Math.floor(durationMs / 1000);
-  const meter = Math.min(1, level);
 
   return (
     <section className="animate-fade-up">
@@ -291,12 +295,7 @@ function RecordPhase({
       >
         {formatClock(seconds)}
       </p>
-      <div className="mt-6 h-1.5 w-full bg-rule" aria-hidden="true">
-        <div
-          className="h-1.5 bg-vermilion transition-[width] duration-100"
-          style={{ width: `${meter * 100}%` }}
-        />
-      </div>
+      <RecordingPulse level={level} />
       <p className="mt-8 font-display text-xl leading-snug text-ink-soft">{cue.topic}</p>
       {errorMessage ? (
         <p className="mt-6 text-sm text-vermilion">{errorMessage}</p>
@@ -400,6 +399,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
 
   return (
     <div className="flex h-screen min-w-0 flex-col overflow-x-hidden">
+      <PageAtmosphere kind="result" />
       <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
@@ -414,12 +414,14 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
         >
           Scores
         </button>
+        <span className="ml-auto" />
+        <AttemptDeleteControl kind="talk" attemptId={attempt.id} after="list" />
         {action.kind === "revise" && (
           <button
             type="button"
             onClick={() => revise.mutate()}
             disabled={revise.isPending}
-            className="ml-auto bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
+            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
           >
             Record again
           </button>
@@ -428,7 +430,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
           <button
             type="button"
             onClick={() => navigate(`/speaking/${action.attemptId}`)}
-            className="ml-auto bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
+            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
           >
             Resume recording
           </button>

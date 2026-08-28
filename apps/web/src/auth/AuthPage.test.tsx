@@ -66,13 +66,15 @@ describe("AuthPage", () => {
     expect(brand.getAttribute("href")).toBe("/");
     expect(brand.className).toContain("text-3xl");
     expect(screen.getByRole("heading", { name: "Welcome back" })).toBeTruthy();
-    expect(screen.getByText("Your papers and drafts are waiting.")).toBeTruthy();
+    expect(screen.getByText("Your papers and talks are waiting.")).toBeTruthy();
     expect(document.querySelector("[data-ambient='ink']")).toBeTruthy();
     expect(document.querySelector("header.border-b")).toBeNull();
   });
 
   it("shows the ambient backdrop on register as well", () => {
     renderAuth("register");
+    expect(screen.getByRole("heading", { name: "Begin practice" })).toBeTruthy();
+    expect(screen.getByText("An account keeps your papers and talks.")).toBeTruthy();
     expect(document.querySelector("[data-ambient='rules']")).toBeTruthy();
     expect(document.querySelector("[data-ambient='marks']")).toBeTruthy();
   });

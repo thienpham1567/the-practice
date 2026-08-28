@@ -13,6 +13,8 @@ import {
 } from "../api/practice";
 import { Editor, type EditorChange } from "../editor/Editor";
 import { BandStamp } from "../practice/BandStamp";
+import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
+import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { CriteriaBars } from "../practice/CriteriaBars";
 import {
   countWords,
@@ -142,6 +144,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
 
   return (
     <div className="flex h-screen flex-col">
+      <PageAtmosphere kind="exam" />
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/practice" size="sm" />
         {isRevision ? (
@@ -176,6 +179,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
         <span className="ml-auto font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           {save.isPending ? "Saving…" : save.isSuccess ? "Saved" : null}
         </span>
+        <AttemptDeleteControl kind="paper" attemptId={attempt.id} after="list" />
         <button
           type="button"
           onClick={() => void handleSubmit()}
@@ -350,6 +354,7 @@ function ResultView({
 
   return (
     <div className="flex h-screen flex-col">
+      <PageAtmosphere kind="result" />
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/practice" size="sm" />
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
@@ -364,12 +369,14 @@ function ResultView({
         >
           Scores
         </button>
+        <span className="ml-auto" />
+        <AttemptDeleteControl kind="paper" attemptId={attempt.id} after="list" />
         {action.kind === "revise" && (
           <button
             type="button"
             onClick={() => revise.mutate()}
             disabled={revise.isPending}
-            className="ml-auto bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
+            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
           >
             Revise this paper
           </button>
@@ -378,7 +385,7 @@ function ResultView({
           <button
             type="button"
             onClick={() => navigate(`/practice/${action.attemptId}`)}
-            className="ml-auto bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
+            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
           >
             Resume revision
           </button>

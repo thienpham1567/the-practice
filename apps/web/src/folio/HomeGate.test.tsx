@@ -18,7 +18,7 @@ describe("HomeGate", () => {
       </MemoryRouter>,
     );
     expect(screen.getByText("One moment…")).toBeTruthy();
-    expect(screen.queryByText("Sit the next paper.")).toBeNull();
+    expect(screen.queryByText("Sit the paper. Take the turn.")).toBeNull();
   });
 
   it("shows the landing when ready and signed out", () => {
@@ -28,6 +28,6 @@ describe("HomeGate", () => {
         <HomeGate />
       </MemoryRouter>,
     );
-    expect(screen.getByText("Sit the next paper.")).toBeTruthy();
+    expect(screen.getByText("Sit the paper. Take the turn.")).toBeTruthy();
   });
 });
