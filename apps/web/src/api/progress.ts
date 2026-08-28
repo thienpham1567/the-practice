@@ -21,9 +21,24 @@ export type ProgressSeriesPoint = {
   per100: ProgressPer100 | null;
 };
 
+/** Graded speaking roots — kept apart from writing `series`. */
+export type SpeakingProgressPoint = {
+  at: string;
+  level: Level;
+  band: number;
+  wordsPerMinute: number | null;
+};
+
 export type ProgressSummary = {
   series: ProgressSeriesPoint[];
   streak: { current: number; submittedDates: string[] };
+  /**
+   * Speaking is a different skill from writing.
+   * UI must chart this separately — never merge into the writing band line.
+   */
+  speaking: {
+    series: SpeakingProgressPoint[];
+  };
 };
 
 export const getProgress = () => apiFetch<ProgressSummary>("/practice/progress");

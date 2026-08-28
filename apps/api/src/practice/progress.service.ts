@@ -14,6 +14,13 @@ const SUMMARY_FIELDS = {
   styleSnapshot: true,
 } satisfies Prisma.PracticeAttemptSelect;
 
+const SPEAKING_SUMMARY_FIELDS = {
+  submittedAt: true,
+  level: true,
+  band: true,
+  fluency: true,
+} satisfies Prisma.SpeakingAttemptSelect;
+
 export type ProgressScores = {
   task: number;
   coherence: number;
@@ -34,9 +41,24 @@ export type ProgressSeriesPoint = {
   per100: ProgressPer100 | null;
 };
 
+/** Graded speaking roots only — never mixed into writing `series`. */
+export type SpeakingProgressPoint = {
+  at: string;
+  level: Level;
+  band: number;
+  wordsPerMinute: number | null;
+};
+
 export type ProgressSummary = {
   series: ProgressSeriesPoint[];
   streak: { current: number; submittedDates: string[] };
+  /**
+   * Speaking progress is a separate skill from writing.
+   * Keep it on its own field/charts — merging one band line would mislead.
+   */
+  speaking: {
+    series: SpeakingProgressPoint[];
+  };
 };
 
 @Injectable()
@@ -46,16 +68,28 @@ export class ProgressService {
   async summary(userId: string, now: Date = new Date()): Promise<ProgressSummary> {
     const since = new Date(now.getTime() - LOOKBACK_DAYS * MS_PER_DAY);
 
-    const rows = await this.prisma.practiceAttempt.findMany({
-      where: {
-        userId,
-        parentAttemptId: null,
-        submittedAt: { gte: since },
-        band: { not: null },
-      },
-      select: SUMMARY_FIELDS,
-      orderBy: { submittedAt: "asc" },
-    });
+    const [rows, speakingRows] = await Promise.all([
+      this.prisma.practiceAttempt.findMany({
+        where: {
+          userId,
+          parentAttemptId: null,
+          submittedAt: { gte: since },
+          band: { not: null },
+        },
+        select: SUMMARY_FIELDS,
+        orderBy: { submittedAt: "asc" },
+      }),
+      this.prisma.speakingAttempt.findMany({
+        where: {
+          userId,
+          parentAttemptId: null,
+          submittedAt: { gte: since },
+          band: { not: null },
+        },
+        select: SPEAKING_SUMMARY_FIELDS,
+        orderBy: { submittedAt: "asc" },
+      }),
+    ]);
 
     const series: ProgressSeriesPoint[] = rows.map((row) => {
       const submittedAt = row.submittedAt!;
@@ -65,6 +99,16 @@ export class ProgressService {
         band: row.band!,
         scores: mapScores(row.scores),
         per100: per100FromSnapshot(row.styleSnapshot),
+      };
+    });
+
+    const speakingSeries: SpeakingProgressPoint[] = speakingRows.map((row) => {
+      const submittedAt = row.submittedAt!;
+      return {
+        at: submittedAt.toISOString(),
+        level: row.level as Level,
+        band: row.band!,
+        wordsPerMinute: wordsPerMinuteFromFluency(row.fluency),
       };
     });
 
@@ -80,6 +124,7 @@ export class ProgressService {
         current: streak.current,
         submittedDates,
       },
+      speaking: { series: speakingSeries },
     };
   }
 }
@@ -131,4 +176,9 @@ function asNumber(value: unknown): number {
 
 function asOptionalNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function wordsPerMinuteFromFluency(raw: unknown): number | null {
+  if (!raw || typeof raw !== "object") return null;
+  return asOptionalNumber((raw as Record<string, unknown>).wordsPerMinute);
 }

@@ -2,7 +2,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ProgressSeriesPoint, ProgressSummary } from "../api/progress";
+import type {
+  ProgressSeriesPoint,
+  ProgressSummary,
+  SpeakingProgressPoint,
+} from "../api/progress";
 import { ProgressPage } from "./ProgressPage";
 
 vi.mock("../api/progress", async (importOriginal) => {
@@ -30,8 +34,25 @@ function point(
   };
 }
 
-function summary(series: ProgressSeriesPoint[]): ProgressSummary {
-  return { series, streak: { current: series.length > 0 ? 1 : 0, submittedDates: [] } };
+function speakingPoint(
+  overrides: Partial<SpeakingProgressPoint> & Pick<SpeakingProgressPoint, "at" | "level">,
+): SpeakingProgressPoint {
+  return {
+    band: 6,
+    wordsPerMinute: 110,
+    ...overrides,
+  };
+}
+
+function summary(
+  series: ProgressSeriesPoint[],
+  speaking: SpeakingProgressPoint[] = [],
+): ProgressSummary {
+  return {
+    series,
+    streak: { current: series.length > 0 ? 1 : 0, submittedDates: [] },
+    speaking: { series: speaking },
+  };
 }
 
 function renderPage() {
@@ -56,16 +77,81 @@ describe("ProgressPage", () => {
     cleanup();
   });
 
-  it("shows an empty state with a link to practice when series is empty", async () => {
+  it("shows an empty state with links when both series are empty", async () => {
     vi.mocked(getProgress).mockResolvedValue(summary([]));
     renderPage();
 
-    expect(await screen.findByText(/Sit your first practice paper/)).toBeTruthy();
+    expect(await screen.findByText(/Sit your first practice paper or talk/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Start writing" }).getAttribute("href")).toBe("/practice");
+    expect(screen.getByRole("link", { name: "Start speaking" }).getAttribute("href")).toBe(
+      "/speaking",
+    );
     expect(screen.queryByLabelText("Band over time by level")).toBeNull();
-    expect(screen.queryByLabelText("Criteria trends")).toBeNull();
-    expect(screen.queryByLabelText("Style trends")).toBeNull();
-    expect(screen.queryByLabelText("Level-up suggestion")).toBeNull();
+    expect(screen.queryByLabelText("Speaking progress")).toBeNull();
+  });
+
+  it("renders writing charts without merging speaking points into the band chart", async () => {
+    vi.mocked(getProgress).mockResolvedValue(
+      summary(
+        [
+          point({ at: "2026-08-20T10:00:00.000Z", level: "B1", band: 5.5 }),
+          point({ at: "2026-08-21T10:00:00.000Z", level: "B2", band: 6 }),
+          point({ at: "2026-08-22T10:00:00.000Z", level: "B1", band: 6.5 }),
+        ],
+        [speakingPoint({ at: "2026-08-22T12:00:00.000Z", level: "B1", band: 7 })],
+      ),
+    );
+    renderPage();
+
+    const writingChart = await screen.findByLabelText("Band over time by level");
+    expect(writingChart.querySelectorAll('polyline[data-level="B1"]')).toHaveLength(1);
+    expect(writingChart.querySelectorAll('circle[data-level="B1"]')).toHaveLength(2);
+    expect(writingChart.querySelectorAll('circle[data-level="B2"]')).toHaveLength(1);
+    // Speaking point must not appear on the writing chart (would be a 3rd B1 circle)
+    expect(writingChart.querySelectorAll('circle[data-level="B1"]')).not.toHaveLength(3);
+
+    const speakingSection = screen.getByLabelText("Speaking progress");
+    expect(within(speakingSection).getByLabelText("Speaking band over time")).toBeTruthy();
+    expect(
+      within(speakingSection).getByLabelText("Speaking band over time").querySelectorAll(
+        'circle[data-level="B1"]',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("renders speaking-only progress with band and WPM charts", async () => {
+    vi.mocked(getProgress).mockResolvedValue(
+      summary(
+        [],
+        [
+          speakingPoint({
+            at: "2026-08-20T10:00:00.000Z",
+            level: "B1",
+            band: 5.5,
+            wordsPerMinute: 100,
+          }),
+          speakingPoint({
+            at: "2026-08-22T10:00:00.000Z",
+            level: "B1",
+            band: 6.5,
+            wordsPerMinute: 130,
+          }),
+        ],
+      ),
+    );
+    renderPage();
+
+    expect(await screen.findByLabelText("Speaking progress")).toBeTruthy();
+    expect(screen.queryByLabelText("Band over time by level")).toBeNull();
+    expect(screen.queryByLabelText("Writing progress")).toBeNull();
+
+    const band = screen.getByLabelText("Speaking band over time");
+    expect(band.querySelectorAll('circle[data-level="B1"]')).toHaveLength(2);
+    expect(band.querySelectorAll('polyline[data-level="B1"]')).toHaveLength(1);
+
+    const wpm = screen.getByLabelText("Speaking WPM over time");
+    expect(wpm.querySelectorAll('circle[data-series="wpm"]')).toHaveLength(2);
+    expect(wpm.querySelectorAll('polyline[data-series="wpm"]')).toHaveLength(1);
   });
 
   it("renders multiple level paths and a legend", async () => {
