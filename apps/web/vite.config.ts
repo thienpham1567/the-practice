@@ -17,5 +17,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],
+    // Parallel pnpm -r (api jest + web vitest) can starve jsdom; keep headroom.
+    testTimeout: 15_000,
+    pool: "forks",
   },
 });

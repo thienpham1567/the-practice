@@ -337,7 +337,6 @@ function ReviewPhase({
         {formatClock(Math.floor(durationMs / 1000))} recorded
       </p>
       {playbackUrl ? (
-        // eslint-disable-next-line jsx-a11y/media-has-caption
         <audio controls src={playbackUrl} className="mt-6 w-full" />
       ) : (
         <p className="mt-6 text-sm text-ink-soft">No audio to play back.</p>

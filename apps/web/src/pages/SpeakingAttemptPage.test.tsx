@@ -134,7 +134,6 @@ describe("SpeakingAttemptPage phases", () => {
       createObjectURL: vi.fn(() => "blob:mock-audio"),
       revokeObjectURL: vi.fn(),
     });
-    vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
   afterEach(() => {
@@ -158,6 +157,7 @@ describe("SpeakingAttemptPage phases", () => {
   });
 
   it("moves from Prep to Record when the minute ends", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.mocked(getSpeakingAttempt).mockResolvedValue(openAttempt);
     renderPage();
     await screen.findByText("Describe a memorable journey");

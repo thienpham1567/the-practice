@@ -4,7 +4,14 @@ import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/build/**", "**/coverage/**", "**/node_modules/**"],
+    ignores: [
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+      "**/node_modules/**",
+      // One-off Node spikes — use process/console/fetch without a browser lint env.
+      "apps/api/scripts/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
