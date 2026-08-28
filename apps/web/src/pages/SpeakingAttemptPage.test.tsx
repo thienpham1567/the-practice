@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useCallback, useState } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -72,7 +72,13 @@ vi.mock("../api/speaking", async (importOriginal) => {
   };
 });
 
-import { getSpeakingAttempt, submitSpeakingAttempt } from "../api/speaking";
+import { getSpeakingAttempt, reviseSpeakingAttempt, submitSpeakingAttempt } from "../api/speaking";
+
+const navigate = vi.fn();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return { ...actual, useNavigate: () => navigate };
+});
 
 const openAttempt: SpeakingAttemptDetail = {
   id: "s1",
@@ -117,17 +123,16 @@ describe("SpeakingAttemptPage phases", () => {
     startSpy.mockClear();
     stopSpy.mockClear();
     resetSpy.mockClear();
+    navigate.mockReset();
     finishConfig.durationMs = 12_000;
     finishConfig.silent = false;
     vi.mocked(getSpeakingAttempt).mockReset();
     vi.mocked(submitSpeakingAttempt).mockReset();
-    vi.stubGlobal(
-      "URL",
-      class extends URL {
-        static createObjectURL = vi.fn(() => "blob:mock-audio");
-        static revokeObjectURL = vi.fn();
-      },
-    );
+    vi.mocked(reviseSpeakingAttempt).mockReset();
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:mock-audio"),
+      revokeObjectURL: vi.fn(),
+    });
     vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
@@ -241,5 +246,106 @@ describe("SpeakingAttemptPage phases", () => {
     expect(screen.getByText(/Band 6/)).toBeTruthy();
     expect(screen.getByText(/110 WPM/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Record again/i })).toBeTruthy();
+  });
+
+  it("hides Record again at revision round 2", async () => {
+    vi.useRealTimers();
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      submittedAt: "2026-08-28T10:05:00.000Z",
+      band: 6.5,
+      revisionRound: 2,
+      parentAttemptId: "root",
+      parentBand: 6,
+      transcript: "A short talk.",
+      scores: {
+        fluencyCoherence: 6.5,
+        lexicalResource: 6.5,
+        grammaticalRange: 6,
+        pronunciation: 6.5,
+      },
+      feedback: {
+        fluencyCoherence: "Better.",
+        lexicalResource: "Better.",
+        grammaticalRange: "Better.",
+        pronunciation: "Better.",
+        overview: "Improved.",
+        nextFocus: "Keep going.",
+      },
+    });
+    renderPage();
+
+    await screen.findByText("A short talk.");
+    expect(screen.getByText("6.0 → 6.5")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Record again/i })).toBeNull();
+  });
+
+  it("resumes a pending revision without calling revise", async () => {
+    vi.useRealTimers();
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      submittedAt: "2026-08-28T10:05:00.000Z",
+      band: 6,
+      transcript: "A short talk.",
+      hasRevision: true,
+      pendingRevisionId: "rev-pending",
+      scores: {
+        fluencyCoherence: 6,
+        lexicalResource: 6,
+        grammaticalRange: 6,
+        pronunciation: 6,
+      },
+      feedback: {
+        fluencyCoherence: "Ok.",
+        lexicalResource: "Ok.",
+        grammaticalRange: "Ok.",
+        pronunciation: "Ok.",
+        overview: "Ok.",
+        nextFocus: "Practice.",
+      },
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /Resume recording/i }));
+    expect(reviseSpeakingAttempt).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/speaking/rev-pending");
+  });
+
+  it("calls revise and navigates to the new recording", async () => {
+    vi.useRealTimers();
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      submittedAt: "2026-08-28T10:05:00.000Z",
+      band: 6,
+      transcript: "A short talk.",
+      scores: {
+        fluencyCoherence: 6,
+        lexicalResource: 6,
+        grammaticalRange: 6,
+        pronunciation: 6,
+      },
+      feedback: {
+        fluencyCoherence: "Ok.",
+        lexicalResource: "Ok.",
+        grammaticalRange: "Ok.",
+        pronunciation: "Ok.",
+        overview: "Ok.",
+        nextFocus: "Practice.",
+      },
+    });
+    vi.mocked(reviseSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      id: "rev-1",
+      revisionRound: 1,
+      parentAttemptId: "s1",
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /Record again/i }));
+
+    await waitFor(() => {
+      expect(reviseSpeakingAttempt).toHaveBeenCalledWith("s1");
+      expect(navigate).toHaveBeenCalledWith("/speaking/rev-1");
+    });
   });
 });

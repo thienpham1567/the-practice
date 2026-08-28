@@ -82,6 +82,14 @@ describe("PracticePage papers list", () => {
     );
   });
 
+  it("links to speaking practice", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByRole("link", { name: "Speaking" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Speaking" }).getAttribute("href")).toBe("/speaking");
+  });
+
   it("shows chain summary when a paper has revisions", async () => {
     vi.mocked(listAttempts).mockResolvedValue([rootWithRevisions]);
     renderPage();

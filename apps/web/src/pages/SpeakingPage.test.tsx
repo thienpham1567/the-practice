@@ -89,4 +89,12 @@ describe("SpeakingPage", () => {
 
     expect(await screen.findByText(/Could not load your talks/i)).toBeTruthy();
   });
+
+  it("links to writing practice", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByRole("link", { name: "Writing" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Writing" }).getAttribute("href")).toBe("/practice");
+  });
 });

@@ -116,7 +116,7 @@ export function useRecorder(): UseRecorderResult {
     const elapsed = Math.max(0, Date.now() - startedAtRef.current);
     const flat = flattenChunks();
     teardownGraph();
-    setPcm(flat);
+    setPcm(new Float32Array(flat));
     setDurationMs(elapsed);
     setLevel(0);
     setState("done");

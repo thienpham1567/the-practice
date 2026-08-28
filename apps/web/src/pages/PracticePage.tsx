@@ -42,6 +42,12 @@ export function PracticePage() {
       <Masthead lockupTo="/practice">
         <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
           <Link
+            to="/speaking"
+            className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
+          >
+            Speaking
+          </Link>
+          <Link
             to="/vocab"
             className="text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline"
           >
