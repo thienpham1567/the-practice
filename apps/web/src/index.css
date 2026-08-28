@@ -346,6 +346,40 @@ body::before {
   background-color: var(--color-mark-complex);
 }
 
+/* Speaking transcript marks — reuse the same four editorial mark colors. */
+::highlight(wh-speaking-pronunciation) {
+  background-color: var(--color-mark-very-hard);
+}
+::highlight(wh-speaking-hesitation) {
+  background-color: var(--color-mark-hard);
+}
+::highlight(wh-speaking-grammar) {
+  background-color: var(--color-mark-passive);
+}
+::highlight(wh-speaking-filler) {
+  background-color: var(--color-mark-adverb);
+}
+
+.speaking-mark-swatch {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  vertical-align: middle;
+  border: 1px solid var(--color-rule);
+}
+.speaking-mark-swatch--pronunciation {
+  background-color: var(--color-mark-very-hard);
+}
+.speaking-mark-swatch--hesitation {
+  background-color: var(--color-mark-hard);
+}
+.speaking-mark-swatch--grammar {
+  background-color: var(--color-mark-passive);
+}
+.speaking-mark-swatch--filler {
+  background-color: var(--color-mark-adverb);
+}
+
 ::selection {
   background-color: var(--color-vermilion-soft);
 }
