@@ -65,13 +65,14 @@ AI trả về **nguyên văn đoạn sai**, server tự tìm vị trí:
   "quote": "I very like it",
   "occurrence": 1,
   "category": "word-order",
-  "severity": "error",
   "correction": "I like it very much",
   "explain": "Adverbs of degree go after the verb in English."
 }
 ```
 
 `occurrence` xử lý trường hợp đoạn đó xuất hiện nhiều lần trong bài (1-based). Server dò `plainText` bằng tìm chuỗi chính xác → ra `start`/`end`.
+
+**`severity` không hỏi AI mà suy ra từ `category`.** Tầng của một nhãn là thuộc tính cố định của nhãn đó, không phải của từng lần mắc lỗi — hỏi AI thì chỉ mở đường cho mâu thuẫn kiểu `article` + `refinement`. Bảng ánh xạ nằm cùng chỗ với taxonomy.
 
 Hai kiểu dữ liệu, tách bạch:
 
@@ -81,7 +82,6 @@ interface RawWritingError {
   quote: string;
   occurrence: number;
   category: ErrorCategory;
-  severity: ErrorSeverity;
   correction: string;
   explain: string;
 }
