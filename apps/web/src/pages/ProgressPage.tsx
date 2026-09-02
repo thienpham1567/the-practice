@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { getMistakeProfile } from "../api/practice";
 import { getProgress } from "../api/progress";
 import { FolioNav } from "../folio/FolioNav";
 import { Masthead } from "../folio/Masthead";
@@ -8,11 +9,13 @@ import { CriteriaSparklines } from "../practice/CriteriaSparklines";
 import { LevelUpStamp } from "../practice/LevelUpStamp";
 import { levelUpVerdict } from "../practice/level-up";
 import { ProgressBandChart } from "../practice/ProgressBandChart";
+import { RecurringMistakes } from "../practice/RecurringMistakes";
 import { SpeakingProgressCharts } from "../practice/SpeakingProgressCharts";
 import { StyleTrendsChart } from "../practice/StyleTrendsChart";
 
 export function ProgressPage() {
   const progress = useQuery({ queryKey: ["practice-progress"], queryFn: getProgress });
+  const mistakes = useQuery({ queryKey: ["practice-mistakes"], queryFn: getMistakeProfile });
 
 
   const series = progress.data?.series ?? [];
@@ -89,6 +92,7 @@ export function ProgressPage() {
                   <LevelUpStamp verdict={verdict} />
                 </div>
               )}
+              <RecurringMistakes profile={mistakes.data} />
             </section>
           )}
 
