@@ -138,7 +138,12 @@ function EditorBody({
     index: null,
     marks: [],
   });
-  const [markPick, setMarkPick] = useState<{ mark: WritingMark; x: number; y: number } | null>(
+  const [markPick, setMarkPick] = useState<{
+    mark: WritingMark;
+    x: number;
+    y: number;
+    containerWidth: number;
+  } | null>(
     null,
   );
 
@@ -208,7 +213,16 @@ function EditorBody({
       const offset = offsetAtPoint(index, event.clientX, event.clientY);
       const found = offset === null ? null : findSpanAtOffset(marks, offset);
 
-      setMarkPick(found ? { mark: found, ...containerPoint(event.clientX, event.clientY) } : null);
+      setMarkPick(
+        found
+          ? {
+              mark: found,
+              ...containerPoint(event.clientX, event.clientY),
+              // Bề rộng khung tại thời điểm bấm, để thẻ tự kéo vào trong màn hình.
+              containerWidth: containerRef.current?.getBoundingClientRect().width ?? 0,
+            }
+          : null,
+      );
       return;
     }
     if (readOnly || !aiEnabled) return;

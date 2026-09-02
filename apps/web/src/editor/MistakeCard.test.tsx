@@ -13,8 +13,12 @@ const mark: WritingMark = {
   note: "The adverb goes after the object in this pattern.",
 };
 
-function renderCard(overrides: Partial<{ mark: WritingMark; x: number; y: number }> = {}) {
-  return render(<MistakeCard pick={{ mark, x: 120, y: 300, ...overrides }} />);
+function renderCard(
+  overrides: Partial<{ mark: WritingMark; x: number; y: number; containerWidth: number }> = {},
+) {
+  return render(
+    <MistakeCard pick={{ mark, x: 120, y: 300, containerWidth: 1000, ...overrides }} />,
+  );
 }
 
 afterEach(() => {
@@ -81,5 +85,25 @@ describe("MistakeCard", () => {
 
     expect(card.className).toMatch(/-translate-y-full/);
     expect(card.style.top).toBe("290px");
+  });
+
+  /**
+   * The card is centred on the anchor, so on a phone a mark near either edge
+   * used to push half the card off-screen — most of a 375px line was affected.
+   */
+  it("stays on screen for a mark near the edge of a phone-width frame", () => {
+    const { container } = renderCard({ x: 8, containerWidth: 375 });
+    const card = container.firstElementChild as HTMLElement;
+
+    // Centred at half the card's width is the leftmost position that still
+    // starts on screen.
+    expect(card.style.left).toBe("144px");
+  });
+
+  it("leaves a mark with room on both sides where it was clicked", () => {
+    const { container } = renderCard({ x: 500, containerWidth: 1000 });
+    const card = container.firstElementChild as HTMLElement;
+
+    expect(card.style.left).toBe("500px");
   });
 });
