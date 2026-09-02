@@ -1,3 +1,5 @@
+import { locateQuote } from "../common/locate-quote";
+
 export type SpeakingMarkKind = "pronunciation" | "hesitation" | "grammar" | "filler";
 
 export interface MarkQuote {
@@ -22,15 +24,14 @@ export function locateMarks(quotes: MarkQuote[], transcript: string): LocatedMar
   const located: LocatedMark[] = [];
 
   for (const item of quotes) {
-    const quote = item.quote.trim();
-    if (!quote) continue;
-
-    const start = transcript.indexOf(quote);
-    if (start < 0) continue;
+    // Speaking quotes the transcript loosely, so it trims before matching and
+    // always takes the first occurrence.
+    const found = locateQuote(transcript, item.quote.trim());
+    if (!found) continue;
 
     located.push({
-      start,
-      end: start + quote.length,
+      start: found.start,
+      end: found.end,
       kind: item.kind,
       note: item.note,
     });
