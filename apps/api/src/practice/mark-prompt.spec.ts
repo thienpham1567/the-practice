@@ -21,10 +21,16 @@ describe("buildMarkPrompt", () => {
   });
 });
 
+/** The slice of the JSON Schema these assertions read. */
+interface MarkItemSchema {
+  required: string[];
+  properties: { category: { enum: string[] }; [field: string]: unknown };
+}
+
 describe("EXTRACT_MARKS_SCHEMA", () => {
   const item = (
-    (EXTRACT_MARKS_SCHEMA.schema.properties as Record<string, any>).marks.items
-  ) as Record<string, any>;
+    EXTRACT_MARKS_SCHEMA.schema as { properties: { marks: { items: MarkItemSchema } } }
+  ).properties.marks.items;
 
   it("locks category to the closed taxonomy", () => {
     expect(item.properties.category.enum).toEqual([...MARK_CATEGORIES]);
