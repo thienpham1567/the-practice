@@ -1,12 +1,41 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { AnalysisResult } from "@writing-helper/analysis";
+import type { WritingMark } from "@writing-helper/practice";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PracticeAttemptDetail } from "../api/practice";
 import { PracticeAttemptPage } from "./PracticeAttemptPage";
 
+/**
+ * The real editor needs layout to place spans, which jsdom has none of. The
+ * stub reports the two painting props back out as data attributes so a test
+ * can see which lens the page handed it, and exposes a button that fires
+ * `onChange` the way typing would.
+ */
 vi.mock("../editor/Editor", () => ({
-  Editor: () => <div data-testid="editor" />,
+  Editor: ({
+    savedMarks,
+    savedResult,
+    onChange,
+  }: {
+    savedMarks?: unknown;
+    savedResult?: unknown;
+    onChange: (change: { editorState: unknown; plainText: string }) => void;
+  }) => (
+    <div
+      data-testid="editor"
+      data-marks={savedMarks ? JSON.stringify(savedMarks) : "none"}
+      data-style={savedResult ? "on" : "none"}
+    >
+      <button
+        type="button"
+        onClick={() => onChange({ editorState: {}, plainText: "Dear teacher, thank you so much." })}
+      >
+        Type into the paper
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock("../api/practice", async (importOriginal) => {
@@ -16,6 +45,8 @@ vi.mock("../api/practice", async (importOriginal) => {
     getAttempt: vi.fn(),
     reviseAttempt: vi.fn(),
     deleteAttempt: vi.fn(),
+    updateAttempt: vi.fn(),
+    getMistakeProfile: vi.fn(),
   };
 });
 
@@ -25,7 +56,13 @@ vi.mock("react-router-dom", async (importOriginal) => {
   return { ...actual, useNavigate: () => navigate };
 });
 
-import { deleteAttempt, getAttempt, reviseAttempt } from "../api/practice";
+import {
+  deleteAttempt,
+  getAttempt,
+  getMistakeProfile,
+  reviseAttempt,
+  updateAttempt,
+} from "../api/practice";
 
 const gradedAttempt: PracticeAttemptDetail = {
   id: "a1",
@@ -80,6 +117,12 @@ function renderPage(attemptId = "a1") {
     </QueryClientProvider>,
   );
 }
+
+/** Every screen here mounts something that autosaves or reads the profile. */
+beforeEach(() => {
+  vi.mocked(updateAttempt).mockResolvedValue(gradedAttempt);
+  vi.mocked(getMistakeProfile).mockResolvedValue({ tallies: [], attemptsConsidered: 0 });
+});
 
 describe("PracticeAttemptPage ResultView revise button", () => {
   beforeEach(() => {
@@ -386,5 +429,275 @@ describe("PracticeAttemptPage catalog gate", () => {
 
     expect(await screen.findByText("This task type is no longer in the catalog.")).toBeTruthy();
     expect(screen.queryByTestId("editor")).toBeNull();
+  });
+});
+
+const wordOrderMark: WritingMark = {
+  start: 0,
+  end: 4,
+  category: "word-order",
+  severity: "error",
+  correction: "Dear teacher",
+  note: "Word order.",
+};
+
+const articleMark: WritingMark = {
+  start: 5,
+  end: 12,
+  category: "article",
+  severity: "error",
+  correction: "the teacher",
+  note: "Article.",
+};
+
+const styleSnapshot: AnalysisResult = {
+  highlights: [],
+  counts: {
+    veryHardSentences: 0,
+    hardSentences: 0,
+    adverbs: 1,
+    passives: 1,
+    qualifiers: 0,
+    complexPhrases: 0,
+  },
+  goals: { adverbs: 3, passives: 2 },
+  stats: {
+    words: 100,
+    sentences: 5,
+    paragraphs: 1,
+    characters: 500,
+    letters: 400,
+    readingTimeSeconds: 30,
+  },
+  grade: 8,
+  gradeLabel: "OK",
+};
+
+const markedResult: PracticeAttemptDetail = {
+  ...gradedAttempt,
+  id: "marked-1",
+  marks: [wordOrderMark, articleMark],
+  styleSnapshot,
+};
+
+/** What the page handed the editor to paint, as the stub reported it back. */
+function painted() {
+  const editor = screen.getByTestId("editor");
+  return {
+    marks: editor.getAttribute("data-marks"),
+    style: editor.getAttribute("data-style"),
+  };
+}
+
+describe("PracticeAttemptPage ResultView lens toggle", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("opens on the mistakes lens and paints the marks, not the style", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(markedResult);
+    renderPage("marked-1");
+
+    const mistakes = await screen.findByRole("button", { name: "mistakes" });
+    const style = screen.getByRole("button", { name: "style" });
+    expect(mistakes.getAttribute("aria-pressed")).toBe("true");
+    expect(style.getAttribute("aria-pressed")).toBe("false");
+
+    expect(painted().marks).toContain("word-order");
+    expect(painted().marks).toContain("article");
+    expect(painted().style).toBe("none");
+  });
+
+  it("swaps to style on click — the two lenses never paint at once", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(markedResult);
+    renderPage("marked-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "style" }));
+
+    expect(screen.getByRole("button", { name: "style" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "mistakes" }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    expect(painted().style).toBe("on");
+    expect(painted().marks).toBe("none");
+  });
+
+  it("goes back to the mistakes lens on a second click", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(markedResult);
+    renderPage("marked-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "style" }));
+    fireEvent.click(screen.getByRole("button", { name: "mistakes" }));
+
+    expect(painted().marks).toContain("word-order");
+    expect(painted().style).toBe("none");
+  });
+
+  it("hides the toggle and shows style when extraction failed", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({ ...markedResult, marks: null });
+    renderPage("marked-1");
+
+    await screen.findByText("Next time");
+    expect(screen.queryByRole("button", { name: "mistakes" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "style" })).toBeNull();
+    expect(painted().marks).toBe("none");
+    expect(painted().style).toBe("on");
+  });
+
+  it("keeps the toggle on a paper that came back clean", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({ ...markedResult, marks: [] });
+    renderPage("marked-1");
+
+    expect(await screen.findByRole("button", { name: "mistakes" })).toBeTruthy();
+    expect(painted().marks).toBe("[]");
+  });
+});
+
+describe("PracticeAttemptPage ResultView Fix these first", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("names the groups to fix first when the paper has marks", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(markedResult);
+    renderPage("marked-1");
+
+    expect(await screen.findByText("Fix these first")).toBeTruthy();
+    expect(screen.getByText("Word order")).toBeTruthy();
+    expect(screen.getByText("Articles")).toBeTruthy();
+    expect(screen.queryByText(/Nothing to fix/)).toBeNull();
+  });
+
+  it("praises a paper that genuinely came back clean", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({ ...markedResult, marks: [] });
+    renderPage("marked-1");
+
+    expect(await screen.findByText(/Nothing to fix in this paper/)).toBeTruthy();
+  });
+
+  it("stays silent when extraction failed rather than calling the paper clean", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({ ...markedResult, marks: null });
+    renderPage("marked-1");
+
+    await screen.findByText("Next time");
+    expect(screen.queryByText("Fix these first")).toBeNull();
+    expect(screen.queryByText(/Nothing to fix/)).toBeNull();
+  });
+});
+
+const markedParent: PracticeAttemptDetail = {
+  ...gradedAttempt,
+  plainText: "Dear teacher, thank you.",
+  marks: [wordOrderMark, articleMark],
+};
+
+const carriedRevision: PracticeAttemptDetail = {
+  ...revisionAttempt,
+  plainText: markedParent.plainText,
+};
+
+function mockChain(revision: PracticeAttemptDetail) {
+  vi.mocked(getAttempt).mockImplementation(async (id: string) => {
+    if (id === revision.id) return revision;
+    if (id === markedParent.id) return markedParent;
+    throw new Error(`unexpected id ${id}`);
+  });
+}
+
+describe("PracticeAttemptPage ExamRoom carries the parent's marks", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("paints the parent's marks while the revision still holds the original text", async () => {
+    mockChain(carriedRevision);
+    renderPage("rev-1");
+
+    await screen.findByText("Revision 1/2");
+    await waitFor(() => expect(painted().marks).toContain("word-order"));
+    expect(painted().marks).toContain("article");
+  });
+
+  it("clears them on the first keystroke, when the offsets stop matching the text", async () => {
+    mockChain(carriedRevision);
+    renderPage("rev-1");
+
+    await screen.findByText("Revision 1/2");
+    await waitFor(() => expect(painted().marks).toContain("word-order"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Type into the paper" }));
+
+    expect(painted().marks).toBe("none");
+  });
+
+  it("does not paint them when a part-written revision is reopened", async () => {
+    mockChain({ ...carriedRevision, plainText: "Dear teacher, thank you so much." });
+    renderPage("rev-1");
+
+    await screen.findByText("Revision 1/2");
+    await screen.findByText("Previous feedback");
+    expect(painted().marks).toBe("none");
+  });
+
+  it("paints nothing on a first draft, which has no parent to carry", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(openAttemptWithReview);
+    renderPage("open-1");
+
+    await screen.findByLabelText("Time remaining");
+    expect(painted().marks).toBe("none");
+  });
+});
+
+describe("PracticeAttemptPage PromptPane watch-for line", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("names the top three recurring categories by label", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(openAttemptWithReview);
+    vi.mocked(getMistakeProfile).mockResolvedValue({
+      attemptsConsidered: 6,
+      tallies: [
+        { category: "article", count: 9, trend: null },
+        { category: "verb-tense", count: 5, trend: null },
+        { category: "preposition", count: 3, trend: null },
+        { category: "spelling", count: 2, trend: null },
+      ],
+    });
+    renderPage("open-1");
+
+    const line = await screen.findByText(/Watch for:/);
+    expect(line.textContent).toBe("Watch for: Articles, Verb tense, Prepositions");
+    expect(line.textContent).not.toMatch(/Spelling/);
+    expect(line.textContent).not.toMatch(/verb-tense/);
+  });
+
+  it("says nothing when there is no recurring profile yet", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(openAttemptWithReview);
+    vi.mocked(getMistakeProfile).mockResolvedValue({ tallies: [], attemptsConsidered: 0 });
+    renderPage("open-1");
+
+    await screen.findByLabelText("Time remaining");
+    expect(screen.queryByText(/Watch for:/)).toBeNull();
   });
 });

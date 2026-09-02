@@ -71,6 +71,8 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
+  // Chữ đang có trong editor, để đối chiếu với bài gốc — xem `carriedMarks`.
+  const [liveText, setLiveText] = useState(attempt.plainText);
 
   const draftRef = useRef<EditorChange | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -102,6 +104,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   const handleChange = useCallback(
     (change: EditorChange) => {
       draftRef.current = change;
+      setLiveText(change.plainText);
       setWordCount(countWords(change.plainText));
       clearTimeout(autosaveTimer.current);
       autosaveTimer.current = setTimeout(() => {
@@ -145,6 +148,18 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
 
   const tone = wordCountTone(wordCount, spec.minWords);
   const timedOut = !isRevision && remaining === 0;
+
+  /*
+    Mark của bài gốc là offset trên *chữ của bài gốc*. Còn nguyên chữ đó thì
+    gạch đúng chỗ; gõ một phím là mọi offset phía sau lệch, và cái thẻ lỗi mở
+    ra sẽ nói về một đoạn không liên quan. Nên chỉ hiện khi hai bài còn giống
+    hệt nhau — kể cả lúc mở lại bản nháp đã sửa dở từ phiên trước.
+  */
+  const parentPaper = parent.data;
+  const carriedMarks =
+    isRevision && parentPaper && liveText === parentPaper.plainText
+      ? (parentPaper.marks ?? null)
+      : null;
 
   return (
     <div className="flex h-screen flex-col">
@@ -233,7 +248,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
             key={attempt.id}
             mode="write"
             initialEditorState={attempt.content}
-            savedMarks={isRevision ? (parent.data?.marks ?? null) : null}
+            savedMarks={carriedMarks}
             onChange={handleChange}
             onAnalysis={() => undefined}
             placeholder="Write from the prompt. Marks stay hidden until you submit."
@@ -414,7 +429,7 @@ function ResultView({
           </button>
         )}
         {attempt.marks && (
-          <div className="ml-auto flex border border-rule font-mono text-[0.65rem] uppercase tracking-[0.15em]">
+          <div className="flex border border-rule font-mono text-[0.65rem] uppercase tracking-[0.15em]">
             {(["mistakes", "style"] as const).map((option) => (
               <button
                 key={option}
