@@ -478,6 +478,25 @@ describe("API (e2e)", () => {
       },
     };
 
+    const extractedMarks = {
+      marks: [
+        {
+          quote: "a school",
+          occurrence: 1,
+          category: "article",
+          correction: "the school",
+          note: "Use the definite article for a specific school.",
+        },
+        {
+          quote: "a trip",
+          occurrence: 1,
+          category: "article",
+          correction: "the trip",
+          note: "The trip has already been mentioned.",
+        },
+      ],
+    };
+
     afterEach(() => {
       jest.restoreAllMocks();
     });
@@ -502,6 +521,8 @@ describe("API (e2e)", () => {
               { point: "Try one longer sentence next time.", status: "partial" },
             ],
           });
+        } else if (schemaName === "practice_marks") {
+          content = JSON.stringify(extractedMarks);
         } else {
           const next = generateQueue.length > 0 ? generateQueue.shift()! : generated;
           content = JSON.stringify(next);
@@ -1178,6 +1199,54 @@ describe("API (e2e)", () => {
       expect(await prisma.practiceAttempt.findUnique({ where: { id: revision.id } })).toBeNull();
 
       await server().delete(`/practice/attempts/${root.id}`).set(aliceAuth).expect(404);
+    });
+
+    it("chặn hồ sơ lỗi khi chưa đăng nhập", async () => {
+      await server().get("/practice/mistakes").expect(401);
+    });
+
+    it("trả hồ sơ rỗng khi chưa nộp bài nào", async () => {
+      const { accessToken } = await registerUser("mistakes-empty@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const response = await server().get("/practice/mistakes").set(auth).expect(200);
+
+      expect(response.body).toEqual({ tallies: [], attemptsConsidered: 0 });
+    });
+
+    it("đánh dấu lỗi khi nộp và gộp vào hồ sơ", async () => {
+      mockPracticeAi();
+      const { accessToken } = await registerUser("mistakes-profile@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const created = await server()
+        .post("/practice/attempts")
+        .set(auth)
+        .send({ level: "A2", taskType: "email" })
+        .expect(201);
+
+      const submitted = await server()
+        .post(`/practice/attempts/${created.body.id}/submit`)
+        .set(auth)
+        .send({
+          styleSnapshot: {},
+          plainText: "I went on a trip with a school group and it was memorable.",
+          wordCount: 12,
+        })
+        .expect(201);
+
+      expect(submitted.body.marks).toEqual([
+        expect.objectContaining({ category: "article", severity: "error" }),
+        expect.objectContaining({ category: "article", severity: "error" }),
+      ]);
+
+      const profile = await server().get("/practice/mistakes").set(auth).expect(200);
+
+      expect(profile.body.attemptsConsidered).toBe(1);
+      // Two marks reach MIN_OCCURRENCES; one paper is too few for a trend.
+      expect(profile.body.tallies).toEqual([
+        { category: "article", count: 2, trend: null },
+      ]);
     });
   });
 
