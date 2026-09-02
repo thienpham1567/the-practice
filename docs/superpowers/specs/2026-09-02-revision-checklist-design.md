@@ -122,7 +122,9 @@ Dòng đã xử lý mờ đi và gạch ngang nhưng **giữ nguyên vị trí**
 
 ### Lưu
 
-Bấm đánh dấu → gọi `PATCH` với `handledMarks` đầy đủ (mảng thay thế, không phải thao tác thêm/bớt từng phần tử — đơn giản và không có tranh chấp). Dùng chung debounce autosave sẵn có.
+Bấm đánh dấu → gọi `PATCH` với `handledMarks` đầy đủ (mảng thay thế, không phải thao tác thêm/bớt từng phần tử — đơn giản và không có tranh chấp).
+
+Gửi **ngay**, không đi qua debounce của autosave. Debounce tồn tại vì gõ phím sinh ra hàng chục sự kiện mỗi giây; bấm đánh dấu là hành động rời rạc, hiếm, và là thứ người học kỳ vọng đã được ghi khi họ đóng tab. Dùng chung `save` mutation sẵn có, chỉ không dùng chung hàng đợi trì hoãn.
 
 ## 8. Ràng buộc module
 
