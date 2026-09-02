@@ -96,6 +96,9 @@ model PracticeAttempt {
   /// counts từ analyze() tại thời điểm nộp, để xem lại mà không phải chạy lại.
   styleSnapshot Json?
 
+  /// WritingMark[] — null khi bóc lỗi thất bại; [] khi bài không có lỗi nào.
+  marks Json?
+
   /// Bản sửa trỏ về bài nó sửa. null = bài gốc.
   parentAttemptId String?
   /// 0 = gốc, 1–2 = vòng sửa. Lưu thẳng để kiểm tra trần bằng một phép so sánh.
