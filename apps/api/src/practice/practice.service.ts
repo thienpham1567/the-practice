@@ -281,7 +281,7 @@ export class PracticeService {
       // cũ, còn bóc lỗi hỏng thì người học vẫn có band, chỉ mất phần đánh dấu.
       const marksPromise = this.ai
         .complete<ExtractMarksResult>({
-          prompt: buildMarkPrompt(task, plainText),
+          prompt: buildMarkPrompt(task, attempt.prompt, plainText),
           schema: EXTRACT_MARKS_SCHEMA,
           maxTokens: 2000,
           timeoutMs: PRACTICE_TIMEOUT_MS,

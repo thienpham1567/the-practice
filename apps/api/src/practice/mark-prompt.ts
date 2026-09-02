@@ -44,10 +44,18 @@ export const EXTRACT_MARKS_SCHEMA: JsonSchemaSpec = {
   },
 };
 
-export function buildMarkPrompt(task: TaskSpec, essay: string): string {
+export function buildMarkPrompt(
+  task: TaskSpec,
+  promptText: string,
+  essay: string,
+): string {
   return (
     `You mark language mistakes in English exam writing.\n\n` +
-    `Task type: ${task.label}. Judge register against what that task type expects.\n\n` +
+    `Task type: ${task.label}\n` +
+    `Assignment given to the writer:\n${promptText}\n\n` +
+    // Register only means anything against a reader. The task type alone says
+    // "an email"; the assignment says whether it goes to a friend or a landlord.
+    `Judge register against that assignment — who the writer is addressing, and why.\n\n` +
     `Writer's response:\n${essay}\n\n` +
     `List every mistake worth correcting. For each one:\n` +
     `- "quote": copy the exact substring from the response, character for character. ` +
