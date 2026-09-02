@@ -592,8 +592,9 @@ describe("API (e2e)", () => {
         .expect(201);
 
       expect(created.body.taskType).toBe("email");
-      expect(created.body.prompt).toContain(generated.prompt);
-      expect(created.body.prompt).toContain("Write an email to a specific person");
+      // Chỉ tình huống được lưu; khung yêu cầu cố định lấy từ TaskSpec.
+      expect(created.body.prompt).toBe(generated.prompt);
+      expect(created.body.prompt).not.toContain("Write an email to a specific person");
       expect(created.body.ideas).toEqual(generated.ideas);
       expect(created.body.vocabulary).toEqual(generated.vocabulary);
       expect(created.body.startedAt).toEqual(expect.any(String));

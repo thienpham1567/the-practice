@@ -134,7 +134,10 @@ export class PracticeService {
         userId,
         level: dto.level,
         taskType: chosen.type,
-        prompt: `${generated.prompt.trim()}\n\n${chosen.instruction}`,
+        // Chỉ lưu tình huống. Khung yêu cầu cố định của dạng bài đã đi kèm
+        // `TaskSpec`, nên cả hai prompt chấm lẫn giao diện đều tự lấy được —
+        // nối vào đây chỉ tạo ra một câu thừa lặp lại điều đề đã nói.
+        prompt: generated.prompt.trim(),
         ideas: generated.ideas as Prisma.InputJsonValue,
         vocabulary: vocabulary as Prisma.InputJsonValue,
       },

@@ -125,7 +125,14 @@ describe("PracticeService", () => {
       );
     });
 
-    it("appends the catalog instruction to the stored prompt", async () => {
+    /**
+     * The catalog instruction used to be concatenated onto the stored prompt.
+     * It reads as a redundant trailing sentence after a generated situation
+     * that already says the same thing, and both grading prompts and the UI
+     * take it from the TaskSpec anyway — so the stored prompt is the situation
+     * alone.
+     */
+    it("stores the situation alone, without the catalog instruction", async () => {
       const { service, prisma } = serviceWith({ recentTypes: [] });
 
       await service.create("user-1", { level: "A2", taskType: "email" });
@@ -133,8 +140,8 @@ describe("PracticeService", () => {
       const data = prisma.practiceAttempt.create.mock.calls[0]![0].data as {
         prompt: string;
       };
-      expect(data.prompt).toContain(generated.prompt);
-      expect(data.prompt).toContain("Write an email to a specific person");
+      expect(data.prompt).toBe(generated.prompt);
+      expect(data.prompt).not.toContain("Write an email to a specific person");
     });
 
     it("passes review candidates into the generate prompt", async () => {

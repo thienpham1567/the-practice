@@ -25,6 +25,7 @@ import {
 } from "../practice/exam-math";
 import { FeedbackAuditList } from "../practice/FeedbackAuditList";
 import { FixTheseFirst } from "../practice/FixTheseFirst";
+import { promptBody } from "../practice/prompt-body";
 import { formatBandDelta, reviseAction } from "../practice/revise-availability";
 import { StyleProfile } from "../practice/StyleProfile";
 import { SidePanel } from "../SidePanel";
@@ -288,7 +289,8 @@ function PromptPane({
   return (
     <div className="prompt-scroll px-6 py-8">
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">{spec.label}</p>
-      <p className="mt-3 text-sm leading-relaxed">{attempt.prompt}</p>
+      <p className="mt-3 text-sm leading-relaxed">{promptBody(attempt.prompt, spec.instruction)}</p>
+      <p className="mt-3 text-sm italic leading-relaxed text-ink-soft">{spec.instruction}</p>
       <p className="mt-4 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
         {spec.minWords}–{spec.maxWords} words · {spec.timeMinutes} min
       </p>
