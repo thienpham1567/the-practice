@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import type { PrismaService } from "../prisma/prisma.service";
 import { MistakesService } from "./mistakes.service";
 
@@ -27,11 +28,28 @@ describe("MistakesService", () => {
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: "user-1", submittedAt: { not: null }, parentAttemptId: null },
+        where: {
+          userId: "user-1",
+          submittedAt: { not: null },
+          parentAttemptId: null,
+          marks: { not: Prisma.DbNull },
+        },
         orderBy: { submittedAt: "desc" },
         take: 10,
       }),
     );
+  });
+
+  it("excludes failed extractions in the query so the window stays ten papers", async () => {
+    const { service, findMany } = serviceWith([]);
+
+    await service.profile("user-1");
+
+    const { where, take } = findMany.mock.calls[0][0];
+    // Excluding after `take` would leave a window of however many of the last
+    // ten happened to extract — the bug this asserts against.
+    expect(where.marks).toEqual({ not: Prisma.DbNull });
+    expect(take).toBe(10);
   });
 
   it("summarises the marks it finds", async () => {
@@ -49,7 +67,7 @@ describe("MistakesService", () => {
     expect(profile.tallies).toEqual([{ category: "article", count: 2, trend: null }]);
   });
 
-  it("skips rows whose marks are null because extraction failed", async () => {
+  it("still skips a non-array marks row the query let through", async () => {
     const { service } = serviceWith([
       { marks: null, wordCount: 100, submittedAt: new Date("2026-01-01T00:00:00Z") },
       {
