@@ -71,9 +71,26 @@ Giả định vào cuộc là "chấm điểm không đáng tin, cần chỉnh p
 | Chỉnh prompt chấm cho chặt hơn | **Không cần**, và rủi ro: prompt hiện có test bảo vệ, sửa mà không có lý do đo được là đánh đổi mù. |
 | Chống dương tính giả ở bóc lỗi | **Cần**, nhưng vấn đề thật không phải "sai nhãn" mà là **trùng span** — cùng một lỗi bị trích hai kiểu. |
 
-Việc đáng làm duy nhất rút ra từ số liệu: **gộp các mark chồng lấn nhau**. `resolveWritingMarks` hiện chỉ bỏ mark trùng **span y hệt** (`start:end` giống nhau); hai span lồng nhau như `[a,b]` và `[a,c]` đều được giữ. Đó chính là hiện tượng quan sát được.
+Ban đầu kết luận thêm rằng nên **gộp các mark chồng lấn**, vì `resolveWritingMarks` chỉ bỏ mark trùng span y hệt. **Kết luận đó cũng sai** — xem mục 4b.
 
 Ngoài ra: band ổn định nghĩa là **nhãn CEFR không bị nhiễu** — nên vấn đề "band 7 ở đề B1 hiện ≈ C1" đứng độc lập, phải xét trên lý lẽ riêng chứ không phải vì con số dao động.
+
+## 4b. Vì sao KHÔNG gộp span chồng lấn
+
+Bảng ở mục 3 gộp kết quả của **5 lần chạy khác nhau**, nên "the museum near river" và "visit the museum near river" trông như hai mark trùng nhau. Nhưng người học chỉ bao giờ nhìn thấy kết quả của **một** lần — hai đoạn trích đó không bao giờ cùng tồn tại trên một bài.
+
+Kiểm tra span chồng lấn *trong cùng một bài đã lưu* cho ra 5 cặp, và cả 5 đều là **lỗi khác nhau tình cờ chia sẻ một từ**:
+
+| Span | Lỗi thứ nhất | Lỗi thứ hai |
+|---|---|---|
+| `[14,26]` + `[20,44]` | `word-form`: "excite" → "excited" | `verb-tense`: "you visiting" → "you are visiting" |
+| `[65,81]` + `[77,88]` | `noun-number`: "idea" → "ideas" | `pronoun`: "for we" → "for us" |
+| `[446,456]` + `[448,464]` | `spelling`: "recomend" | `verb-tense`: "you try" → "you to try" |
+| `[286,293]` + `[289,333]` | `subject-verb-agreement`: "it show" | `word-order`: "very interesting" đặt sai chỗ |
+
+Gộp chúng lại sẽ **xoá mất một lỗi đúng** ở mỗi cặp. Câu tiếng Anh sai thường sai chồng lên nhau trong cùng một cụm — đó là chuyện bình thường của người học, không phải nhiễu của model.
+
+`resolveWritingMarks` giữ nguyên: chỉ bỏ mark trùng **span y hệt**. Và `findSpanAtOffset` trả về span hẹp nhất tại điểm bấm, nên cả hai lỗi trong một cặp chồng lấn vẫn bấm tới được ở phần không chồng của chúng.
 
 ## 5. Giới hạn của phép đo
 
