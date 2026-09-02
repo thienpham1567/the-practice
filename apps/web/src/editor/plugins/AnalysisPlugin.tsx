@@ -2,7 +2,8 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import type { AnalysisResult } from "@writing-helper/analysis";
 import { useEffect, useRef } from "react";
 import { runAnalysis } from "../../analysis/run-analysis";
-import { clearHighlights, paintHighlights } from "../highlight-painter";
+import { clearSpans, paintSpans } from "../highlight-painter";
+import { styleSpans } from "../spans";
 import { buildTextIndex, type TextIndex } from "../text-index";
 
 const DEBOUNCE_MS = 150;
@@ -31,7 +32,7 @@ export function AnalysisPlugin({ enabled, onResult }: AnalysisPluginProps) {
 
   useEffect(() => {
     if (!enabled) {
-      clearHighlights();
+      clearSpans();
       onResultRef.current(null, null);
       return;
     }
@@ -49,7 +50,7 @@ export function AnalysisPlugin({ enabled, onResult }: AnalysisPluginProps) {
           // Bỏ kết quả cũ về muộn hơn kết quả mới.
           if (runId !== runIdRef.current) return;
 
-          paintHighlights(index, result.highlights);
+          paintSpans(index, styleSpans(result.highlights));
           onResultRef.current(result, index);
         });
       }, DEBOUNCE_MS);
@@ -64,7 +65,7 @@ export function AnalysisPlugin({ enabled, onResult }: AnalysisPluginProps) {
     };
   }, [editor, enabled]);
 
-  useEffect(() => clearHighlights, []);
+  useEffect(() => clearSpans, []);
 
   return null;
 }

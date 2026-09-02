@@ -1,4 +1,3 @@
-import type { Highlight as TextHighlight } from "@writing-helper/analysis";
 import { offsetOf, type TextIndex } from "./text-index";
 
 /**
@@ -24,20 +23,23 @@ export function offsetAtPoint(index: TextIndex, x: number, y: number): number | 
 }
 
 /**
- * Highlight tại một offset. Khi nhiều highlight lồng nhau (trạng từ nằm trong
- * câu khó), trả về cái hẹp nhất — lời khuyên cụ thể hơn.
+ * Span tại một offset. Khi nhiều span lồng nhau (trạng từ nằm trong câu khó),
+ * trả về cái hẹp nhất — lời khuyên cụ thể hơn.
+ *
+ * Generic theo hình dạng span để dùng được cho cả highlight văn phong lẫn lỗi
+ * ngôn ngữ, mà caller vẫn nhận lại đúng kiểu mình truyền vào.
  */
-export function findHighlightAtOffset(
-  highlights: TextHighlight[],
+export function findSpanAtOffset<T extends { start: number; end: number }>(
+  spans: T[],
   offset: number,
-): TextHighlight | null {
-  let best: TextHighlight | null = null;
+): T | null {
+  let best: T | null = null;
 
-  for (const highlight of highlights) {
-    if (offset < highlight.start || offset >= highlight.end) continue;
+  for (const span of spans) {
+    if (offset < span.start || offset >= span.end) continue;
 
-    const width = highlight.end - highlight.start;
-    if (!best || width < best.end - best.start) best = highlight;
+    const width = span.end - span.start;
+    if (!best || width < best.end - best.start) best = span;
   }
 
   return best;

@@ -1,9 +1,9 @@
-import type { Highlight as TextHighlight, HighlightType } from "@writing-helper/analysis";
 import { rangeFor, type TextIndex } from "./text-index";
+import type { EditorSpan, SpanLayer } from "./spans";
 
 /**
- * Tô highlight bằng CSS Custom Highlight API: trình duyệt vẽ trực tiếp lên
- * range, không cần chèn thẻ nào vào DOM.
+ * Tô bằng CSS Custom Highlight API: trình duyệt vẽ trực tiếp lên range, không
+ * cần chèn thẻ nào vào DOM.
  *
  * Đổi lại là highlight không bắt được sự kiện chuột — việc đó do
  * `highlight-hit.ts` lo bằng cách dò con trỏ.
@@ -11,42 +11,48 @@ import { rangeFor, type TextIndex } from "./text-index";
 
 const REGISTRY_PREFIX = "wh-";
 
-/**
- * Highlight cấp câu vẽ dưới, highlight cấp từ vẽ đè lên: lời khuyên cụ thể
- * (bỏ trạng từ này) hữu ích hơn lời khuyên chung (câu này dài).
- */
-const SENTENCE_TYPES = new Set<HighlightType>(["hard-sentence", "very-hard-sentence"]);
+/** Câu vẽ dưới, từ vẽ đè lên, lỗi ngôn ngữ vẽ trên cùng. */
+const SENTENCE_LAYERS = new Set<SpanLayer>(["hard-sentence", "very-hard-sentence"]);
+const MISTAKE_LAYERS = new Set<SpanLayer>(["error", "refinement"]);
 
-const ALL_TYPES: HighlightType[] = [
+const ALL_LAYERS: SpanLayer[] = [
   "very-hard-sentence",
   "hard-sentence",
   "passive",
   "adverb",
   "qualifier",
   "complex-phrase",
+  "refinement",
+  "error",
 ];
+
+function priorityOf(layer: SpanLayer): number {
+  if (SENTENCE_LAYERS.has(layer)) return 0;
+  if (MISTAKE_LAYERS.has(layer)) return 2;
+  return 1;
+}
 
 export function highlightsSupported(): boolean {
   return typeof CSS !== "undefined" && "highlights" in CSS;
 }
 
-export function paintHighlights(index: TextIndex, highlights: TextHighlight[]): void {
+export function paintSpans(index: TextIndex, spans: EditorSpan[]): void {
   if (!highlightsSupported()) return;
 
-  const byType = new Map<HighlightType, Range[]>();
+  const byLayer = new Map<SpanLayer, Range[]>();
 
-  for (const highlight of highlights) {
-    const range = rangeFor(index, highlight.start, highlight.end);
+  for (const span of spans) {
+    const range = rangeFor(index, span.start, span.end);
     if (!range) continue;
 
-    const ranges = byType.get(highlight.type);
+    const ranges = byLayer.get(span.layer);
     if (ranges) ranges.push(range);
-    else byType.set(highlight.type, [range]);
+    else byLayer.set(span.layer, [range]);
   }
 
-  for (const type of ALL_TYPES) {
-    const ranges = byType.get(type);
-    const name = REGISTRY_PREFIX + type;
+  for (const layer of ALL_LAYERS) {
+    const ranges = byLayer.get(layer);
+    const name = REGISTRY_PREFIX + layer;
 
     if (!ranges || ranges.length === 0) {
       CSS.highlights.delete(name);
@@ -54,13 +60,13 @@ export function paintHighlights(index: TextIndex, highlights: TextHighlight[]): 
     }
 
     const painted = new Highlight(...ranges);
-    painted.priority = SENTENCE_TYPES.has(type) ? 0 : 1;
+    painted.priority = priorityOf(layer);
     CSS.highlights.set(name, painted);
   }
 }
 
-export function clearHighlights(): void {
+export function clearSpans(): void {
   if (!highlightsSupported()) return;
 
-  for (const type of ALL_TYPES) CSS.highlights.delete(REGISTRY_PREFIX + type);
+  for (const layer of ALL_LAYERS) CSS.highlights.delete(REGISTRY_PREFIX + layer);
 }

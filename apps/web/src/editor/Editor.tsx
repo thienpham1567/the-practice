@@ -21,12 +21,13 @@ import {
   type RewriteRequestSpan,
 } from "./build-rewrite-request";
 import { describeHighlight } from "./highlight-copy";
-import { findHighlightAtOffset, offsetAtPoint } from "./highlight-hit";
+import { findSpanAtOffset, offsetAtPoint } from "./highlight-hit";
 import { AnalysisPlugin } from "./plugins/AnalysisPlugin";
 import { ToolbarPlugin } from "./plugins/ToolbarPlugin";
 import { replaceTextRange } from "./replace-range";
 import { RewritePopover, type RewriteTarget } from "./RewritePopover";
-import { clearHighlights, paintHighlights } from "./highlight-painter";
+import { clearSpans, paintSpans } from "./highlight-painter";
+import { styleSpans } from "./spans";
 import { offsetOf, type TextIndex, buildTextIndex } from "./text-index";
 import { editorTheme } from "./theme";
 
@@ -166,7 +167,7 @@ function EditorBody({
     }
 
     const offset = offsetAtPoint(index, event.clientX, event.clientY);
-    const found = offset === null ? null : findHighlightAtOffset(highlights, offset);
+    const found = offset === null ? null : findSpanAtOffset(highlights, offset);
 
     if (!found) {
       if (hover) setHover(null);
@@ -188,7 +189,7 @@ function EditorBody({
     if (!index) return;
 
     const offset = offsetAtPoint(index, event.clientX, event.clientY);
-    const found = offset === null ? null : findHighlightAtOffset(highlights, offset);
+    const found = offset === null ? null : findSpanAtOffset(highlights, offset);
 
     if (!found) {
       if (popover) setPopover(null);
@@ -363,7 +364,7 @@ function SavedHighlightsPlugin({
       const root = editor.getRootElement();
       if (!root) return;
       const index = buildTextIndex(root);
-      paintHighlights(index, result.highlights ?? []);
+      paintSpans(index, styleSpans(result.highlights ?? []));
       onReadyRef.current(result, index);
     };
 
@@ -371,7 +372,7 @@ function SavedHighlightsPlugin({
     const unregister = editor.registerUpdateListener(paint);
     return () => {
       unregister();
-      clearHighlights();
+      clearSpans();
     };
   }, [editor, result]);
 
