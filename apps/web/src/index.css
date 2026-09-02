@@ -359,6 +359,20 @@ body::before {
   background-color: var(--color-mark-complex);
 }
 
+/*
+ * Lỗi ngôn ngữ vẽ bằng gạch chân chứ không phải nền màu: nền màu đã là ngôn ngữ
+ * của highlight văn phong, dùng lại sẽ khiến hai thứ khác hẳn nhau trông giống
+ * nhau.
+ */
+::highlight(wh-error) {
+  text-decoration: underline wavy var(--color-vermilion);
+  text-underline-offset: 3px;
+}
+::highlight(wh-refinement) {
+  text-decoration: underline dotted var(--color-ink-faint);
+  text-underline-offset: 3px;
+}
+
 /* Speaking transcript marks — reuse the same four editorial mark colors. */
 ::highlight(wh-speaking-pronunciation) {
   background-color: var(--color-mark-very-hard);

@@ -5,6 +5,7 @@ import type {
   Level,
   TaskType,
   VocabularyItem,
+  WritingMark,
 } from "@writing-helper/practice";
 import type { SerializedEditorState } from "lexical";
 import { apiFetch, apiJson } from "./client";
@@ -49,6 +50,8 @@ export interface PracticeAttemptDetail
   hasRevision: boolean;
   /** Child revision id when one exists but has not been submitted; otherwise null. */
   pendingRevisionId: string | null;
+  /** null khi bóc lỗi thất bại; [] khi bài không có lỗi nào. */
+  marks: WritingMark[] | null;
 }
 
 export interface CreateAttemptInput {

@@ -11,6 +11,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { useQuery } from "@tanstack/react-query";
 import type { AnalysisResult, Highlight } from "@writing-helper/analysis";
+import { MARK_LABELS, type WritingMark } from "@writing-helper/practice";
 import { $getRoot, type SerializedEditorState } from "lexical";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getAiStatus } from "../api/ai";
@@ -27,7 +28,7 @@ import { ToolbarPlugin } from "./plugins/ToolbarPlugin";
 import { replaceTextRange } from "./replace-range";
 import { RewritePopover, type RewriteTarget } from "./RewritePopover";
 import { clearSpans, paintSpans } from "./highlight-painter";
-import { styleSpans } from "./spans";
+import { markSpans, styleSpans } from "./spans";
 import { offsetOf, type TextIndex, buildTextIndex } from "./text-index";
 import { editorTheme } from "./theme";
 
@@ -47,6 +48,8 @@ interface EditorProps {
   readOnly?: boolean;
   /** Paint stored highlights instead of running live analysis (results view). */
   savedResult?: AnalysisResult | null;
+  /** Paint stored mistakes instead of style highlights (results view). */
+  savedMarks?: WritingMark[] | null;
   placeholder?: string;
 }
 
@@ -76,6 +79,7 @@ export function Editor({
   onAnalysis,
   readOnly = false,
   savedResult = null,
+  savedMarks = null,
   placeholder,
 }: EditorProps) {
   return (
@@ -97,6 +101,7 @@ export function Editor({
         onAnalysis={onAnalysis}
         readOnly={readOnly}
         savedResult={savedResult}
+        savedMarks={savedMarks}
         placeholder={placeholder}
       />
     </LexicalComposer>
@@ -109,6 +114,7 @@ interface EditorBodyProps {
   onAnalysis: (result: AnalysisResult | null) => void;
   readOnly: boolean;
   savedResult: AnalysisResult | null;
+  savedMarks?: WritingMark[] | null;
   placeholder?: string;
 }
 
@@ -118,6 +124,7 @@ function EditorBody({
   onAnalysis,
   readOnly,
   savedResult,
+  savedMarks = null,
   placeholder,
 }: EditorBodyProps) {
   const [editor] = useLexicalComposerContext();
@@ -126,6 +133,13 @@ function EditorBody({
     index: null,
     highlights: [],
   });
+  const marksRef = useRef<{ index: TextIndex | null; marks: WritingMark[] }>({
+    index: null,
+    marks: [],
+  });
+  const [markPick, setMarkPick] = useState<{ mark: WritingMark; x: number; y: number } | null>(
+    null,
+  );
 
   const [hover, setHover] = useState<HoverState | null>(null);
   const [selectionTrigger, setSelectionTrigger] = useState<SelectionTrigger | null>(null);
@@ -184,6 +198,18 @@ function EditorBody({
   };
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    // Lăng kính lỗi chạy được cả khi read-only, nên phải xử lý trước guard của
+    // AI rewrite.
+    if (savedMarks) {
+      const { index, marks } = marksRef.current;
+      if (!index) return;
+
+      const offset = offsetAtPoint(index, event.clientX, event.clientY);
+      const found = offset === null ? null : findSpanAtOffset(marks, offset);
+
+      setMarkPick(found ? { mark: found, ...containerPoint(event.clientX, event.clientY) } : null);
+      return;
+    }
     if (readOnly || !aiEnabled) return;
     const { index, highlights } = stateRef.current;
     if (!index) return;
@@ -288,6 +314,7 @@ function EditorBody({
         </div>
 
         {hover && !popover && <HighlightTooltip hover={hover} />}
+        {markPick && <MistakeCard pick={markPick} />}
 
         {selectionTrigger && !popover && !readOnly && (
           <button
@@ -312,6 +339,14 @@ function EditorBody({
       <ListPlugin />
       <AnalysisPlugin enabled={mode === "edit" && !readOnly && !savedResult} onResult={handleResult} />
       {savedResult && <SavedHighlightsPlugin result={savedResult} onReady={handleResult} />}
+      {savedMarks && (
+        <SavedMarksPlugin
+          marks={savedMarks}
+          onReady={(index) => {
+            marksRef.current = { index, marks: savedMarks };
+          }}
+        />
+      )}
       <OnChangePlugin
         ignoreSelectionChange
         onChange={(editorState) => {
@@ -375,6 +410,61 @@ function SavedHighlightsPlugin({
       clearSpans();
     };
   }, [editor, result]);
+
+  return null;
+}
+
+function MistakeCard({ pick }: { pick: { mark: WritingMark; x: number; y: number } }) {
+  const flipBelow = shouldFlipBelow(pick.y);
+
+  return (
+    <div
+      role="dialog"
+      aria-label="Mistake"
+      className={`absolute z-20 max-w-72 -translate-x-1/2 rounded-sm border border-rule bg-paper px-3 py-2 shadow-[0_6px_20px_-8px_rgba(31,28,24,0.4)] ${
+        flipBelow ? "" : "-translate-y-full"
+      }`}
+      style={{ left: pick.x, top: pick.y + (flipBelow ? 14 : -10) }}
+    >
+      <p className="font-mono text-[0.7rem] uppercase tracking-wider text-vermilion">
+        {MARK_LABELS[pick.mark.category]}
+      </p>
+      <p className="mt-1 font-display text-base leading-snug">{pick.mark.correction}</p>
+      <p className="mt-1 text-sm leading-snug text-ink-soft">{pick.mark.note}</p>
+    </div>
+  );
+}
+
+function SavedMarksPlugin({
+  marks,
+  onReady,
+}: {
+  marks: WritingMark[];
+  onReady: (index: TextIndex) => void;
+}) {
+  const [editor] = useLexicalComposerContext();
+  const onReadyRef = useRef(onReady);
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  useEffect(() => {
+    const paint = () => {
+      const root = editor.getRootElement();
+      if (!root) return;
+      const index = buildTextIndex(root);
+      paintSpans(index, markSpans(marks));
+      onReadyRef.current(index);
+    };
+
+    paint();
+    const unregister = editor.registerUpdateListener(paint);
+    return () => {
+      unregister();
+      clearSpans();
+    };
+  }, [editor, marks]);
 
   return null;
 }
