@@ -785,6 +785,81 @@ describe("PracticeService", () => {
       const { data } = prisma.practiceAttempt.update.mock.calls[0][0];
       expect(data.marks).toEqual([]);
     });
+
+    it("treats a total locate failure as extraction failed, not a clean paper", async () => {
+      const { service, prisma, complete } = serviceWith({ attempt: draft });
+      // Paraphrased quotes: nothing in the list can be located in the paper.
+      complete
+        .mockResolvedValueOnce({
+          marks: [
+            {
+              quote: "I like it very",
+              occurrence: 1,
+              category: "word-order",
+              correction: "I like it very much",
+              note: "Word order.",
+            },
+            {
+              quote: "a apple",
+              occurrence: 1,
+              category: "article",
+              correction: "an apple",
+              note: "Article.",
+            },
+          ],
+        })
+        .mockResolvedValueOnce(graded);
+
+      await service.submit("user-1", "a1", {
+        styleSnapshot: {},
+        plainText: "I very like it.",
+      });
+
+      const { data } = prisma.practiceAttempt.update.mock.calls[0][0];
+      expect(data.band).toBe(overallBand(graded.scores));
+      expect(data.marks).toBeUndefined();
+    });
+
+    it("keeps the marks that did locate when only some quotes fail", async () => {
+      const { service, prisma, complete } = serviceWith({ attempt: draft });
+      complete
+        .mockResolvedValueOnce({
+          marks: [
+            {
+              quote: "nowhere in the paper",
+              occurrence: 1,
+              category: "article",
+              correction: "n/a",
+              note: "Article.",
+            },
+            {
+              quote: "very like",
+              occurrence: 1,
+              category: "word-order",
+              correction: "like it very much",
+              note: "Word order.",
+            },
+          ],
+        })
+        .mockResolvedValueOnce(graded);
+
+      await service.submit("user-1", "a1", {
+        styleSnapshot: {},
+        plainText: "I very like it.",
+      });
+
+      const { data } = prisma.practiceAttempt.update.mock.calls[0][0];
+      expect(data.marks).toEqual([
+        {
+          start: 2,
+          end: 11,
+          category: "word-order",
+          severity: "error",
+          correction: "like it very much",
+          note: "Word order.",
+        },
+      ]);
+    });
   });
 
   describe("list", () => {

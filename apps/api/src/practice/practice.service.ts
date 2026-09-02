@@ -288,7 +288,20 @@ export class PracticeService {
           deadlineMs: PRACTICE_DEADLINE_MS,
           usage: { userId, endpoint: "practice.marks" },
         })
-        .then((result) => resolveWritingMarks(plainText, result.marks ?? []))
+        .then((result) => {
+          // Model trả lỗi nhưng không định vị được cái nào (thường vì nó diễn
+          // đạt lại thay vì trích nguyên văn) là bóc lỗi thất bại, không phải
+          // bài sạch lỗi — trả `null` để không đếm nhầm thành bài không lỗi.
+          const raw = result.marks ?? [];
+          const resolved = resolveWritingMarks(plainText, raw);
+          if (raw.length > 0 && resolved.length === 0) {
+            this.logger.warn(
+              `event=practice_marks_unlocatable attemptId=${id} returned=${raw.length}`,
+            );
+            return null;
+          }
+          return resolved;
+        })
         .catch((error: unknown) => {
           this.logger.warn(
             `event=practice_marks_failed attemptId=${id} ${error instanceof Error ? error.message : "unknown"}`,
