@@ -11,24 +11,25 @@ import type { EditorSpan, SpanLayer } from "./spans";
 
 const REGISTRY_PREFIX = "wh-";
 
-/** Câu vẽ dưới, từ vẽ đè lên, lỗi ngôn ngữ vẽ trên cùng. */
-const SENTENCE_LAYERS = new Set<SpanLayer>(["hard-sentence", "very-hard-sentence"]);
-const MISTAKE_LAYERS = new Set<SpanLayer>(["error", "refinement"]);
-
-const ALL_LAYERS: SpanLayer[] = [
+/** Câu vẽ dưới, từ vẽ đè lên. */
+export const STYLE_LAYERS: SpanLayer[] = [
   "very-hard-sentence",
   "hard-sentence",
   "passive",
   "adverb",
   "qualifier",
   "complex-phrase",
-  "refinement",
-  "error",
 ];
+
+/** Lỗi ngôn ngữ vẽ trên cùng. */
+export const MISTAKE_LAYERS: SpanLayer[] = ["refinement", "error"];
+
+const SENTENCE_LAYERS = new Set<SpanLayer>(["hard-sentence", "very-hard-sentence"]);
+const MISTAKE_LAYER_SET = new Set<SpanLayer>(MISTAKE_LAYERS);
 
 function priorityOf(layer: SpanLayer): number {
   if (SENTENCE_LAYERS.has(layer)) return 0;
-  if (MISTAKE_LAYERS.has(layer)) return 2;
+  if (MISTAKE_LAYER_SET.has(layer)) return 2;
   return 1;
 }
 
@@ -36,7 +37,15 @@ export function highlightsSupported(): boolean {
   return typeof CSS !== "undefined" && "highlights" in CSS;
 }
 
-export function paintSpans(index: TextIndex, spans: EditorSpan[]): void {
+/**
+ * Vẽ spans lên registry, giới hạn trong `layers`.
+ *
+ * `layers` là tập layer mà caller này sở hữu (`STYLE_LAYERS` hoặc
+ * `MISTAKE_LAYERS`) — bắt buộc truyền vào, không có mặc định, để hai painter
+ * độc lập (style highlight và lỗi ngôn ngữ) không bao giờ dẫm lên registry
+ * của nhau: xoá/tô layer ngoài tập này không phải việc của lệnh gọi này.
+ */
+export function paintSpans(index: TextIndex, spans: EditorSpan[], layers: SpanLayer[]): void {
   if (!highlightsSupported()) return;
 
   const byLayer = new Map<SpanLayer, Range[]>();
@@ -50,7 +59,7 @@ export function paintSpans(index: TextIndex, spans: EditorSpan[]): void {
     else byLayer.set(span.layer, [range]);
   }
 
-  for (const layer of ALL_LAYERS) {
+  for (const layer of layers) {
     const ranges = byLayer.get(layer);
     const name = REGISTRY_PREFIX + layer;
 
@@ -65,8 +74,9 @@ export function paintSpans(index: TextIndex, spans: EditorSpan[]): void {
   }
 }
 
-export function clearSpans(): void {
+/** Xoá đúng tập `layers` caller sở hữu — không đụng tới layer của painter khác. */
+export function clearSpans(layers: SpanLayer[]): void {
   if (!highlightsSupported()) return;
 
-  for (const layer of ALL_LAYERS) CSS.highlights.delete(REGISTRY_PREFIX + layer);
+  for (const layer of layers) CSS.highlights.delete(REGISTRY_PREFIX + layer);
 }

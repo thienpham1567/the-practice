@@ -27,7 +27,7 @@ import { AnalysisPlugin } from "./plugins/AnalysisPlugin";
 import { ToolbarPlugin } from "./plugins/ToolbarPlugin";
 import { replaceTextRange } from "./replace-range";
 import { RewritePopover, type RewriteTarget } from "./RewritePopover";
-import { clearSpans, paintSpans } from "./highlight-painter";
+import { clearSpans, MISTAKE_LAYERS, paintSpans, STYLE_LAYERS } from "./highlight-painter";
 import { markSpans, styleSpans } from "./spans";
 import { offsetOf, type TextIndex, buildTextIndex } from "./text-index";
 import { editorTheme } from "./theme";
@@ -399,7 +399,7 @@ function SavedHighlightsPlugin({
       const root = editor.getRootElement();
       if (!root) return;
       const index = buildTextIndex(root);
-      paintSpans(index, styleSpans(result.highlights ?? []));
+      paintSpans(index, styleSpans(result.highlights ?? []), STYLE_LAYERS);
       onReadyRef.current(result, index);
     };
 
@@ -407,7 +407,7 @@ function SavedHighlightsPlugin({
     const unregister = editor.registerUpdateListener(paint);
     return () => {
       unregister();
-      clearSpans();
+      clearSpans(STYLE_LAYERS);
     };
   }, [editor, result]);
 
@@ -454,7 +454,7 @@ function SavedMarksPlugin({
       const root = editor.getRootElement();
       if (!root) return;
       const index = buildTextIndex(root);
-      paintSpans(index, markSpans(marks));
+      paintSpans(index, markSpans(marks), MISTAKE_LAYERS);
       onReadyRef.current(index);
     };
 
@@ -462,7 +462,7 @@ function SavedMarksPlugin({
     const unregister = editor.registerUpdateListener(paint);
     return () => {
       unregister();
-      clearSpans();
+      clearSpans(MISTAKE_LAYERS);
     };
   }, [editor, marks]);
 
