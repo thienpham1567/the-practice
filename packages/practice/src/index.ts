@@ -25,3 +25,9 @@ export { speakingFluency } from "./speaking-fluency";
 export { bandToCefr } from "./band-to-cefr";
 export { computeStreak, type Streak } from "./compute-streak";
 export { MARK_CATEGORIES, MARK_LABELS, MARK_SEVERITY } from "./mark-catalog";
+export {
+  summarizeMarks,
+  PROFILE_WINDOW,
+  MIN_OCCURRENCES,
+  MIN_ATTEMPTS_FOR_TREND,
+} from "./summarize-marks";
