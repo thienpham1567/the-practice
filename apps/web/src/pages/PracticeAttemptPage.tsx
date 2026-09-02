@@ -23,6 +23,7 @@ import {
   wordCountTone,
 } from "../practice/exam-math";
 import { FeedbackAuditList } from "../practice/FeedbackAuditList";
+import { FixTheseFirst } from "../practice/FixTheseFirst";
 import { formatBandDelta, reviseAction } from "../practice/revise-availability";
 import { StyleProfile } from "../practice/StyleProfile";
 import { SidePanel } from "../SidePanel";
@@ -335,6 +336,11 @@ function ResultView({
 }) {
   const navigate = useNavigate();
   const snapshot = attempt.styleSnapshot;
+  // Mặc định lăng kính lỗi — đó là thứ người học sửa được ngay. Bóc lỗi hỏng
+  // (`marks === null`) thì không có gì để xem ở đó, lùi về Style.
+  const [lens, setLens] = useState<"mistakes" | "style">(
+    attempt.marks ? "mistakes" : "style",
+  );
   const [scoresOpen, setScoresOpen] = useState(true);
   const scoresTriggerRef = useRef<HTMLButtonElement>(null);
   const action = reviseAction({
@@ -390,6 +396,23 @@ function ResultView({
             Resume revision
           </button>
         )}
+        {attempt.marks && (
+          <div className="ml-auto flex border border-rule font-mono text-[0.65rem] uppercase tracking-[0.15em]">
+            {(["mistakes", "style"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setLens(option)}
+                aria-pressed={lens === option}
+                className={`px-3 py-1 ${
+                  lens === option ? "bg-ink text-paper" : "text-ink-soft hover:text-vermilion"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       <div className="flex min-h-0 flex-1">
@@ -437,6 +460,8 @@ function ResultView({
               </section>
             )}
 
+            <FixTheseFirst marks={attempt.marks} />
+
             {snapshot && (
               <div className="mt-8 border-t border-rule pt-6">
                 <StyleProfile snapshot={snapshot} level={attempt.level} />
@@ -446,11 +471,17 @@ function ResultView({
         </SidePanel>
 
         <div className="flex min-w-0 flex-1 flex-col">
+          {/*
+            Hai lăng kính loại trừ nhau: vẽ cả gạch lỗi lẫn nền văn phong lên
+            cùng một bài thì vừa rối vừa mâu thuẫn — Hemingway thưởng câu ngắn,
+            IELTS thưởng câu phức.
+          */}
           <Editor
-            key={`${attempt.id}-result`}
+            key={`${attempt.id}-result-${lens}`}
             mode="edit"
             readOnly
-            savedResult={snapshot}
+            savedResult={lens === "style" ? snapshot : null}
+            savedMarks={lens === "mistakes" ? attempt.marks : null}
             initialEditorState={attempt.content}
             onChange={() => undefined}
             onAnalysis={() => undefined}
