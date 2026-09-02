@@ -3,6 +3,7 @@ import type {
   CriterionScores,
   Feedback,
   Level,
+  MistakeProfile,
   TaskType,
   VocabularyItem,
   WritingMark,
@@ -97,3 +98,5 @@ export const reviseAttempt = (id: string) =>
 
 export const deleteAttempt = (id: string) =>
   apiFetch<void>(`/practice/attempts/${id}`, { method: "DELETE" });
+
+export const getMistakeProfile = () => apiFetch<MistakeProfile>("/practice/mistakes");

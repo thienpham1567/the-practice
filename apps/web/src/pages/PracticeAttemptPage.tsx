@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { analyze } from "@writing-helper/analysis";
-import { TASK_CATALOG, type TaskSpec } from "@writing-helper/practice";
+import { MARK_LABELS, TASK_CATALOG, type MarkCategory, type TaskSpec } from "@writing-helper/practice";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { BrandLockup } from "../BrandLockup";
 import {
   getAttempt,
+  getMistakeProfile,
   reviseAttempt,
   submitAttempt,
   updateAttempt,
@@ -80,6 +81,8 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
     queryFn: () => getAttempt(attempt.parentAttemptId!),
     enabled: Boolean(attempt.parentAttemptId),
   });
+
+  const mistakes = useQuery({ queryKey: ["practice-mistakes"], queryFn: getMistakeProfile });
 
   const save = useMutation({
     mutationFn: (input: Parameters<typeof updateAttempt>[1]) => updateAttempt(attempt.id, input),
@@ -218,13 +221,19 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
             hintsOpen={hintsOpen}
             onOpenHints={openHints}
             parentFeedback={parent.data?.feedback ?? null}
+            watchFor={(mistakes.data?.tallies ?? []).slice(0, 3).map((tally) => tally.category)}
           />
         </SidePanel>
         <div className="flex min-w-0 flex-1 flex-col">
+          {/*
+            Bản sửa nạp luôn mark của bài gốc: không có thì người học phải nhớ
+            lỗi từ màn kết quả rồi lật qua lại giữa hai trang.
+          */}
           <Editor
             key={attempt.id}
             mode="write"
             initialEditorState={attempt.content}
+            savedMarks={isRevision ? (parent.data?.marks ?? null) : null}
             onChange={handleChange}
             onAnalysis={() => undefined}
             placeholder="Write from the prompt. Marks stay hidden until you submit."
@@ -241,12 +250,14 @@ function PromptPane({
   hintsOpen,
   onOpenHints,
   parentFeedback,
+  watchFor,
 }: {
   attempt: PracticeAttemptDetail;
   spec: TaskSpec;
   hintsOpen: boolean;
   onOpenHints: () => void;
   parentFeedback: PracticeAttemptDetail["feedback"];
+  watchFor: MarkCategory[];
 }) {
   const feedbackPoints = parentFeedback
     ? [
@@ -323,6 +334,12 @@ function PromptPane({
           </div>
         )}
       </div>
+
+      {watchFor.length > 0 && (
+        <p className="mt-8 border-t border-rule pt-6 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+          Watch for: {watchFor.map((category) => MARK_LABELS[category]).join(", ")}
+        </p>
+      )}
     </div>
   );
 }
