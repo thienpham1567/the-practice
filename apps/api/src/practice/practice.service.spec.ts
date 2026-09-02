@@ -377,7 +377,8 @@ describe("PracticeService", () => {
         attempt: { ...draft, parentAttemptId: null, parent: null },
         updated: { id: "a1", band: 6 },
       });
-      complete.mockResolvedValueOnce(graded);
+      // The marks call is started before the grade call, so it is mocked first.
+      complete.mockResolvedValueOnce({ marks: [] }).mockResolvedValueOnce(graded);
 
       await service.submit("user-1", "a1", {
         styleSnapshot: { counts: { passives: 1 } },
@@ -394,7 +395,7 @@ describe("PracticeService", () => {
           schema: GRADE_TASK_SCHEMA,
         }),
       );
-      expect(complete.mock.calls[0]![0].prompt).not.toContain("Previous feedback points to audit");
+      expect(complete.mock.calls[1]![0].prompt).not.toContain("Previous feedback points to audit");
       expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -443,7 +444,8 @@ describe("PracticeService", () => {
         findFirstResults: [revisionDraft, parentGraded],
         updated: { id: "rev-1", band: 6.5 },
       });
-      complete.mockResolvedValueOnce(revisionGraded);
+      // The marks call is started before the grade call, so it is mocked first.
+      complete.mockResolvedValueOnce({ marks: [] }).mockResolvedValueOnce(revisionGraded);
 
       await service.submit("user-1", "rev-1", {
         styleSnapshot: { counts: { passives: 0 } },
@@ -459,8 +461,8 @@ describe("PracticeService", () => {
           schema: REVISION_GRADE_SCHEMA,
         }),
       );
-      expect(complete.mock.calls[0]![0].prompt).toContain("band 5.5");
-      expect(complete.mock.calls[0]![0].prompt).toContain(graded.feedback.nextFocus);
+      expect(complete.mock.calls[1]![0].prompt).toContain("band 5.5");
+      expect(complete.mock.calls[1]![0].prompt).toContain(graded.feedback.nextFocus);
       expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -493,7 +495,10 @@ describe("PracticeService", () => {
         findFirstResults: [revisionDraft, { feedback: graded.feedback, band: 5.5 }],
         updated: { id: "rev-1", band: 6.5 },
       });
-      complete.mockResolvedValueOnce({ scores, feedback: graded.feedback });
+      // The marks call is started before the grade call, so it is mocked first.
+      complete
+        .mockResolvedValueOnce({ marks: [] })
+        .mockResolvedValueOnce({ scores, feedback: graded.feedback });
 
       await service.submit("user-1", "rev-1", { styleSnapshot: {} });
 
@@ -534,7 +539,8 @@ describe("PracticeService", () => {
         findFirstResults: [revisionDraft, { feedback: graded.feedback, band: 5.5 }],
         updated: { id: "rev-1", band: 6.5 },
       });
-      complete.mockResolvedValueOnce(revisionGraded);
+      // The marks call is started before the grade call, so it is mocked first.
+      complete.mockResolvedValueOnce({ marks: [] }).mockResolvedValueOnce(revisionGraded);
 
       await service.submit("user-1", "rev-1", { styleSnapshot: {} });
 
@@ -575,7 +581,9 @@ describe("PracticeService", () => {
         service.submit("user-1", "a1", { styleSnapshot: {} }),
       ]);
 
-      expect(complete).toHaveBeenCalledTimes(1);
+      // One winning submit now makes two AI calls (marks + grade), but the
+      // loser is still shut out entirely — that's what this test guards.
+      expect(complete).toHaveBeenCalledTimes(2);
       expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
       expect(results.filter((r) => r.status === "rejected")).toHaveLength(1);
       const rejected = results.find((r) => r.status === "rejected") as PromiseRejectedResult;
@@ -611,7 +619,9 @@ describe("PracticeService", () => {
         service.submit("user-1", "rev-1", { styleSnapshot: {} }),
       ]);
 
-      expect(complete).toHaveBeenCalledTimes(1);
+      // One winning submit now makes two AI calls (marks + grade), but the
+      // loser is still shut out entirely — that's what this test guards.
+      expect(complete).toHaveBeenCalledTimes(2);
       expect(complete).toHaveBeenCalledWith(
         expect.objectContaining({
           schema: REVISION_GRADE_SCHEMA,
@@ -626,7 +636,11 @@ describe("PracticeService", () => {
 
     it("xoá gradingStartedAt khi chấm AI thất bại", async () => {
       const { service, prisma, complete } = serviceWith({ attempt: draft });
-      complete.mockRejectedValueOnce(new Error("AI down"));
+      // The marks call is started before the grade call, so it is mocked first;
+      // the grade call is the one that fails here.
+      complete
+        .mockResolvedValueOnce({ marks: [] })
+        .mockRejectedValueOnce(new Error("AI down"));
 
       await expect(
         service.submit("user-1", "a1", { styleSnapshot: {} }),
@@ -645,7 +659,8 @@ describe("PracticeService", () => {
       const { service, prisma, complete } = serviceWith({
         attempt: { ...draft, gradingStartedAt: stale },
       });
-      complete.mockResolvedValueOnce(graded);
+      // The marks call is started before the grade call, so it is mocked first.
+      complete.mockResolvedValueOnce({ marks: [] }).mockResolvedValueOnce(graded);
 
       await service.submit("user-1", "a1", { styleSnapshot: {} });
 
@@ -658,7 +673,7 @@ describe("PracticeService", () => {
           { gradingStartedAt: { lte: expect.any(Date) } },
         ]),
       );
-      expect(complete).toHaveBeenCalledTimes(1);
+      expect(complete).toHaveBeenCalledTimes(2);
     });
 
     it("calls markUsed with the submitted plainText after a successful grade", async () => {
@@ -666,7 +681,8 @@ describe("PracticeService", () => {
         attempt: { ...draft, parentAttemptId: null, parent: null },
         updated: { id: "a1", band: 6 },
       });
-      complete.mockResolvedValueOnce(graded);
+      // The marks call is started before the grade call, so it is mocked first.
+      complete.mockResolvedValueOnce({ marks: [] }).mockResolvedValueOnce(graded);
 
       await service.submit("user-1", "a1", {
         styleSnapshot: {},
@@ -687,7 +703,8 @@ describe("PracticeService", () => {
         updated: gradedRow,
         markUsedError: new Error("scan failed"),
       });
-      complete.mockResolvedValueOnce(graded);
+      // The marks call is started before the grade call, so it is mocked first.
+      complete.mockResolvedValueOnce({ marks: [] }).mockResolvedValueOnce(graded);
 
       await expect(
         service.submit("user-1", "a1", {
@@ -698,6 +715,75 @@ describe("PracticeService", () => {
 
       expect(Logger.prototype.warn).toHaveBeenCalled();
       jest.restoreAllMocks();
+    });
+
+    it("stores mistakes resolved from the model's quotes", async () => {
+      const { service, prisma, complete } = serviceWith({ attempt: draft });
+      // The marks call is started before the grade call, so it is mocked first.
+      complete
+        .mockResolvedValueOnce({
+          marks: [
+            {
+              quote: "very like",
+              occurrence: 1,
+              category: "word-order",
+              correction: "like it very much",
+              note: "Word order.",
+            },
+          ],
+        })
+        .mockResolvedValueOnce(graded);
+
+      await service.submit("user-1", "a1", {
+        styleSnapshot: {},
+        plainText: "I very like it.",
+      });
+
+      expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            marks: [
+              {
+                start: 2,
+                end: 11,
+                category: "word-order",
+                severity: "error",
+                correction: "like it very much",
+                note: "Word order.",
+              },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it("still saves the band when mistake extraction fails", async () => {
+      const { service, prisma, complete } = serviceWith({ attempt: draft });
+      complete
+        .mockRejectedValueOnce(new Error("model returned junk"))
+        .mockResolvedValueOnce(graded);
+
+      await service.submit("user-1", "a1", {
+        styleSnapshot: {},
+        plainText: "I very like it.",
+      });
+
+      const { data } = prisma.practiceAttempt.update.mock.calls[0][0];
+      expect(data.band).toBe(overallBand(graded.scores));
+      expect(data.marks).toBeUndefined();
+    });
+
+    it("stores an empty list when the paper has no mistakes", async () => {
+      const { service, prisma, complete } = serviceWith({ attempt: draft });
+      complete.mockResolvedValueOnce({ marks: [] }).mockResolvedValueOnce(graded);
+
+      await service.submit("user-1", "a1", {
+        styleSnapshot: {},
+        plainText: "Flawless.",
+      });
+
+      const { data } = prisma.practiceAttempt.update.mock.calls[0][0];
+      expect(data.marks).toEqual([]);
     });
   });
 

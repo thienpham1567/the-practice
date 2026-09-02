@@ -24,6 +24,8 @@ import type {
 } from "./dto/practice.dto";
 import { GENERATE_TASK_SCHEMA, buildGeneratePrompt, type GeneratedTask } from "./generate-prompt";
 import { GRADE_TASK_SCHEMA, buildGradePrompt, type GradeResult } from "./grade-prompt";
+import { EXTRACT_MARKS_SCHEMA, buildMarkPrompt, type ExtractMarksResult } from "./mark-prompt";
+import { resolveWritingMarks } from "./resolve-marks";
 import {
   REVISION_GRADE_SCHEMA,
   buildRevisionGradePrompt,
@@ -274,6 +276,26 @@ export class PracticeService {
     const isRevision = Boolean(attempt.parentAttemptId);
 
     try {
+      // Bóc lỗi chạy song song với chấm điểm. `.catch` gắn ngay tại đây nên
+      // promise này không bao giờ reject: chấm điểm hỏng thì submit hỏng như
+      // cũ, còn bóc lỗi hỏng thì người học vẫn có band, chỉ mất phần đánh dấu.
+      const marksPromise = this.ai
+        .complete<ExtractMarksResult>({
+          prompt: buildMarkPrompt(task, plainText),
+          schema: EXTRACT_MARKS_SCHEMA,
+          maxTokens: 2000,
+          timeoutMs: PRACTICE_TIMEOUT_MS,
+          deadlineMs: PRACTICE_DEADLINE_MS,
+          usage: { userId, endpoint: "practice.marks" },
+        })
+        .then((result) => resolveWritingMarks(plainText, result.marks ?? []))
+        .catch((error: unknown) => {
+          this.logger.warn(
+            `event=practice_marks_failed attemptId=${id} ${error instanceof Error ? error.message : "unknown"}`,
+          );
+          return null;
+        });
+
       let graded: GradeResult | RevisionGradeResult;
       if (isRevision) {
         const parent = await this.prisma.practiceAttempt.findFirst({
@@ -332,6 +354,8 @@ export class PracticeService {
         }
       }
 
+      const marks = await marksPromise;
+
       const updated = await this.prisma.practiceAttempt.update({
         where: { id },
         data: {
@@ -348,6 +372,7 @@ export class PracticeService {
             feedbackAudit: feedbackAudit as unknown as Prisma.InputJsonValue,
           }),
           styleSnapshot: dto.styleSnapshot as Prisma.InputJsonValue,
+          ...(marks !== null && { marks: marks as unknown as Prisma.InputJsonValue }),
         },
       });
 

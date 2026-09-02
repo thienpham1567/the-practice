@@ -31,6 +31,7 @@ export type AiEndpoint =
   | "rewrite"
   | "practice.generate"
   | "practice.grade"
+  | "practice.marks"
   | "speaking.generate"
   | "speaking.grade";
 
