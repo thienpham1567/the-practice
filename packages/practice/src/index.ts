@@ -32,3 +32,4 @@ export {
   MIN_ATTEMPTS_FOR_TREND,
 } from "./summarize-marks";
 export { focusCategories } from "./focus-categories";
+export { countHandled, markKey } from "./handled-marks";
