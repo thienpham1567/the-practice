@@ -53,6 +53,8 @@ export interface PracticeAttemptDetail
   pendingRevisionId: string | null;
   /** null khi bóc lỗi thất bại; [] khi bài không có lỗi nào. */
   marks: WritingMark[] | null;
+  /** Khoá "start:end" của mark bài gốc mà bản sửa này đã xử lý. */
+  handledMarks: string[] | null;
 }
 
 export interface CreateAttemptInput {
@@ -65,6 +67,7 @@ export interface UpdateAttemptInput {
   plainText?: string;
   wordCount?: number;
   hintsOpened?: boolean;
+  handledMarks?: string[];
 }
 
 export interface SubmitAttemptInput {

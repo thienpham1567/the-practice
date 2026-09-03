@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { analyze } from "@writing-helper/analysis";
-import { MARK_LABELS, TASK_CATALOG, type MarkCategory, type TaskSpec } from "@writing-helper/practice";
+import {
+  MARK_LABELS,
+  TASK_CATALOG,
+  type MarkCategory,
+  type TaskSpec,
+  type WritingMark,
+} from "@writing-helper/practice";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { BrandLockup } from "../BrandLockup";
@@ -26,6 +32,7 @@ import {
 import { FeedbackAuditList } from "../practice/FeedbackAuditList";
 import { FixTheseFirst } from "../practice/FixTheseFirst";
 import { promptBody } from "../practice/prompt-body";
+import { RevisionChecklist } from "../practice/RevisionChecklist";
 import { formatBandDelta, reviseAction } from "../practice/revise-availability";
 import { StyleProfile } from "../practice/StyleProfile";
 import { SidePanel } from "../SidePanel";
@@ -72,8 +79,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
-  // Chữ đang có trong editor, để đối chiếu với bài gốc — xem `carriedMarks`.
-  const [liveText, setLiveText] = useState(attempt.plainText);
+  const [handledMarks, setHandledMarks] = useState<string[]>(attempt.handledMarks ?? []);
 
   const draftRef = useRef<EditorChange | null>(null);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -105,7 +111,6 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   const handleChange = useCallback(
     (change: EditorChange) => {
       draftRef.current = change;
-      setLiveText(change.plainText);
       setWordCount(countWords(change.plainText));
       clearTimeout(autosaveTimer.current);
       autosaveTimer.current = setTimeout(() => {
@@ -115,6 +120,25 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
           wordCount: countWords(change.plainText),
         });
       }, AUTOSAVE_DELAY_MS);
+    },
+    [save],
+  );
+
+  const toggleHandled = useCallback(
+    (key: string) => {
+      setHandledMarks((current) => {
+        const next = current.includes(key)
+          ? current.filter((item) => item !== key)
+          : [...current, key];
+        /*
+          Gửi cả mảng thay vì thao tác thêm/bớt từng phần tử: đơn giản và không
+          có tranh chấp giữa hai lần bấm liên tiếp. Gửi ngay, không qua debounce
+          của autosave — debounce có để chịu hàng chục sự kiện gõ mỗi giây, còn
+          đây là hành động rời rạc mà người học kỳ vọng đã lưu khi đóng tab.
+        */
+        save.mutate({ handledMarks: next });
+        return next;
+      });
     },
     [save],
   );
@@ -150,17 +174,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   const tone = wordCountTone(wordCount, spec.minWords);
   const timedOut = !isRevision && remaining === 0;
 
-  /*
-    Mark của bài gốc là offset trên *chữ của bài gốc*. Còn nguyên chữ đó thì
-    gạch đúng chỗ; gõ một phím là mọi offset phía sau lệch, và cái thẻ lỗi mở
-    ra sẽ nói về một đoạn không liên quan. Nên chỉ hiện khi hai bài còn giống
-    hệt nhau — kể cả lúc mở lại bản nháp đã sửa dở từ phiên trước.
-  */
   const parentPaper = parent.data;
-  const carriedMarks =
-    isRevision && parentPaper && liveText === parentPaper.plainText
-      ? (parentPaper.marks ?? null)
-      : null;
 
   return (
     <div className="flex h-screen flex-col">
@@ -237,19 +251,22 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
             hintsOpen={hintsOpen}
             onOpenHints={openHints}
             parentFeedback={parent.data?.feedback ?? null}
+            parentMarks={parentPaper?.marks ?? null}
+            parentPlainText={parentPaper?.plainText ?? ""}
+            handledMarks={handledMarks}
+            onToggleHandled={toggleHandled}
             watchFor={(mistakes.data?.tallies ?? []).slice(0, 3).map((tally) => tally.category)}
           />
         </SidePanel>
         <div className="flex min-w-0 flex-1 flex-col">
           {/*
-            Bản sửa nạp luôn mark của bài gốc: không có thì người học phải nhớ
-            lỗi từ màn kết quả rồi lật qua lại giữa hai trang.
+            Không gạch chân gì ở đây: mark của bài gốc là offset trên chữ của
+            bài gốc, gõ một phím là lệch hết. Danh sách việc nằm ở panel đề bài.
           */}
           <Editor
             key={attempt.id}
             mode="write"
             initialEditorState={attempt.content}
-            savedMarks={carriedMarks}
             onChange={handleChange}
             onAnalysis={() => undefined}
             placeholder="Write from the prompt. Marks stay hidden until you submit."
@@ -266,6 +283,10 @@ function PromptPane({
   hintsOpen,
   onOpenHints,
   parentFeedback,
+  parentMarks,
+  parentPlainText,
+  handledMarks,
+  onToggleHandled,
   watchFor,
 }: {
   attempt: PracticeAttemptDetail;
@@ -273,6 +294,10 @@ function PromptPane({
   hintsOpen: boolean;
   onOpenHints: () => void;
   parentFeedback: PracticeAttemptDetail["feedback"];
+  parentMarks: WritingMark[] | null;
+  parentPlainText: string;
+  handledMarks: string[];
+  onToggleHandled: (key: string) => void;
   watchFor: MarkCategory[];
 }) {
   const feedbackPoints = parentFeedback
@@ -294,6 +319,15 @@ function PromptPane({
       <p className="mt-4 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
         {spec.minWords}–{spec.maxWords} words · {spec.timeMinutes} min
       </p>
+
+      {parentMarks && (
+        <RevisionChecklist
+          marks={parentMarks}
+          parentPlainText={parentPlainText}
+          handled={handledMarks}
+          onToggle={onToggleHandled}
+        />
+      )}
 
       {feedbackPoints.length > 0 && (
         <div className="mt-8 border-t border-rule pt-6">
