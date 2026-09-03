@@ -99,6 +99,10 @@ model PracticeAttempt {
   /// WritingMark[] — null khi bóc lỗi thất bại; [] khi bài không có lỗi nào.
   marks Json?
 
+  /// string[] khoá "start:end" của mark thuộc bài gốc mà bản sửa này đã xử lý.
+  /// Đặt trên bản sửa vì đây là tiến độ của lượt sửa, không phải thuộc tính bài gốc.
+  handledMarks Json?
+
   /// Bản sửa trỏ về bài nó sửa. null = bài gốc.
   parentAttemptId String?
   /// 0 = gốc, 1–2 = vòng sửa. Lưu thẳng để kiểm tra trần bằng một phép so sánh.
