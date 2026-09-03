@@ -651,6 +651,49 @@ describe("API (e2e)", () => {
         .expect(409);
     });
 
+    it("lưu và trả lại handledMarks qua autosave", async () => {
+      mockPracticeAi();
+      const { accessToken } = await registerUser("handled-marks@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const created = await server()
+        .post("/practice/attempts")
+        .set(auth)
+        .send({ level: "A2", taskType: "email" })
+        .expect(201);
+
+      await server()
+        .patch(`/practice/attempts/${created.body.id}`)
+        .set(auth)
+        .send({ handledMarks: ["2:11"] })
+        .expect(200);
+
+      const fetched = await server()
+        .get(`/practice/attempts/${created.body.id}`)
+        .set(auth)
+        .expect(200);
+
+      expect(fetched.body.handledMarks).toEqual(["2:11"]);
+    });
+
+    it("từ chối handledMarks không phải mảng chuỗi", async () => {
+      mockPracticeAi();
+      const { accessToken } = await registerUser("handled-marks-bad@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const created = await server()
+        .post("/practice/attempts")
+        .set(auth)
+        .send({ level: "A2", taskType: "email" })
+        .expect(201);
+
+      await server()
+        .patch(`/practice/attempts/${created.body.id}`)
+        .set(auth)
+        .send({ handledMarks: [1, 2] })
+        .expect(400);
+    });
+
     it("revise trả 201 với attempt mới; revise lần hai trả 409", async () => {
       mockPracticeAi();
       const { accessToken } = await registerUser("practice-revise@example.com");

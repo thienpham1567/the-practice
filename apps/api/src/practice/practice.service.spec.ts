@@ -343,6 +343,61 @@ describe("PracticeService", () => {
     });
   });
 
+  describe("update", () => {
+    /** findOne() destructures `revisions`, nên fixture phải có mảng đó. */
+    const editable = {
+      id: "a1",
+      userId: "user-1",
+      level: "A2",
+      taskType: "email",
+      prompt: "Write to your teacher.",
+      plainText: "Dear teacher, ...",
+      wordCount: 95,
+      startedAt: new Date("2026-08-25T10:00:00Z"),
+      submittedAt: null,
+      revisions: [],
+    };
+
+    it("stores the handled-mark keys", async () => {
+      const { service, prisma } = serviceWith({ attempt: editable });
+
+      await service.update("user-1", "a1", { handledMarks: ["2:11", "20:26"] });
+
+      expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ handledMarks: ["2:11", "20:26"] }),
+        }),
+      );
+    });
+
+    /** Bỏ đánh dấu cái cuối cùng gửi lên mảng rỗng — phải ghi, không phải bỏ qua. */
+    it("stores an empty list when the last mark is unticked", async () => {
+      const { service, prisma } = serviceWith({ attempt: editable });
+
+      await service.update("user-1", "a1", { handledMarks: [] });
+
+      const { data } = prisma.practiceAttempt.update.mock.calls[0][0];
+      expect(data.handledMarks).toEqual([]);
+    });
+
+    it("leaves handledMarks alone when the autosave does not mention it", async () => {
+      const { service, prisma } = serviceWith({ attempt: editable });
+
+      await service.update("user-1", "a1", { plainText: "just the text" });
+
+      const { data } = prisma.practiceAttempt.update.mock.calls[0][0];
+      expect(data).not.toHaveProperty("handledMarks");
+    });
+
+    it("refuses to touch a submitted paper", async () => {
+      const { service } = serviceWith({ attempt: { ...editable, submittedAt: new Date() } });
+
+      await expect(
+        service.update("user-1", "a1", { handledMarks: ["2:11"] }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
   describe("remove", () => {
     it("404 when the attempt is missing or belongs to someone else", async () => {
       const { service, prisma } = serviceWith({ attempt: null });
