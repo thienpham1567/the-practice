@@ -247,6 +247,11 @@ export class PracticeService {
         ...(dto.plainText !== undefined && { plainText: dto.plainText }),
         ...(dto.wordCount !== undefined && { wordCount: dto.wordCount }),
         ...(dto.hintsOpened ? { hintsOpened: true } : {}),
+        // `!== undefined` chứ không phải kiểm truthy: mảng rỗng là giá trị hợp
+        // lệ (bỏ đánh dấu hết) và phải được ghi.
+        ...(dto.handledMarks !== undefined && {
+          handledMarks: dto.handledMarks as unknown as Prisma.InputJsonValue,
+        }),
       },
     });
   }

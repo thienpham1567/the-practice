@@ -1,5 +1,6 @@
 import { Type } from "class-transformer";
 import {
+  IsArray,
   IsBoolean,
   IsIn,
   IsInt,
@@ -49,6 +50,11 @@ export class UpdateAttemptDto {
   @IsOptional()
   @IsBoolean()
   hintsOpened?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  handledMarks?: string[];
 }
 
 export class SubmitAttemptDto {

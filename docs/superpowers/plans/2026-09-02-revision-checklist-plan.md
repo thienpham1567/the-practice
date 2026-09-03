@@ -34,7 +34,7 @@
 - Consumes: type `WritingMark { start, end, category, severity, correction, note }` từ `./types`.
 - Produces: `markKey(mark: Pick<WritingMark, "start" | "end">): string`; `countHandled(marks: WritingMark[], handled: string[]): { handled: number; total: number }`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `packages/practice/src/handled-marks.test.ts`:
 
@@ -87,12 +87,12 @@ describe("countHandled", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @writing-helper/practice test handled-marks`
 Expected: FAIL — cannot resolve `./handled-marks`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `packages/practice/src/handled-marks.ts`:
 
@@ -125,7 +125,7 @@ export function countHandled(
 }
 ```
 
-- [ ] **Step 4: Export and run tests**
+- [x] **Step 4: Export and run tests**
 
 In `packages/practice/src/index.ts` add beside the other value exports:
 
@@ -136,7 +136,7 @@ export { countHandled, markKey } from "./handled-marks";
 Run: `pnpm --filter @writing-helper/practice test`
 Expected: PASS — 6 new tests plus every existing one.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/practice/src/handled-marks.ts packages/practice/src/handled-marks.test.ts packages/practice/src/index.ts
@@ -155,7 +155,7 @@ git commit -m "Add markKey and countHandled for the revision checklist"
 - Consumes: nothing.
 - Produces: `PracticeAttempt.handledMarks` kiểu `Json?`, đọc ra là `string[] | null`.
 
-- [ ] **Step 1: Add the column to the schema**
+- [x] **Step 1: Add the column to the schema**
 
 Trong `apps/api/prisma/schema.prisma`, model `PracticeAttempt`, thêm ngay dưới dòng `marks Json?`:
 
@@ -165,22 +165,22 @@ Trong `apps/api/prisma/schema.prisma`, model `PracticeAttempt`, thêm ngay dư�
   handledMarks Json?
 ```
 
-- [ ] **Step 2: Make sure Postgres is running**
+- [x] **Step 2: Make sure Postgres is running**
 
 Run: `docker start writing-helper-db`
 Expected: prints the container name; it is already healthy from earlier work. Do NOT use `docker compose up` — it conflicts on the container name across checkouts.
 
-- [ ] **Step 3: Generate and apply the migration**
+- [x] **Step 3: Generate and apply the migration**
 
 Run: `cd apps/api && npx prisma migrate dev --name attempt_handled_marks`
 Expected: a new migration directory, and "Your database is now in sync with your schema."
 
-- [ ] **Step 4: Verify migration state is clean**
+- [x] **Step 4: Verify migration state is clean**
 
 Run: `cd apps/api && npx prisma migrate status`
 Expected: "Database schema is up to date!"
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/api/prisma/schema.prisma apps/api/prisma/migrations
@@ -205,7 +205,7 @@ git commit -m "Add handledMarks column to PracticeAttempt"
 
 **File spec hiện KHÔNG có `describe("update")`** — nó chỉ có `create`, `findOne`, `remove`, `submit`, `list`, `revise`. Bạn tạo mới khối này. Fixture `draft` trong `describe("submit")` nằm trong scope của khối đó, không dùng lại được — khai báo fixture riêng như dưới.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Thêm một khối mới vào `apps/api/src/practice/practice.service.spec.ts`, đặt sau `describe("findOne", ...)` (giữ thứ tự khối gần với thứ tự vòng đời):
 
@@ -266,12 +266,12 @@ Thêm một khối mới vào `apps/api/src/practice/practice.service.spec.ts`, 
 
 `ConflictException` đã được import ở đầu file spec — không thêm import trùng.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd apps/api && npx jest src/practice/practice.service.spec.ts`
 Expected: FAIL — `data.handledMarks` is undefined in the first test.
 
-- [ ] **Step 3: Add the DTO field**
+- [x] **Step 3: Add the DTO field**
 
 Trong `apps/api/src/practice/dto/practice.dto.ts`, thêm `IsArray` vào import từ `class-validator`, rồi thêm vào cuối `UpdateAttemptDto`:
 
@@ -282,7 +282,7 @@ Trong `apps/api/src/practice/dto/practice.dto.ts`, thêm `IsArray` vào import t
   handledMarks?: string[];
 ```
 
-- [ ] **Step 4: Write it in the service**
+- [x] **Step 4: Write it in the service**
 
 Trong `apps/api/src/practice/practice.service.ts`, trong object `data` của `update()`, thêm ngay sau dòng `hintsOpened`:
 
@@ -294,12 +294,12 @@ Trong `apps/api/src/practice/practice.service.ts`, trong object `data` của `up
 
 Dùng `!== undefined` chứ không phải kiểm truthy: mảng rỗng là giá trị hợp lệ (bỏ đánh dấu hết) và phải được ghi.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `cd apps/api && npx jest src/practice`
 Expected: PASS — kể cả các test `update` cũ.
 
-- [ ] **Step 6: Add e2e coverage**
+- [x] **Step 6: Add e2e coverage**
 
 Trong `apps/api/test/app.e2e-spec.ts`, `describe("practice", ...)`, thêm test dùng đúng helper sẵn có (`server()`, `registerUser(email)` trả `{ accessToken }`, `mockPracticeAi()`):
 
@@ -349,12 +349,12 @@ Trong `apps/api/test/app.e2e-spec.ts`, `describe("practice", ...)`, thêm test d
 
 Test thứ hai cần `mockPracticeAi()` cho lời gọi tạo đề — nếu nó nằm ngoài phạm vi mock sẵn có, gọi `mockPracticeAi()` ở đầu test đó luôn.
 
-- [ ] **Step 7: Run the e2e suite**
+- [x] **Step 7: Run the e2e suite**
 
 Run: `cd apps/api && npx jest --config ./test/jest-e2e.json --runInBand`
 Expected: PASS — toàn bộ e2e cũ vẫn xanh cộng 2 test mới.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/api/src/practice/dto/practice.dto.ts apps/api/src/practice/practice.service.ts apps/api/src/practice/practice.service.spec.ts apps/api/test/app.e2e-spec.ts
@@ -379,7 +379,7 @@ git commit -m "Accept handledMarks on the practice autosave route"
 
 **Vì sao cần `parentPlainText`:** `WritingMark` chỉ lưu `start`/`end`, **không lưu đoạn trích**. Đoạn chữ gốc phải cắt ra bằng `parentPlainText.slice(mark.start, mark.end)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `apps/web/src/practice/RevisionChecklist.test.tsx`:
 
@@ -491,12 +491,12 @@ describe("RevisionChecklist", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm --filter @writing-helper/web test RevisionChecklist`
 Expected: FAIL — cannot resolve `./RevisionChecklist`.
 
-- [ ] **Step 3: Write the component**
+- [x] **Step 3: Write the component**
 
 Create `apps/web/src/practice/RevisionChecklist.tsx`:
 
@@ -577,12 +577,12 @@ export function RevisionChecklist({
 }
 ```
 
-- [ ] **Step 4: Run tests and typecheck**
+- [x] **Step 4: Run tests and typecheck**
 
 Run: `pnpm --filter @writing-helper/web test RevisionChecklist && pnpm --filter @writing-helper/web typecheck`
 Expected: PASS — 8 tests; typecheck clean.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/web/src/practice/RevisionChecklist.tsx apps/web/src/practice/RevisionChecklist.test.tsx
@@ -603,7 +603,7 @@ git commit -m "Add the revision checklist component"
 
 **Ghi chú về code sẵn có:** `ExamRoom` đã có `const parent = useQuery({ queryKey: ["practice-attempt", attempt.parentAttemptId], ... })` và truyền `parentFeedback={parent.data?.feedback ?? null}` xuống `PromptPane`. Lấy `marks` và `plainText` của bài gốc từ **cùng query đó** — không thêm request nào. `save` là `useMutation` gọi `updateAttempt`.
 
-- [ ] **Step 1: Add the two fields to the API client types**
+- [x] **Step 1: Add the two fields to the API client types**
 
 Trong `apps/web/src/api/practice.ts`:
 
@@ -620,7 +620,7 @@ và vào `UpdateAttemptInput`:
   handledMarks?: string[];
 ```
 
-- [ ] **Step 2: Write the failing regression test**
+- [x] **Step 2: Write the failing regression test**
 
 Trong `apps/web/src/pages/PracticeAttemptPage.test.tsx`, thêm test khẳng định phòng sửa **không** còn vẽ mark.
 
@@ -638,12 +638,12 @@ File này **đã có sẵn** stub `Editor` phơi ra thuộc tính `data-marks` t
 
 Dựng bản sửa bằng đúng cách file đang mock: `vi.mocked(getAttempt)` trả về attempt đang mở với `revisionRound: 1` và `parentAttemptId` khác null, và trả về bài gốc (khi được gọi với id của parent) có `marks` là mảng ít nhất một mark cùng `plainText` chứa đoạn chữ tương ứng. Đặt tên helper theo nếp các helper dựng dữ liệu sẵn có trong file.
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `pnpm --filter @writing-helper/web test PracticeAttemptPage`
 Expected: FAIL — chưa có mục "To fix", và `savedMarks` vẫn được truyền.
 
-- [ ] **Step 4: Remove the underline machinery from `ExamRoom`**
+- [x] **Step 4: Remove the underline machinery from `ExamRoom`**
 
 Trong `apps/web/src/pages/PracticeAttemptPage.tsx`, xoá ba thứ tồn tại chỉ để chống lệch offset:
 
@@ -657,7 +657,7 @@ Trong `apps/web/src/pages/PracticeAttemptPage.tsx`, xoá ba thứ tồn tại ch
 
 Rồi bỏ hẳn prop `savedMarks={carriedMarks}` khỏi lời gọi `<Editor>` trong `ExamRoom`. `<Editor>` ở `ResultView` **không đụng tới**.
 
-- [ ] **Step 5: Wire the checklist through `PromptPane`**
+- [x] **Step 5: Wire the checklist through `PromptPane`**
 
 Trong `ExamRoom`, thêm state và handler cạnh `save`:
 
@@ -689,7 +689,7 @@ Truyền xuống `PromptPane` cạnh `parentFeedback`:
             onToggleHandled={toggleHandled}
 ```
 
-- [ ] **Step 6: Render it in `PromptPane`**
+- [x] **Step 6: Render it in `PromptPane`**
 
 Thêm bốn prop vào cả phần destructure lẫn kiểu props của `PromptPane`:
 
@@ -715,17 +715,17 @@ Thêm `import { RevisionChecklist } from "../practice/RevisionChecklist";`, thê
 
 `RevisionChecklist` tự trả `null` khi mảng rỗng, nên bài gốc sạch lỗi (`[]`) hay bóc lỗi hỏng (`null`) đều không hiện gì.
 
-- [ ] **Step 7: Run the web suite and typecheck**
+- [x] **Step 7: Run the web suite and typecheck**
 
 Run: `pnpm --filter @writing-helper/web test && pnpm --filter @writing-helper/web typecheck`
 Expected: PASS, typecheck clean. Nếu fixture attempt trong test nào đó thiếu `handledMarks`, thêm `handledMarks: null` vào fixture — chỉ sửa phần dựng dữ liệu, **không được nới lỏng assertion nào**.
 
-- [ ] **Step 8: Confirm the dead machinery is gone**
+- [x] **Step 8: Confirm the dead machinery is gone**
 
 Run: `grep -rn "liveText\|carriedMarks" apps/web/src`
 Expected: no output.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add apps/web/src/api/practice.ts apps/web/src/pages/PracticeAttemptPage.tsx apps/web/src/pages/PracticeAttemptPage.test.tsx
@@ -742,20 +742,20 @@ git commit -m "Swap revision-room underlines for the checklist"
 - Consumes: toàn bộ Task 1–5.
 - Produces: không.
 
-- [ ] **Step 1: Run everything**
+- [x] **Step 1: Run everything**
 
 Run: `pnpm test && pnpm lint`
 Expected: toàn bộ suite xanh, lint sạch.
 
-- [ ] **Step 2: Start the app**
+- [x] **Step 2: Start the app**
 
 Run: `docker start writing-helper-db`, rồi mở preview qua launch config `writing-helper`.
 
-- [ ] **Step 3: Reach a revision room with marks**
+- [x] **Step 3: Reach a revision room with marks**
 
 Đăng nhập, mở một bài **đã nộp và có mark**, bấm **Revise this paper**. Không cần nộp bài mới — mỗi lần nộp tốn hai lượt gọi AI thật; các bài cũ đã đủ dùng. Nếu tài khoản chưa có bài nào có mark, nộp **một** bài, đừng lặp.
 
-- [ ] **Step 4: Check the checklist against the spec**
+- [x] **Step 4: Check the checklist against the spec**
 
 Xác nhận bằng mắt:
 - Mục `To fix · 0/N` hiện **trên** `Previous feedback`.
@@ -764,19 +764,45 @@ Xác nhận bằng mắt:
 - Đánh dấu một dòng → gạch ngang, mờ đi, **giữ nguyên vị trí**, bộ đếm lên `1/N`.
 - **Gõ vào bài → không có gạch chân nào xuất hiện trên chữ, và checklist không mất.** Đây là điều cả bản này tồn tại vì nó.
 
-- [ ] **Step 5: Check the tick survives a reload**
+- [x] **Step 5: Check the tick survives a reload**
 
 Tải lại trang. Các dòng đã đánh dấu vẫn còn đánh dấu, bộ đếm vẫn đúng.
 
-- [ ] **Step 6: Check the results screen is untouched**
+- [x] **Step 6: Check the results screen is untouched**
 
 Mở màn kết quả của một bài đã nộp. Lăng kính `mistakes` vẫn gạch chân như cũ, thẻ lỗi vẫn mở được — bản này không được đụng tới nó.
 
-- [ ] **Step 7: Report**
+- [x] **Step 7: Report**
 
 Ghi lại những gì quan sát được, kèm ảnh chụp phòng sửa có checklist. Nếu có gì lệch spec, báo cáo chứ đừng tự sửa ngoài phạm vi.
 
 ---
+
+## Đã thực hiện — hai chỗ plan sai, sửa khi chạy
+
+**Task 3 — fixture `editable` thiếu `revisions`.** `update()` gọi `findOne()`, và
+`findOne()` destructure `revisions` rồi đọc `revisions[0]`. Fixture như plan viết
+sẽ ném `Cannot read properties of undefined`. Đã thêm `revisions: []`.
+
+**Task 5 — plan bỏ sót cả một khối test sẵn có.** `PracticeAttemptPage.test.tsx`
+có `describe("PracticeAttemptPage ExamRoom carries the parent's marks")` với 4
+test khẳng định *đúng hành vi mà bản này xoá đi*: vẽ mark khi chữ còn khớp, và
+xoá sạch ở phím đầu tiên. Plan chỉ nói "thêm một test hồi quy".
+
+Bốn test đó **viết lại theo hợp đồng mới**, không xoá — cùng cách xử lý như đợt 1:
+
+| Test cũ | Test mới |
+|---|---|
+| paints the parent's marks while the text still matches | lists them in the panel and paints nothing over the paper |
+| clears them on the first keystroke | **keeps the list after the first keystroke** |
+| does not paint them when a part-written revision is reopened | lists them for a part-written revision reopened later |
+| paints nothing on a first draft | lists nothing on a first draft |
+
+Thêm hai test nữa cho phần lưu: gửi khoá ngay khi bấm, và nạp lại từ khoá đã lưu.
+
+Ngoài ra: `prisma generate` phải chạy lại sau Task 2, nếu không e2e trả 500
+(`PrismaClientValidationError`) — client sinh ra không biết cột mới. Lần thứ ba
+bẫy này bắt được trong dự án; đáng thêm vào bước migration của plan sau.
 
 ## Rủi ro cần theo dõi
 

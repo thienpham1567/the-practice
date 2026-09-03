@@ -101,6 +101,7 @@ const gradedAttempt: PracticeAttemptDetail = {
   hasRevision: false,
   pendingRevisionId: null,
   marks: null,
+  handledMarks: null,
 };
 
 function renderPage(attemptId = "a1") {
@@ -614,7 +615,7 @@ function mockChain(revision: PracticeAttemptDetail) {
   });
 }
 
-describe("PracticeAttemptPage ExamRoom carries the parent's marks", () => {
+describe("PracticeAttemptPage ExamRoom lists the parent's marks", () => {
   beforeEach(() => {
     navigate.mockReset();
     vi.mocked(getAttempt).mockReset();
@@ -624,42 +625,77 @@ describe("PracticeAttemptPage ExamRoom carries the parent's marks", () => {
     cleanup();
   });
 
-  it("paints the parent's marks while the revision still holds the original text", async () => {
+  it("lists them in the panel and paints nothing over the paper", async () => {
     mockChain(carriedRevision);
     renderPage("rev-1");
 
     await screen.findByText("Revision 1/2");
-    await waitFor(() => expect(painted().marks).toContain("word-order"));
-    expect(painted().marks).toContain("article");
-  });
-
-  it("clears them on the first keystroke, when the offsets stop matching the text", async () => {
-    mockChain(carriedRevision);
-    renderPage("rev-1");
-
-    await screen.findByText("Revision 1/2");
-    await waitFor(() => expect(painted().marks).toContain("word-order"));
-
-    fireEvent.click(screen.getByRole("button", { name: "Type into the paper" }));
-
+    expect(await screen.findByText(/to fix/i)).toBeTruthy();
+    // Đoạn chữ gốc cắt từ plainText của bài gốc, không phải từ offset trên bài đang sửa.
+    expect(screen.getByText("Dear")).toBeTruthy();
+    expect(screen.getByText("teacher")).toBeTruthy();
     expect(painted().marks).toBe("none");
   });
 
-  it("does not paint them when a part-written revision is reopened", async () => {
+  /*
+    Đây là lý do cả bản này tồn tại. Bản cũ ẩn toàn bộ mark ngay phím đầu tiên,
+    nên sửa lỗi thứ nhất là mất danh sách chín lỗi còn lại.
+  */
+  it("keeps the list after the first keystroke", async () => {
+    mockChain(carriedRevision);
+    renderPage("rev-1");
+
+    await screen.findByText(/to fix/i);
+
+    fireEvent.click(screen.getByRole("button", { name: "Type into the paper" }));
+
+    expect(screen.getByText(/to fix/i)).toBeTruthy();
+    expect(screen.getByText("teacher")).toBeTruthy();
+    expect(painted().marks).toBe("none");
+  });
+
+  it("lists them for a part-written revision reopened later", async () => {
     mockChain({ ...carriedRevision, plainText: "Dear teacher, thank you so much." });
     renderPage("rev-1");
 
     await screen.findByText("Revision 1/2");
-    await screen.findByText("Previous feedback");
+    expect(await screen.findByText(/to fix/i)).toBeTruthy();
+    expect(screen.getByText("teacher")).toBeTruthy();
     expect(painted().marks).toBe("none");
   });
 
-  it("paints nothing on a first draft, which has no parent to carry", async () => {
+  it("lists nothing on a first draft, which has no parent to read", async () => {
     vi.mocked(getAttempt).mockResolvedValue(openAttemptWithReview);
     renderPage("open-1");
 
     await screen.findByLabelText("Time remaining");
+    expect(screen.queryByText(/to fix/i)).toBeNull();
     expect(painted().marks).toBe("none");
+  });
+
+  it("sends the ticked key straight to the server", async () => {
+    mockChain(carriedRevision);
+    renderPage("rev-1");
+
+    await screen.findByText(/to fix/i);
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "teacher" }));
+
+    await waitFor(() =>
+      expect(vi.mocked(updateAttempt)).toHaveBeenCalledWith("rev-1", {
+        handledMarks: ["5:12"],
+      }),
+    );
+  });
+
+  it("starts from the keys already stored on the revision", async () => {
+    mockChain({ ...carriedRevision, handledMarks: ["5:12"] });
+    renderPage("rev-1");
+
+    await screen.findByText(/to fix/i);
+
+    expect(screen.getByRole("checkbox", { name: "teacher" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Dear" })).not.toBeChecked();
   });
 });
 
