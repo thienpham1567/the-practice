@@ -124,6 +124,12 @@ Expected: PASS — 3 test.
 
 Typecheck sẽ **chưa** sạch: 4 chỗ gọi còn thiếu prop `level`. Đó là đúng, Task 2 sửa. Đừng thêm `?` vào `level` để làm typecheck im — prop bắt buộc là chủ ý.
 
+Nghĩa là commit ở Step 5 **cố ý để typecheck đỏ**, và cây code chỉ xanh trở lại
+sau Task 2. Chấp nhận vì hai task này luôn đi cùng nhau trong một nhánh và chỉ
+merge khi cả hai xong; tách ra chỉ để review từng phần cho gọn. Đừng gộp bừa
+Task 2 vào đây để "commit nào cũng xanh" — nhưng cũng đừng dừng nhánh lại ở
+cuối Task 1.
+
 - [ ] **Step 5: Commit**
 
 ```bash
@@ -209,7 +215,43 @@ Rồi ở chỗ gọi, thêm `level={attempt.level}` vào giữa `band` và `lat
 
 - [ ] **Step 3: `TalkBandMeta` trong `SpeakingPage.tsx`**
 
-Làm y hệt Step 2 nhưng cho `TalkBandMeta`: thêm `level: Level` vào props, truyền `level={level}` vào `<BandStamp>`, và thêm `level={attempt.level}` ở chỗ gọi. `Level` cũng đã được import sẵn (`import { computeStreak, type Level } from "@writing-helper/practice";`).
+```tsx
+function TalkBandMeta({
+  band,
+  level,
+  latestBand,
+  revisionCount,
+}: {
+  band: number | null;
+  level: Level;
+  latestBand: number | null;
+  revisionCount: number;
+}) {
+  const summary = formatChainSummary(band, latestBand, revisionCount);
+  if (summary) {
+    return (
+      <span className="shrink-0 font-mono text-[0.75rem] tracking-wide text-ink-soft">
+        {summary}
+      </span>
+    );
+  }
+  if (band !== null) return <BandStamp band={band} level={level} size="sm" />;
+  return null;
+}
+```
+
+Và ở chỗ gọi:
+
+```tsx
+                    <TalkBandMeta
+                      band={attempt.band}
+                      level={attempt.level}
+                      latestBand={attempt.latestBand}
+                      revisionCount={attempt.revisionCount}
+                    />
+```
+
+`Level` đã được import sẵn ở đầu file (`import { computeStreak, type Level } from "@writing-helper/practice";`) — không thêm import trùng.
 
 - [ ] **Step 4: Chốt dòng danh sách writing bằng test**
 
@@ -225,6 +267,23 @@ Dòng danh sách writing trước bản này **không hiện mức ở đâu c�
 ```
 
 Fixture `rootNoRevisions` đã có `level: "B1"` — không sửa fixture.
+
+Thêm test tương ứng vào `apps/web/src/pages/SpeakingPage.test.tsx`, sau test
+`"lists past attempts with band stamps"`:
+
+```tsx
+  it("shows which level the talk's band was earned on", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisions]);
+    renderPage();
+
+    expect(await screen.findByText("B1 task")).toBeTruthy();
+  });
+```
+
+Test speaking sẵn có dùng `getByRole("link", { name: /B1/i })` — nó khớp ngay cả
+khi stamp không hiện mức, vì dòng đã in `Part 2 · B1`. Nên nó **không** chốt
+được hành vi này; cần test riêng ở trên. Fixture speaking cũng đã có
+`level: "B1"`.
 
 - [ ] **Step 5: Chạy toàn bộ test web và typecheck**
 
