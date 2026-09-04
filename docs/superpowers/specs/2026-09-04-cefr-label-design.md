@@ -82,10 +82,14 @@ band không kèm mức chính là thứ bản này đang sửa.
 | `pages/PracticeAttemptPage.tsx` | `<BandStamp band={attempt.band} />` | `attempt.level` |
 | `pages/SpeakingAttemptPage.tsx` | `<BandStamp band={attempt.band} />` | `attempt.level` |
 | `pages/PracticePage.tsx` | trong `PaperBandMeta` | thêm prop `level` cho `PaperBandMeta`, truyền `attempt.level` |
-| `pages/SpeakingPage.tsx` | trong cùng dạng component | như trên |
+| `pages/SpeakingPage.tsx` | trong `TalkBandMeta` | thêm prop `level`, truyền `attempt.level` |
 
 `PracticeAttemptSummary` và `SpeakingAttemptSummary` đều đã có `level`, và
 `LIST_FIELDS` phía API đã trả nó. **Không đổi API, không migration.**
+
+Lưu ý ở hai component danh sách: cả `PaperBandMeta` lẫn `TalkBandMeta` đều trả
+về `formatChainSummary(...)` trước khi tới `<BandStamp>` khi bài có bản sửa —
+nhánh đó là chuỗi dạng `5.5 → 6.5`, không phải stamp, nên **không** đụng tới.
 
 ### Xoá
 
