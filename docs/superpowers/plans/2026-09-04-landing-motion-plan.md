@@ -482,7 +482,7 @@ export const LANDING_DEMO = {
 /** Minh hoạ sổ lỗi. Hằng, không gọi API: landing là trang công khai. */
 export const LANDING_MISTAKES = {
   kicker: "Your notebook",
-  lines: ["Sit the paper. The same mistakes", "stop hiding after a week."],
+  lines: ["The same mistakes", "stop hiding after a week."],
   tallies: [
     { label: "Articles", count: 7 },
     { label: "Verb tense", count: 5 },
@@ -570,10 +570,12 @@ describe("LandingDemo", () => {
     expect(() => vi.advanceTimersByTime(4000)).not.toThrow();
   });
 
+  /* Khối demo có hai <p> (câu và dòng chốt), nên phải trỏ đích danh, không
+     dùng getByRole("paragraph") — nó sẽ báo "multiple elements". */
   it("reads as one sentence, mistakes and all", () => {
     render(<LandingDemo />);
 
-    expect(screen.getByRole("paragraph")).toHaveTextContent(
+    expect(screen.getByTestId("demo-sentence")).toHaveTextContent(
       "I am very happy that you will come to my city. I want to suggest three activity we can do together in weekend.",
     );
   });
@@ -629,7 +631,7 @@ export function LandingDemo() {
 
   return (
     <div className="landing-demo">
-      <p className="font-display text-2xl leading-relaxed sm:text-3xl">
+      <p data-testid="demo-sentence" className="font-display text-2xl leading-relaxed sm:text-3xl">
         {LANDING_DEMO.lead}{" "}
         {LANDING_DEMO.fixes.map((fix, index) => (
           <span key={fix.wrong}>
@@ -763,17 +765,197 @@ Expected: FAIL — chưa có mục nào trong số đó.
 
 - [ ] **Step 3: Dựng lại trang**
 
-Viết lại `apps/web/src/pages/LandingPage.tsx`. Yêu cầu bắt buộc:
+Thay toàn bộ `apps/web/src/pages/LandingPage.tsx` bằng:
 
-1. Giữ `<PageAtmosphere kind="folio" />`, `<Masthead>` + `folioDateline(now)`, prop `now?: Date`.
-2. Headline `LANDING_HEADLINE` qua `<RevealLines as="h1">`, tách thành `["Sit the paper.", "Take the turn."]` — `join(" ")` phải dựng lại **đúng** `LANDING_HEADLINE`.
-3. Hero `min-h-screen` (không phải `h-screen`), nội dung căn giữa, chứa `<LandingDemo />`.
-4. Bốn mục sau, mỗi mục bọc trong một phần tử mang ref `useInView`, cách nhau `py-32` trở lên:
-   - **Paper & Talk** — hai `<article>` thẻ đề **giữ nguyên nội dung và cấu trúc hiện có**, thêm class `reveal-up`, thẻ thứ hai đặt `style={{ "--reveal-delay": "120ms" }}`.
-   - **Sổ lỗi** — `LANDING_MISTAKES`: kicker, `<RevealLines as="h2" lines={LANDING_MISTAKES.lines} />`, rồi danh sách `label` + `count`.
-   - **Tiến bộ** — `LANDING_TREND`: kicker, `<RevealLines as="h2">`, và một `<svg>` inline chứa `<polyline className="landing-trend-line">`. Toạ độ tính từ `LANDING_TREND.bands`; `points` phải có đúng một cặp mỗi band, ngăn bằng dấu cách. Đặt `--trend-length` bằng một số lớn hơn chiều dài đường (ví dụ `1000`) qua `style`.
-   - **CTA** — ba link `Begin practice` → `/register`, `Open a draft` → `/write`, `Sign in` → `/login`, **giữ nguyên chữ và href**.
-5. Bỏ `animate-fade-up` cũ ở những chỗ nay dùng `reveal-up`; giữ `animate-fade-up` cho `<Masthead>` nếu muốn.
+```tsx
+import type { CSSProperties } from "react";
+import { Link } from "react-router-dom";
+import { AppMark } from "../AppMark";
+import { folioDateline } from "../folio/folio-dateline";
+import {
+  LANDING_DEMO,
+  LANDING_LEDE,
+  LANDING_MISTAKES,
+  LANDING_PAPER,
+  LANDING_TALK,
+  LANDING_TREND,
+} from "../folio/landing-copy";
+import { Masthead } from "../folio/Masthead";
+import { PageAtmosphere } from "../folio/PageAtmosphere";
+import { LandingDemo } from "../landing/LandingDemo";
+import { RevealLines } from "../motion/RevealLines";
+import { useInView } from "../motion/use-in-view";
+
+/*
+  LANDING_HEADLINE ngắt làm hai dòng. `join(" ")` trong RevealLines phải dựng
+  lại đúng nguyên văn hằng đó, kể cả dấu chấm — test cũ ghim chuỗi đầy đủ.
+*/
+const HEADLINE_LINES = ["Sit the paper.", "Take the turn."];
+
+/** Đường band, vẽ trong hệ toạ độ 100×40 rồi để SVG co giãn. */
+function trendPoints(bands: readonly number[]): string {
+  const low = Math.min(...bands);
+  const high = Math.max(...bands);
+  const span = high - low || 1;
+  return bands
+    .map((band, index) => {
+      const x = (index / (bands.length - 1)) * 100;
+      const y = 40 - ((band - low) / span) * 40;
+      return `${x.toFixed(2)},${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
+export function LandingPage({ now = new Date() }: { now?: Date }) {
+  const tasksRef = useInView<HTMLElement>();
+  const mistakesRef = useInView<HTMLElement>();
+  const trendRef = useInView<HTMLElement>();
+  const ctaRef = useInView<HTMLElement>();
+
+  return (
+    <main className="relative">
+      <PageAtmosphere kind="folio" />
+
+      <div className="mx-auto max-w-3xl px-6 pt-14">
+        <div className="animate-fade-up">
+          <Masthead>
+            <p className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+              {folioDateline(now)}
+            </p>
+          </Masthead>
+        </div>
+      </div>
+
+      {/* Hero: min-h chứ không h, để màn ngang thấp vẫn cuộn tới CTA được. */}
+      <section className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-6 py-20">
+        <RevealLines
+          as="h1"
+          lines={HEADLINE_LINES}
+          className="font-display text-5xl font-semibold tracking-tight sm:text-6xl"
+        />
+        <p className="mt-6 max-w-xl text-lg text-ink-soft">{LANDING_LEDE}</p>
+
+        <div className="mt-16 border-t border-rule pt-10">
+          <LandingDemo />
+        </div>
+      </section>
+
+      <section ref={tasksRef} className="mx-auto max-w-3xl px-6 py-32">
+        <article className="reveal-up relative overflow-hidden border border-rule px-5 py-8 sm:px-8 sm:py-10">
+          <AppMark className="pointer-events-none absolute -right-2 -top-2 h-12 w-12 -rotate-6 text-vermilion sm:-right-3 sm:-top-3 sm:h-14 sm:w-14" />
+          <p className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+            {LANDING_PAPER.kicker}
+          </p>
+          <p className="mt-4 text-ink-soft">{LANDING_PAPER.instruction}</p>
+          <p className="mt-4 font-display text-xl leading-snug">{LANDING_PAPER.prompt}</p>
+        </article>
+
+        <article
+          className="reveal-up relative mt-4 overflow-hidden border border-rule px-5 py-8 sm:px-8 sm:py-10"
+          style={{ "--reveal-delay": "120ms" } as CSSProperties}
+        >
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-1 -top-4 font-display text-7xl leading-none text-vermilion/25 sm:-right-2 sm:-top-5 sm:text-8xl"
+          >
+            &ldquo;
+          </span>
+          <p className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+            {LANDING_TALK.kicker}
+          </p>
+          <p className="mt-4 text-ink-soft">{LANDING_TALK.instruction}</p>
+          <p className="mt-4 font-display text-xl leading-snug">{LANDING_TALK.prompt}</p>
+        </article>
+      </section>
+
+      <section ref={mistakesRef} className="mx-auto max-w-3xl px-6 py-32">
+        <p className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+          {LANDING_MISTAKES.kicker}
+        </p>
+        <RevealLines
+          as="h2"
+          lines={[...LANDING_MISTAKES.lines]}
+          className="mt-4 font-display text-3xl leading-tight sm:text-4xl"
+        />
+        <ul className="mt-10 space-y-3">
+          {LANDING_MISTAKES.tallies.map((tally, index) => (
+            <li
+              key={tally.label}
+              className="reveal-up flex items-baseline justify-between border-b border-rule pb-2"
+              style={{ "--reveal-delay": `${index * 120}ms` } as CSSProperties}
+            >
+              <span className="font-display text-lg">{tally.label}</span>
+              <span className="font-mono text-sm tabular-nums text-vermilion">
+                &times;{tally.count}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section ref={trendRef} className="mx-auto max-w-3xl px-6 py-32">
+        <p className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+          {LANDING_TREND.kicker}
+        </p>
+        <RevealLines
+          as="h2"
+          lines={[...LANDING_TREND.lines]}
+          className="mt-4 font-display text-3xl leading-tight sm:text-4xl"
+        />
+        <svg
+          viewBox="0 0 100 40"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label="Band scores rising over eight weeks"
+          className="mt-10 h-32 w-full"
+        >
+          <polyline
+            className="landing-trend-line"
+            points={trendPoints(LANDING_TREND.bands)}
+            fill="none"
+            stroke="var(--color-vermilion)"
+            strokeWidth="0.6"
+            vectorEffect="non-scaling-stroke"
+            style={{ "--trend-length": 400 } as CSSProperties}
+          />
+        </svg>
+      </section>
+
+      <section ref={ctaRef} className="mx-auto max-w-3xl px-6 pb-32">
+        <div className="reveal-up flex flex-wrap items-baseline gap-x-6 gap-y-3">
+          <Link
+            to="/register"
+            className="bg-ink px-5 py-2 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion"
+          >
+            Begin practice
+          </Link>
+          <Link
+            to="/write"
+            className="text-vermilion decoration-vermilion/40 underline-offset-4 hover:underline"
+          >
+            Open a draft
+          </Link>
+        </div>
+        <p
+          className="reveal-up mt-6 text-sm text-ink-soft"
+          style={{ "--reveal-delay": "120ms" } as CSSProperties}
+        >
+          Already have an account?{" "}
+          <Link to="/login" className="text-vermilion underline underline-offset-2">
+            Sign in
+          </Link>
+        </p>
+      </section>
+    </main>
+  );
+}
+```
+
+Ba điểm dễ làm hỏng:
+
+1. `HEADLINE_LINES.join(" ")` **phải** bằng đúng `LANDING_HEADLINE`. Test cũ ghim chuỗi đầy đủ; ngắt sai chỗ là nó đỏ, và đó là tín hiệu đúng.
+2. `[...LANDING_MISTAKES.lines]` — hằng khai báo `as const` nên là mảng readonly; `RevealLines` nhận `string[]`, phải sao chép ra.
+3. `trendPoints` nối bằng **một** dấu cách và không có dấu cách thừa ở đầu/cuối — test đếm `points.split(" ").length` bằng số band.
 
 - [ ] **Step 4: Chạy cả hai file test của trang**
 
