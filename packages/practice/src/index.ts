@@ -22,7 +22,6 @@ export { pickTask } from "./pick-task";
 export { pickSpeakingTask } from "./pick-speaking-task";
 export { overallBand } from "./overall-band";
 export { speakingFluency } from "./speaking-fluency";
-export { bandToCefr } from "./band-to-cefr";
 export { computeStreak, type Streak } from "./compute-streak";
 export { MARK_CATEGORIES, MARK_LABELS, MARK_SEVERITY } from "./mark-catalog";
 export {
