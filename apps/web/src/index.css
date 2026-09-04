@@ -931,3 +931,113 @@ body::before {
   opacity: 0.5;
   pointer-events: none;
 }
+
+/*
+ * Hệ chuyển động của landing page. Kích hoạt bằng class `in-view` do
+ * `useInView` gắn vào — không thư viện animation nào.
+ *
+ * Thời lượng 1.4–2.0s là chủ ý, không phải nhầm. Animation web thường 200–400ms;
+ * chính sự chậm này tạo cảm giác điềm tĩnh, "biên tập". Rút xuống 300ms là mất
+ * sạch tính cách và thành một trang khác hẳn.
+ */
+:root {
+  --ease-settle: cubic-bezier(0.43, 0.195, 0.02, 1);
+}
+
+.reveal-up {
+  opacity: 0;
+  transform: translateY(1.5rem);
+}
+.reveal-up.in-view,
+.in-view .reveal-up {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 1.4s var(--ease-settle),
+    transform 1.4s var(--ease-settle);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.settle {
+  transform: scale(1.03);
+}
+.settle.in-view,
+.in-view .settle {
+  transform: scale(1);
+  transition: transform 2s var(--ease-settle);
+}
+
+/* Chữ vào theo từng dòng. 70ms mỗi dòng — đo từ trang tham chiếu. */
+.reveal-lines > [data-line] {
+  opacity: 0;
+  transform: translateY(0.6em);
+}
+.reveal-lines.in-view > [data-line],
+.in-view .reveal-lines > [data-line] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 1.4s var(--ease-settle),
+    transform 1.4s var(--ease-settle);
+  transition-delay: calc(var(--line-index) * 70ms);
+}
+
+/*
+ * Gạch chân lỗi tự vẽ từ trái sang. Không dùng ::highlight(wh-error) được:
+ * CSS Custom Highlight API không animate, và cần JS Range để dựng.
+ *
+ * Màu son phải viết thẳng vào data URI (%23c14324) vì data URI không đọc được
+ * biến CSS. Nếu --color-vermilion đổi, phải sửa cả ở đây.
+ */
+.landing-mark {
+  position: relative;
+  white-space: nowrap;
+}
+.landing-mark::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 3px;
+  width: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='3'%3E%3Cpath d='M0 2 Q1.5 0 3 2 T6 2' fill='none' stroke='%23c14324' stroke-width='1'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  transition: width 0.7s var(--ease-settle);
+}
+.landing-mark.is-marked::after {
+  width: 100%;
+}
+
+/* Đường band tự vẽ ở màn tiến bộ. */
+.landing-trend-line {
+  stroke-dasharray: var(--trend-length);
+  stroke-dashoffset: var(--trend-length);
+}
+.in-view .landing-trend-line {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 2s var(--ease-settle);
+}
+
+/*
+ * Trang tham chiếu bỏ qua chỗ này — nó chỉ có 2 rule reduced-motion, không tắt
+ * được primitive nào, nên phải bù bằng một toggle "Accessibility Mode" thủ công
+ * ở góc màn hình. Làm đúng ở đây thì không cần cái toggle đó.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up,
+  .settle,
+  .reveal-lines > [data-line],
+  .landing-mark::after,
+  .landing-trend-line {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+  .landing-mark::after {
+    width: 100%;
+  }
+  .landing-trend-line {
+    stroke-dashoffset: 0;
+  }
+}
