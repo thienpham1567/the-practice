@@ -118,6 +118,7 @@ export function PracticePage() {
                     </span>
                     <PaperBandMeta
                       band={attempt.band}
+                      level={attempt.level}
                       latestBand={attempt.latestBand}
                       revisionCount={attempt.revisionCount}
                     />
@@ -135,10 +136,12 @@ export function PracticePage() {
 
 function PaperBandMeta({
   band,
+  level,
   latestBand,
   revisionCount,
 }: {
   band: number | null;
+  level: Level;
   latestBand: number | null;
   revisionCount: number;
 }) {
@@ -150,6 +153,6 @@ function PaperBandMeta({
       </span>
     );
   }
-  if (band !== null) return <BandStamp band={band} size="sm" />;
+  if (band !== null) return <BandStamp band={band} level={level} size="sm" />;
   return null;
 }

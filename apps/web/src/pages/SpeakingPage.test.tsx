@@ -78,6 +78,13 @@ describe("SpeakingPage", () => {
     expect(screen.getByRole("link", { name: /B1/i })).toBeTruthy();
   });
 
+  it("shows which level the talk's band was earned on", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisions]);
+    renderPage();
+
+    expect(await screen.findByText("B1 task")).toBeTruthy();
+  });
+
   it("shows a chain summary when revisions exist", async () => {
     vi.mocked(listSpeakingAttempts).mockResolvedValue([rootWithRevisions]);
     renderPage();

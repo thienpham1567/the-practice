@@ -74,6 +74,13 @@ describe("PracticePage papers list", () => {
     expect(screen.queryByText(/revision/)).toBeNull();
   });
 
+  it("shows which level the paper's band was earned on", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([rootNoRevisions]);
+    renderPage();
+
+    expect(await screen.findByText("B1 task")).toBeTruthy();
+  });
+
   it("links to the progress page", async () => {
     vi.mocked(listAttempts).mockResolvedValue([]);
     renderPage();
