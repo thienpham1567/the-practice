@@ -126,6 +126,7 @@ export function SpeakingPage() {
                     </span>
                     <TalkBandMeta
                       band={attempt.band}
+                      level={attempt.level}
                       latestBand={attempt.latestBand}
                       revisionCount={attempt.revisionCount}
                     />
@@ -143,10 +144,12 @@ export function SpeakingPage() {
 
 function TalkBandMeta({
   band,
+  level,
   latestBand,
   revisionCount,
 }: {
   band: number | null;
+  level: Level;
   latestBand: number | null;
   revisionCount: number;
 }) {
@@ -158,6 +161,6 @@ function TalkBandMeta({
       </span>
     );
   }
-  if (band !== null) return <BandStamp band={band} size="sm" />;
+  if (band !== null) return <BandStamp band={band} level={level} size="sm" />;
   return null;
 }

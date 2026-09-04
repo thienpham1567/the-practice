@@ -450,7 +450,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
           <div className="px-6 py-8">
             {attempt.band !== null && (
               <div className="mb-8">
-                <BandStamp band={attempt.band} />
+                <BandStamp band={attempt.band} level={attempt.level} />
                 {attempt.parentBand != null && (
                   <p className="mt-3 font-mono text-sm tabular-nums text-ink-soft">
                     {formatBandDelta(attempt.parentBand, attempt.band)}

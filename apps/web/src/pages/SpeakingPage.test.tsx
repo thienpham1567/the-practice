@@ -39,6 +39,15 @@ const rootWithRevisions: SpeakingAttemptSummary = {
   latestBand: 6.5,
 };
 
+// level differs from the page's level-picker default ("B1", see SpeakingPage.tsx)
+// so this fixture can't pass by accident if the level came from the picker
+// instead of the attempt.
+const rootNoRevisionsC1: SpeakingAttemptSummary = {
+  ...rootNoRevisions,
+  id: "s1-c1",
+  level: "C1",
+};
+
 function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -76,6 +85,13 @@ describe("SpeakingPage", () => {
 
     expect(await screen.findByText(/Band 5\.5/)).toBeTruthy();
     expect(screen.getByRole("link", { name: /B1/i })).toBeTruthy();
+  });
+
+  it("shows which level the talk's band was earned on", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisionsC1]);
+    renderPage();
+
+    expect(await screen.findByText("C1 task")).toBeTruthy();
   });
 
   it("shows a chain summary when revisions exist", async () => {

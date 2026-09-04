@@ -43,6 +43,21 @@ const rootWithRevisions: PracticeAttemptSummary = {
   latestBand: 6.5,
 };
 
+// level differs from the page's level-picker default ("B1", see PracticePage.tsx)
+// so these fixtures can't pass by accident if the level came from the picker
+// instead of the attempt.
+const rootNoRevisionsC1: PracticeAttemptSummary = {
+  ...rootNoRevisions,
+  id: "root-1-c1",
+  level: "C1",
+};
+
+const rootWithRevisionsC1: PracticeAttemptSummary = {
+  ...rootWithRevisions,
+  id: "root-2-c1",
+  level: "C1",
+};
+
 function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -72,6 +87,23 @@ describe("PracticePage papers list", () => {
 
     expect(await screen.findByText(/Band 5\.5/)).toBeTruthy();
     expect(screen.queryByText(/revision/)).toBeNull();
+  });
+
+  it("shows which level the paper's band was earned on", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([rootNoRevisionsC1]);
+    renderPage();
+
+    expect(await screen.findByText("C1 task")).toBeTruthy();
+  });
+
+  it("shows the level even when a paper has revisions", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([rootWithRevisionsC1]);
+    renderPage();
+
+    // The revisions branch returns early with only the chain summary, so the
+    // level has to come from the row title (matching SpeakingPage's pattern).
+    expect(await screen.findByText("5.5 → 6.5 · 2 revisions")).toBeTruthy();
+    expect(await screen.findByText("Email · C1")).toBeTruthy();
   });
 
   it("links to the progress page", async () => {
