@@ -101,7 +101,7 @@ export function PracticePage() {
                   >
                     <span className="min-w-0 flex-1">
                       <span className="font-display text-lg transition-colors group-hover:text-vermilion">
-                        {spec?.label ?? attempt.taskType}
+                        {spec?.label ?? attempt.taskType} · {attempt.level}
                       </span>
                       <span className="ml-3 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
                         {when.toLocaleDateString(undefined, {

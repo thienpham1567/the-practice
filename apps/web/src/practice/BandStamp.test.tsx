@@ -24,9 +24,13 @@ describe("BandStamp", () => {
     expect(container.textContent).not.toMatch(/C1/);
   });
 
-  it("keeps both sizes readable", () => {
+  it("shrinks the stamp for size sm compared to the default lg", () => {
+    render(<BandStamp band={5} level="A2" />);
+    expect(screen.getByText("Band 5").className).toContain("text-3xl");
+    cleanup();
+
     render(<BandStamp band={5} level="A2" size="sm" />);
-    expect(screen.getByText("Band 5")).toBeTruthy();
-    expect(screen.getByText("A2 task")).toBeTruthy();
+    expect(screen.getByText("Band 5").className).toContain("text-base");
+    expect(screen.getByText("Band 5").className).not.toContain("text-3xl");
   });
 });
