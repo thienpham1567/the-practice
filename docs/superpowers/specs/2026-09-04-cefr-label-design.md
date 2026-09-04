@@ -31,11 +31,18 @@ Trong `BandStamp.tsx` đã có sẵn tooltip *"Approximate CEFR level converted 
 this IELTS band score — not the practice level you selected."* Tức là vấn đề
 từng được nhận ra và vá bằng chú thích, nhưng chữ to vẫn cứ nói `C1`.
 
-### Vấn đề phụ, cùng gốc
+### Vấn đề phụ: hai bên làm khác nhau
 
-Dòng danh sách bài (`PracticePage`, `SpeakingPage`) hiện nhãn dạng bài, ngày, và
-band — **không hiện mức đề**. Nên một bài B1 được 7 nằm ngay trên một bài C1
-được 6, và bài B1 trông giỏi hơn.
+Speaking **đã** hiện mức đúng chỗ — `Part 2 · B1` ở dòng danh sách
+(`SpeakingPage.tsx`) và ở cả hai header màn kết quả (`SpeakingAttemptPage.tsx`).
+
+Writing thì không hiện mức ở đâu cả: dòng danh sách chỉ có `Email` + ngày +
+band, header phòng thi và màn kết quả cũng chỉ có `spec.label`. Nên một bài B1
+được 7 nằm ngay trên một bài C1 được 6, và bài B1 trông giỏi hơn.
+
+Đây là lý do chọn gắn mức vào **chính stamp** thay vì vá từng trang: stamp là
+thứ đi kèm band ở mọi nơi, nên gắn vào đó thì band không bao giờ còn xuất hiện
+mà thiếu mức — kể cả ở chỗ nào đó thêm sau này.
 
 ### Ngoài phạm vi
 
@@ -53,6 +60,7 @@ kết luận không sửa prompt khi không có lý do đo được. `/progress`
 | Tuyên bố trình độ chuyển đi đâu | **`/progress`, giữ nguyên** | `levelUpVerdict` đã đòi 5 bài liên tiếp ≥ 6.5 **cùng một mức** — đó mới là bằng chứng đủ để nói về người viết. |
 | Chữ dùng | **`B1 task`**, bỏ `≈` | Chữ "task" ngăn người đọc hiểu thành "bạn là B1". `≈` chính là dấu hiệu của phỏng đoán. |
 | Dòng danh sách | **Hiện mức đề qua chính stamp** | Stamp nhỏ đã nằm sẵn ở đó; thêm mức vào nó là đủ, không cần thêm phần tử mới. |
+| Speaking sẽ hiện mức hai lần | **Chấp nhận** | Dòng speaking thành `Part 2 · B1 … Band 5.5 / B1 task`. Thừa một chút, nhưng đổi lại stamp tự đủ nghĩa ở mọi chỗ. Phương án kia — sửa riêng từng trang writing cho giống speaking — để band và mức nằm rời nhau, đúng cái đang hỏng. |
 
 ## 3. Thay đổi
 
