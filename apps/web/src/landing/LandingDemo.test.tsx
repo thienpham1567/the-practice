@@ -63,7 +63,7 @@ describe("LandingDemo", () => {
 
     unmount();
 
-    expect(() => vi.advanceTimersByTime(4000)).not.toThrow();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   /* Khối demo có hai <p> (câu và dòng chốt), nên phải trỏ đích danh, không
