@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { AppMark } from "../AppMark";
 import { folioDateline } from "../folio/folio-dateline";
 import {
-  LANDING_DEMO,
   LANDING_LEDE,
   LANDING_MISTAKES,
   LANDING_PAPER,
