@@ -64,4 +64,16 @@ describe("useInView", () => {
     expect(getByTestId("probe").className).not.toContain("in-view");
     expect(disconnect).not.toHaveBeenCalled();
   });
+
+  /*
+    Trình duyệt cổ hoặc môi trường test không stub IntersectionObserver: phải
+    hiện nội dung ngay, không được giữ opacity: 0 mãi mãi vì thiếu API.
+  */
+  it("shows the element immediately when IntersectionObserver is unsupported", () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+
+    const { getByTestId } = render(<Probe />);
+
+    expect(getByTestId("probe").className).toContain("in-view");
+  });
 });

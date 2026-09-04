@@ -1,6 +1,12 @@
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RevealLines } from "./RevealLines";
+
+// Repo này không auto-cleanup RTL giữa các test; không dọn thì các render
+// chồng lên nhau và getByRole/getByText báo "multiple elements" oan.
+afterEach(() => {
+  cleanup();
+});
 
 beforeEach(() => {
   vi.stubGlobal(

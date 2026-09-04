@@ -55,6 +55,19 @@ describe("LandingPage motion sections", () => {
   });
 
   /*
+    pathLength="100" chuẩn hoá dash math của trình duyệt về độ dài 100 bất kể
+    path thật dài bao nhiêu sau khi preserveAspectRatio="none" kéo giãn — đây
+    là cách duy nhất để stroke-dasharray/-dashoffset trong CSS (vốn không biết
+    kích thước render) khớp đúng path. Một con số cứng như 400 chỉ đúng tình cờ.
+  */
+  it("normalises the trend line's dash math with pathLength, not a hard-coded length", () => {
+    const { container } = renderPage();
+
+    const line = container.querySelector("polyline.landing-trend-line");
+    expect(line!.getAttribute("pathLength")).toBe("100");
+  });
+
+  /*
     Nội dung phải có mặt trong DOM bất kể IntersectionObserver có bắn hay không.
     Nếu render nội dung theo state của observer thì máy tìm kiếm và người tắt JS
     thấy một trang trống.

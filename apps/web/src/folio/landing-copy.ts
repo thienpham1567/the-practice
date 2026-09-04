@@ -35,7 +35,7 @@ export const LANDING_DEMO = {
     { wrong: "in weekend", right: "at the weekend", label: "Prepositions" },
   ],
   tail: [" to my city. I want to suggest ", " we can do together ", "."],
-  caption: "3 mistakes · marked",
+  caption: "3 mistakes · fixed",
 } as const;
 
 /** Minh hoạ sổ lỗi. Hằng, không gọi API: landing là trang công khai. */

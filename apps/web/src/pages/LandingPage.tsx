@@ -145,7 +145,7 @@ export function LandingPage({ now = new Date() }: { now?: Date }) {
             stroke="var(--color-vermilion)"
             strokeWidth="0.6"
             vectorEffect="non-scaling-stroke"
-            style={{ "--trend-length": 400 } as CSSProperties}
+            pathLength="100"
           />
         </svg>
       </section>
