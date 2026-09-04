@@ -166,13 +166,25 @@ Dữ liệu demo là hằng trong `landing-copy.ts`, cạnh `LANDING_PAPER`:
 
 ```ts
 export const LANDING_DEMO = {
-  before: "I am very happy that you will come...",
-  fixes: [{ wrong: "...", right: "..." }, ...],  // đúng 3
+  lead: "I am very happy that you",
+  fixes: [
+    { wrong: "will come", right: "are coming", label: "Verb tense" },
+    { wrong: "three activity", right: "three activities", label: "Singular / plural" },
+    { wrong: "in weekend", right: "at the weekend", label: "Prepositions" },
+  ],
+  tail: ["to my city. I want to suggest", "we can do together", "."],
+  caption: "3 mistakes · marked",
 } as const;
 ```
 
-Chuỗi tiếng Anh, lỗi kiểu người Việt hay mắc, khớp với các nhãn có thật trong
-`MARK_CATEGORIES`.
+Câu ghép lại đọc là: *"I am very happy that you **will come** to my city. I want
+to suggest **three activity** we can do together **in weekend**."*
+
+Ba lỗi này lấy từ bài đo variance có thật (`2026-09-02-grading-variance-measurement.md`
+mục 3) — chúng là ba trong năm lỗi mà model tìm thấy **5/5 lần** với nhãn nhất
+quán tuyệt đối. Nên demo không phải bịa: nó là thứ app thật sự bắt được.
+
+Nhãn khớp `MARK_LABELS` trong `packages/practice/src/mark-catalog.ts`.
 
 ## 6. Bốn màn sau
 
@@ -182,7 +194,7 @@ Mỗi màn một ý, cách nhau `py-32` trở lên.
 |---|---|---|
 | Paper & Talk | Hai thẻ `LANDING_PAPER` / `LANDING_TALK` đang có | `reveal-up`, lệch 120ms |
 | Sổ lỗi | Vài nhãn lỗi lặp lại kèm số đếm | `reveal-up` từng dòng |
-| Tiến bộ | Một đường band tĩnh | `stroke-dashoffset` vẽ trong 2s |
+| Tiến bộ | Một `<svg>` inline với `<polyline>` band tĩnh | `stroke-dasharray`/`stroke-dashoffset` vẽ trong 2s |
 | CTA | `Begin practice` + `Sign in` | `reveal-up` |
 
 Số liệu ở màn "Sổ lỗi" và "Tiến bộ" là **hằng minh hoạ**, đặt trong
@@ -204,9 +216,24 @@ nhập không có dữ liệu, và gọi API ở đây sẽ trả 401.
 | `useInView` | Thêm `in-view` khi observer báo giao nhau; ngắt kết nối sau lần đầu; không thêm lại |
 | `RevealLines` | Câu gốc có trong DOM cho máy đọc; bản animate `aria-hidden`; `--line-index` tăng dần |
 | Demo hero | Trạng thái cuối hiện đủ 3 câu sửa; hẹn giờ được dọn khi unmount |
-| `LandingPage` | Headline, lede, hai thẻ đề, CTA vẫn còn — bản cũ có test nào thì giữ và không nới lỏng |
+| `LandingPage` | Test cũ (`LandingPage.test.tsx`) **phải xanh nguyên trạng, không sửa một assertion nào** |
 
 `jsdom` không có `IntersectionObserver`; test phải tự stub nó.
+
+### Test cũ ghim những gì
+
+`LandingPage.test.tsx` khẳng định 9 chuỗi và 3 link. Bản dựng lại **phải giữ đủ**:
+
+- `"Sit the paper. Take the turn."` (headline) và câu lede
+- `"Vol. 1 · 26 August 2026 · Writing & speaking"` — dateline, tức **`<Masthead>` phải còn**
+- kicker + instruction + prompt của cả `LANDING_PAPER` lẫn `LANDING_TALK`
+- link `Begin practice` → `/register`, và hai link còn lại
+
+Chú ý chỗ dễ hỏng: headline đi qua `<RevealLines>` nên chuỗi đầy đủ chỉ còn nằm
+ở `<span class="sr-only">`. `getByText("Sit the paper. Take the turn.")` vẫn khớp
+span đó — **với điều kiện** `lines.join(" ")` dựng lại đúng nguyên văn, kể cả dấu
+chấm. Nếu tách dòng sai chỗ, test cũ sẽ đỏ và đó là tín hiệu đúng, không được
+sửa test để né.
 
 ## 9. Rủi ro
 
