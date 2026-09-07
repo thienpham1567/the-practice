@@ -31,7 +31,7 @@ export function SpeakingProgressCharts({ series }: SpeakingProgressChartsProps) 
       <header>
         <h2 className="font-display text-2xl font-semibold">Speaking</h2>
         <p className="mt-1 text-sm text-ink-soft">
-          Part 2 band and pace — kept apart from writing progress.
+          Part 2 band and pace, kept apart from writing progress.
         </p>
       </header>
       <SpeakingBandChart series={series} />

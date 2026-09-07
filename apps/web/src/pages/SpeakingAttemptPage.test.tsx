@@ -161,7 +161,7 @@ describe("SpeakingAttemptPage phases", () => {
 
     expect(await screen.findByRole("button", { name: /Stop recording/i })).toBeTruthy();
     expect(startSpy).toHaveBeenCalled();
-    expect(screen.getByRole("status").textContent).toMatch(/Recording — microphone live/);
+    expect(screen.getByRole("status").textContent).toMatch(/Recording. Microphone live/);
     expect(screen.getByText("Rec")).toBeTruthy();
   });
 

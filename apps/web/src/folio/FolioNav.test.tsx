@@ -34,6 +34,7 @@ describe("FolioNav", () => {
   it("omits a link back to the page you are already on", () => {
     renderNav("/speaking");
     expect(screen.queryByRole("link", { name: "Speaking" })).toBeNull();
+    expect(screen.getByText("Speaking").getAttribute("aria-current")).toBe("page");
     expect(screen.getByRole("link", { name: "Writing" })).toBeTruthy();
   });
 

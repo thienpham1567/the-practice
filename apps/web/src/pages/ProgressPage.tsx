@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
 import { getMistakeProfile } from "../api/practice";
 import { getProgress } from "../api/progress";
+import { FolioEmpty } from "../folio/FolioEmpty";
 import { FolioNav } from "../folio/FolioNav";
+import { FolioSkeleton } from "../folio/FolioSkeleton";
 import { Masthead } from "../folio/Masthead";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { CriteriaSparklines } from "../practice/CriteriaSparklines";
@@ -26,7 +27,7 @@ export function ProgressPage() {
   const verdict = hasWriting ? levelUpVerdict(series) : null;
 
   return (
-    <main className="relative mx-auto min-w-0 max-w-3xl px-6 py-14">
+    <main className="relative mx-auto min-h-[100dvh] min-w-0 max-w-3xl px-6 py-14">
       <PageAtmosphere kind="progress" />
       <Masthead lockupTo="/practice">
         <FolioNav current="/progress" />
@@ -34,14 +35,10 @@ export function ProgressPage() {
 
       <h1 className="animate-fade-up mt-8 font-display text-3xl font-semibold">Progress</h1>
       <p className="animate-fade-up mt-2 text-ink-soft" style={{ animationDelay: "40ms" }}>
-        Writing and speaking tracked separately — different skills, different charts.
+        Writing and speaking tracked separately. Different skills, different charts.
       </p>
 
-      {progress.isLoading && (
-        <p className="animate-fade-up mt-10 font-mono text-xs uppercase tracking-[0.18em] text-ink-faint">
-          Fetching your progress…
-        </p>
-      )}
+      {progress.isLoading && <FolioSkeleton rows={5} label="Fetching your progress" />}
 
       {progress.isError && (
         <p className="animate-fade-up mt-10 text-ink-soft">
@@ -50,24 +47,13 @@ export function ProgressPage() {
       )}
 
       {progress.isSuccess && !hasAny && (
-        <div className="animate-fade-up mt-14 flex flex-col items-center text-center">
-          <span className="font-display text-6xl leading-none text-rule">¶</span>
-          <p className="mt-4 text-ink-soft">Sit your first practice paper or talk to see progress.</p>
-          <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1">
-            <Link
-              to="/practice"
-              className="text-vermilion decoration-vermilion/40 underline-offset-4 hover:underline"
-            >
-              Start writing
-            </Link>
-            <Link
-              to="/speaking"
-              className="text-vermilion decoration-vermilion/40 underline-offset-4 hover:underline"
-            >
-              Start speaking
-            </Link>
-          </div>
-        </div>
+        <FolioEmpty
+          message="Sit your first practice paper or talk to see progress."
+          actions={[
+            { to: "/practice", label: "Start writing" },
+            { to: "/speaking", label: "Start speaking" },
+          ]}
+        />
       )}
 
       {progress.isSuccess && hasAny && (

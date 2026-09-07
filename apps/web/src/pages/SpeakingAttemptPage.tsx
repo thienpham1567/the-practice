@@ -181,7 +181,7 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
   };
 
   return (
-    <div className="flex min-h-screen min-w-0 flex-col overflow-x-hidden">
+    <div className="flex min-h-[100dvh] min-w-0 flex-col overflow-x-hidden">
       <PageAtmosphere kind="talk" />
       <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
@@ -343,7 +343,7 @@ function ReviewPhase({
       {blockMessage && <p className="mt-4 text-sm text-vermilion">{blockMessage}</p>}
       {submitError && (
         <p className="mt-4 text-sm text-vermilion">
-          Marking failed. Your recording is still here — try submit again.
+          Marking failed. Your recording is still here. Try submit again.
         </p>
       )}
       <div className="mt-10 flex flex-wrap gap-3">
@@ -398,7 +398,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
   }, [attempt.marks, attempt.transcript]);
 
   return (
-    <div className="flex h-screen min-w-0 flex-col overflow-x-hidden">
+    <div className="flex h-[100dvh] min-w-0 flex-col overflow-x-hidden">
       <PageAtmosphere kind="result" />
       <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
@@ -533,7 +533,7 @@ function MarkLegend({ marks }: { marks: SpeakingMark[] }) {
 
 function CenteredNote({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex h-screen items-center justify-center">
+    <main className="flex h-[100dvh] items-center justify-center">
       <p className="text-ink-soft">{children}</p>
     </main>
   );

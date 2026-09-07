@@ -20,7 +20,7 @@ const DESTINATIONS = [
 const LINK_CLASS =
   "text-ink-faint decoration-vermilion/40 underline-offset-4 hover:text-vermilion hover:underline";
 
-/** `current` là route của chính trang đang mở — bỏ khỏi nav để không tự trỏ vào mình. */
+/** Trang đang mở hiện là chữ, không phải link, để biết mình đang đứng đâu. */
 export function FolioNav({ current }: { current?: string }) {
   const user = useAuthStore((state) => state.user);
   const clearSession = useAuthStore((state) => state.clearSession);
@@ -33,12 +33,21 @@ export function FolioNav({ current }: { current?: string }) {
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm">
-      {DESTINATIONS.filter((item) => item.to !== current).map((item) => (
-        <Link key={item.to} to={item.to} className={LINK_CLASS}>
-          {item.label}
-        </Link>
-      ))}
+    <nav
+      className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm md:flex-nowrap"
+      aria-label="Sections"
+    >
+      {DESTINATIONS.map((item) =>
+        item.to === current ? (
+          <span key={item.to} aria-current="page" className="text-ink">
+            {item.label}
+          </span>
+        ) : (
+          <Link key={item.to} to={item.to} className={LINK_CLASS}>
+            {item.label}
+          </Link>
+        ),
+      )}
       {user && (
         <button
           type="button"
@@ -48,6 +57,6 @@ export function FolioNav({ current }: { current?: string }) {
           Sign out
         </button>
       )}
-    </div>
+    </nav>
   );
 }

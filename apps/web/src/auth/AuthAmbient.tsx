@@ -12,7 +12,7 @@ export function AuthAmbient() {
       <div data-ambient="rules" className="auth-ambient-rules absolute inset-0" />
       <div data-ambient="marks" className="auth-ambient-marks absolute inset-0">
         <span className="auth-ambient-mark auth-ambient-mark--pilcrow">¶</span>
-        <span className="auth-ambient-mark auth-ambient-mark--dash">—</span>
+        <span className="auth-ambient-mark auth-ambient-mark--dash">/</span>
         <span className="auth-ambient-mark auth-ambient-mark--stamp" />
       </div>
     </div>

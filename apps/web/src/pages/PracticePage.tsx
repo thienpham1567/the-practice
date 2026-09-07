@@ -4,7 +4,10 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createAttempt, listAttempts } from "../api/practice";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
+import { FolioChoice } from "../folio/FolioChoice";
+import { FolioEmpty } from "../folio/FolioEmpty";
 import { FolioNav } from "../folio/FolioNav";
+import { FolioSkeleton } from "../folio/FolioSkeleton";
 import { Masthead } from "../folio/Masthead";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { BandChart } from "../practice/BandChart";
@@ -14,6 +17,7 @@ import { formatChainSummary } from "../practice/revise-availability";
 import { StreakStrip } from "../practice/StreakStrip";
 
 const LEVELS: Level[] = ["A2", "B1", "B2", "C1"];
+const LEVEL_OPTIONS = LEVELS.map((id) => ({ id, label: id }));
 
 export function PracticePage() {
   const navigate = useNavigate();
@@ -30,37 +34,29 @@ export function PracticePage() {
   const submittedDates = submitted.map((item) => new Date(item.submittedAt!));
   const streak = computeStreak(submittedDates);
   const chartPoints = firstDraftChartPoints(attempts.data ?? []);
-
+  const showLedger = submitted.length > 0;
 
   return (
-    <main className="relative mx-auto max-w-3xl px-6 py-14">
+    <main className="relative mx-auto min-h-[100dvh] max-w-3xl px-6 py-14">
       <PageAtmosphere kind="practice" />
       <Masthead lockupTo="/practice">
         <FolioNav current="/practice" />
       </Masthead>
       <h1 className="animate-fade-up mt-8 font-display text-3xl font-semibold">Practice</h1>
+      <p className="animate-fade-up mt-2 max-w-xl text-ink-soft">
+        Sit a timed paper. The examiner marks it when you submit.
+      </p>
 
       <section className="animate-fade-up mt-10" style={{ animationDelay: "40ms" }}>
         <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">Level</h2>
-        <div className="mt-3 flex border border-rule">
-          {LEVELS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setLevel(option)}
-              className={`flex-1 py-2 font-mono text-[0.75rem] uppercase tracking-[0.15em] transition-colors ${
-                level === option ? "bg-ink text-paper" : "text-ink-soft hover:text-vermilion"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
+        <div className="mt-3">
+          <FolioChoice label="Level" value={level} options={LEVEL_OPTIONS} onChange={setLevel} />
         </div>
         <button
           type="button"
           onClick={() => start.mutate()}
           disabled={start.isPending}
-          className="mt-4 bg-ink px-5 py-2 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
+          className="mt-4 min-h-11 bg-ink px-5 py-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
         >
           {start.isPending ? "Setting the paper…" : "Start writing"}
         </button>
@@ -69,20 +65,21 @@ export function PracticePage() {
         )}
       </section>
 
-      <div className="animate-fade-up mt-12 space-y-10" style={{ animationDelay: "80ms" }}>
-        <StreakStrip submittedDates={submittedDates} current={streak.current} />
-        <BandChart points={chartPoints} />
-      </div>
+      {showLedger && (
+        <div className="animate-fade-up mt-12 space-y-10" style={{ animationDelay: "80ms" }}>
+          <StreakStrip submittedDates={submittedDates} current={streak.current} />
+          <BandChart points={chartPoints} />
+        </div>
+      )}
 
       <section className="animate-fade-up mt-12" style={{ animationDelay: "120ms" }}>
         <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">Papers</h2>
-        {attempts.isLoading && (
-          <p className="mt-4 font-mono text-xs uppercase tracking-[0.18em] text-ink-faint">
-            Fetching your papers…
-          </p>
+        {attempts.isLoading && <FolioSkeleton label="Fetching your papers" />}
+        {attempts.isError && (
+          <p className="mt-4 text-sm text-vermilion">Could not load your papers. Refresh and try again.</p>
         )}
         {attempts.data?.length === 0 && (
-          <p className="mt-6 text-ink-soft">Nothing here yet. Pick a level and start.</p>
+          <FolioEmpty message="Nothing here yet. Pick a level and start." />
         )}
         <ul className="mt-2 divide-y divide-rule">
           {attempts.data?.map((attempt, index) => {

@@ -1,18 +1,25 @@
 @import "tailwindcss";
+@import "@fontsource-variable/source-serif-4/opsz.css";
+@import "@fontsource-variable/source-serif-4/opsz-italic.css";
+@import "@fontsource-variable/newsreader/opsz.css";
+@import "@fontsource-variable/newsreader/opsz-italic.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
 
 /*
  * Hướng thẩm mỹ: Editorial / Literary — "bàn viết của nhà văn".
- * Giấy ngà, mực than, một điểm đỏ son của bút biên tập viên.
+ * Giấy proof lạnh, mực than, một điểm đỏ son của bút biên tập viên.
+ * Display: Source Serif 4 (không Fraunces). Body: Newsreader. Accent: vermilion.
  */
 @theme {
   /* Giấy và mực */
-  --color-paper: #faf6ef;
-  --color-paper-deep: #f3ece0;
-  --color-paper-edge: #ece2d2;
-  --color-ink: #1f1c18;
-  --color-ink-soft: #6b6255;
-  --color-ink-faint: #9c9284;
-  --color-rule: #e2d8c7;
+  --color-paper: #f3f1ec;
+  --color-paper-deep: #eae7e0;
+  --color-paper-edge: #e0dcd3;
+  --color-ink: #1c1c1b;
+  --color-ink-soft: #5a5854;
+  --color-ink-faint: #8a867e;
+  --color-rule: #d6d1c6;
   --color-vermilion: #c14324;
   --color-vermilion-soft: #e8d3cb;
 
@@ -37,8 +44,8 @@
   --color-mark-complex: #dcc9e6;
 
   /* Chữ */
-  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
-  --font-body: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --font-display: "Source Serif 4 Variable", "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --font-body: "Newsreader Variable", "Newsreader", "Iowan Old Style", Georgia, serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 
   --animate-fade-up: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -229,6 +236,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .auth-ambient-ink,
   .auth-ambient-rules,
   .auth-ambient-mark,
@@ -251,6 +262,55 @@
 
 :root {
   color-scheme: light;
+  --ease-settle: cubic-bezier(0.43, 0.195, 0.02, 1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  z-index: 80;
+  transform: translateY(-220%);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding: 0.5rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-vermilion);
+  outline-offset: 3px;
+}
+
+[contenteditable]:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+button.bg-ink,
+a.bg-ink,
+button.bg-vermilion {
+  transition:
+    background-color 0.2s var(--ease-settle),
+    transform 0.15s var(--ease-settle);
+}
+
+button.bg-ink:active:not(:disabled),
+a.bg-ink:active,
+button.bg-vermilion:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 body {

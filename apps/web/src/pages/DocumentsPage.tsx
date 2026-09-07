@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { gradeLabelFor } from "@writing-helper/analysis";
 import { Link } from "react-router-dom";
 import { deleteDocument, listDocuments } from "../api/documents";
+import { FolioEmpty } from "../folio/FolioEmpty";
 import { FolioNav } from "../folio/FolioNav";
+import { FolioSkeleton } from "../folio/FolioSkeleton";
 import { Masthead } from "../folio/Masthead";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { GradeStamp } from "../sidebar/GradeStamp";
@@ -19,18 +21,14 @@ export function DocumentsPage() {
 
 
   return (
-    <main className="relative mx-auto max-w-3xl px-6 py-14">
+    <main className="relative mx-auto min-h-[100dvh] max-w-3xl px-6 py-14">
       <PageAtmosphere kind="drafts" />
       <Masthead lockupTo="/practice">
         <FolioNav current="/docs" />
       </Masthead>
       <h1 className="animate-fade-up mt-8 font-display text-3xl font-semibold">Drafts</h1>
 
-      {documents.isLoading && (
-        <p className="animate-fade-up mt-8 font-mono text-xs uppercase tracking-[0.18em] text-ink-faint">
-          Fetching your drafts…
-        </p>
-      )}
+      {documents.isLoading && <FolioSkeleton label="Fetching your drafts" />}
 
       {documents.isError && (
         <p className="animate-fade-up mt-8 text-ink-soft">
@@ -42,7 +40,12 @@ export function DocumentsPage() {
         </p>
       )}
 
-      {documents.data?.length === 0 && <EmptyState />}
+      {documents.data?.length === 0 && (
+        <FolioEmpty
+          message="Nothing here yet."
+          actions={[{ to: "/", label: "Start writing" }]}
+        />
+      )}
 
       <ul className="divide-y divide-rule">
         {documents.data?.map((document, index) => (
@@ -79,20 +82,5 @@ export function DocumentsPage() {
         ))}
       </ul>
     </main>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="animate-fade-up mt-14 flex flex-col items-center text-center">
-      <span className="font-display text-6xl leading-none text-rule">¶</span>
-      <p className="mt-4 text-ink-soft">Nothing here yet.</p>
-      <Link
-        to="/"
-        className="mt-1 text-vermilion decoration-vermilion/40 underline-offset-4 hover:underline"
-      >
-        Start writing
-      </Link>
-    </div>
   );
 }

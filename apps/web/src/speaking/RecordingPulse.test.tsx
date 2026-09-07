@@ -9,7 +9,7 @@ describe("RecordingPulse", () => {
 
   it("announces that recording is live", () => {
     render(<RecordingPulse level={0} />);
-    expect(screen.getByRole("status").textContent).toMatch(/Recording — microphone live/);
+    expect(screen.getByRole("status").textContent).toMatch(/Recording. Microphone live/);
     expect(screen.getByText("Rec")).toBeTruthy();
     expect(document.querySelectorAll(".recording-voice__bar")).toHaveLength(5);
   });

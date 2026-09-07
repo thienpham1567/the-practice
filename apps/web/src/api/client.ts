@@ -48,19 +48,34 @@ async function send(path: string, init: RequestInit): Promise<Response> {
   });
 }
 
-/** Xin access token mới bằng refresh cookie. Trả về false nếu phiên đã hết. */
+/**
+ * Xin access token mới bằng refresh cookie. Trả về false nếu phiên đã hết
+ * hoặc API không trả lời (proxy treo khi backend tắt).
+ */
+const REFRESH_TIMEOUT_MS = 4_000;
+
 export async function tryRefreshSession(): Promise<boolean> {
-  const response = await fetch(`${BASE_URL}/auth/refresh`, {
-    method: "POST",
-    credentials: "include",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
 
-  if (!response.ok) return false;
+  try {
+    const response = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: "POST",
+      credentials: "include",
+      signal: controller.signal,
+    });
 
-  const body = (await response.json()) as { accessToken: string; user: SessionUser };
-  useAuthStore.getState().setSession(body.accessToken, body.user);
+    if (!response.ok) return false;
 
-  return true;
+    const body = (await response.json()) as { accessToken: string; user: SessionUser };
+    useAuthStore.getState().setSession(body.accessToken, body.user);
+
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {

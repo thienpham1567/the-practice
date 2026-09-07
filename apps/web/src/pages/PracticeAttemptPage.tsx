@@ -177,7 +177,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   const parentPaper = parent.data;
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-[100dvh] flex-col">
       <PageAtmosphere kind="exam" />
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/practice" size="sm" />
@@ -226,7 +226,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
 
       {timedOut && (
         <p className="border-b border-vermilion/40 bg-vermilion-soft px-6 py-2 text-sm text-vermilion">
-          Time is up. You can still submit — the paper will not send itself.
+          Time is up. You can still submit. The paper will not send itself.
         </p>
       )}
       {submitError && (
@@ -376,7 +376,7 @@ function PromptPane({
                         review
                       </span>
                     )}
-                    <span className="text-ink-soft"> — {item.meaning}</span>
+                    <span className="text-ink-soft"> · {item.meaning}</span>
                     <span className="mt-0.5 block italic text-ink-faint">{item.example}</span>
                   </li>
                 ))}
@@ -427,7 +427,7 @@ function ResultView({
   });
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-[100dvh] flex-col">
       <PageAtmosphere kind="result" />
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/practice" size="sm" />
@@ -562,7 +562,7 @@ function ResultView({
 
 function CenteredNote({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex h-screen items-center justify-center">
+    <main className="flex h-[100dvh] items-center justify-center">
       <p className="text-ink-soft">{children}</p>
     </main>
   );

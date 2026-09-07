@@ -49,70 +49,75 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <CursorLamp />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<HomeGate />} />
-          <Route path="/write" element={<EditorPage />} />
-          <Route path="/doc/:id" element={<EditorPage />} />
-          <Route
-            path="/docs"
-            element={
-              <RequireAuth>
-                <DocumentsPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/practice"
-            element={
-              <RequireAuth>
-                <PracticePage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/practice/:id"
-            element={
-              <RequireAuth>
-                <PracticeAttemptPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/speaking"
-            element={
-              <RequireAuth>
-                <SpeakingPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/speaking/:id"
-            element={
-              <RequireAuth>
-                <SpeakingAttemptPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/vocab"
-            element={
-              <RequireAuth>
-                <VocabPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/progress"
-            element={
-              <RequireAuth>
-                <ProgressPage />
-              </RequireAuth>
-            }
-          />
-          <Route path="/login" element={<AuthPage mode="login" />} />
-          <Route path="/register" element={<AuthPage mode="register" />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <a href="#main" className="skip-link">
+          Skip to content
+        </a>
+        <div id="main">
+          <Routes>
+            <Route path="/" element={<HomeGate />} />
+            <Route path="/write" element={<EditorPage />} />
+            <Route path="/doc/:id" element={<EditorPage />} />
+            <Route
+              path="/docs"
+              element={
+                <RequireAuth>
+                  <DocumentsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/practice"
+              element={
+                <RequireAuth>
+                  <PracticePage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/practice/:id"
+              element={
+                <RequireAuth>
+                  <PracticeAttemptPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/speaking"
+              element={
+                <RequireAuth>
+                  <SpeakingPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/speaking/:id"
+              element={
+                <RequireAuth>
+                  <SpeakingAttemptPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/vocab"
+              element={
+                <RequireAuth>
+                  <VocabPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/progress"
+              element={
+                <RequireAuth>
+                  <ProgressPage />
+                </RequireAuth>
+              }
+            />
+            <Route path="/login" element={<AuthPage mode="login" />} />
+            <Route path="/register" element={<AuthPage mode="register" />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </div>
       </BrowserRouter>
     </QueryClientProvider>
   );

@@ -23,7 +23,7 @@ export function RecordingPulse({ level }: { level: number }) {
         Rec
       </p>
       <p role="status" className="sr-only">
-        Recording — microphone live
+        Recording. Microphone live
       </p>
     </div>
   );

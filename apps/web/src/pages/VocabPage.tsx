@@ -2,7 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { listVocab, type VocabEntry, type VocabStatusFilter } from "../api/vocab";
+import { FolioChoice } from "../folio/FolioChoice";
+import { FolioEmpty } from "../folio/FolioEmpty";
 import { FolioNav } from "../folio/FolioNav";
+import { FolioSkeleton } from "../folio/FolioSkeleton";
 import { Masthead } from "../folio/Masthead";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 
@@ -30,7 +33,7 @@ export function VocabPage() {
 
 
   return (
-    <main className="relative mx-auto max-w-3xl px-6 py-14">
+    <main className="relative mx-auto min-h-[100dvh] max-w-3xl px-6 py-14">
       <PageAtmosphere kind="vocab" />
       <Masthead lockupTo="/practice">
         <FolioNav current="/vocab" />
@@ -38,34 +41,19 @@ export function VocabPage() {
 
       <h1 className="animate-fade-up mt-8 font-display text-3xl font-semibold">Vocabulary</h1>
       <p className="animate-fade-up mt-2 text-ink-soft" style={{ animationDelay: "40ms" }}>
-        Words suggested in practice — unused ones resurface when they fit a new topic.
+        Words suggested in practice. Unused ones resurface when they fit a new topic.
       </p>
 
-      <div
-        className="animate-fade-up mt-8 flex border border-rule"
-        style={{ animationDelay: "80ms" }}
-        role="group"
-        aria-label="Filter by status"
-      >
-        {FILTERS.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            onClick={() => setFilter(option.id)}
-            className={`flex-1 py-2 font-mono text-[0.75rem] uppercase tracking-[0.15em] transition-colors ${
-              filter === option.id ? "bg-ink text-paper" : "text-ink-soft hover:text-vermilion"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
+      <div className="animate-fade-up mt-8" style={{ animationDelay: "80ms" }}>
+        <FolioChoice
+          label="Filter by status"
+          value={filter}
+          options={FILTERS}
+          onChange={setFilter}
+        />
       </div>
 
-      {vocab.isLoading && (
-        <p className="animate-fade-up mt-8 font-mono text-xs uppercase tracking-[0.18em] text-ink-faint">
-          Fetching your notebook…
-        </p>
-      )}
+      {vocab.isLoading && <FolioSkeleton label="Fetching your notebook" />}
 
       {vocab.isError && (
         <p className="animate-fade-up mt-8 text-ink-soft">
@@ -78,16 +66,10 @@ export function VocabPage() {
       )}
 
       {vocab.isSuccess && vocab.data.length === 0 && (
-        <div className="animate-fade-up mt-14 flex flex-col items-center text-center">
-          <span className="font-display text-6xl leading-none text-rule">¶</span>
-          <p className="mt-4 text-ink-soft">Nothing here yet.</p>
-          <Link
-            to="/practice"
-            className="mt-1 text-vermilion decoration-vermilion/40 underline-offset-4 hover:underline"
-          >
-            Start a practice paper
-          </Link>
-        </div>
+        <FolioEmpty
+          message="Nothing here yet."
+          actions={[{ to: "/practice", label: "Start a practice paper" }]}
+        />
       )}
 
       {vocab.isSuccess && vocab.data.length > 0 && items.length === 0 && (

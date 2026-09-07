@@ -78,7 +78,7 @@ describe("StyleProfile", () => {
     );
 
     expect(container.textContent).toMatch(
-      /Average 15 words a sentence — a fit for B1/,
+      /Average 15 words a sentence, a fit for B1/,
     );
   });
 });

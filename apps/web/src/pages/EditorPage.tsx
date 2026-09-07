@@ -101,7 +101,7 @@ export function EditorPage() {
     issueCount > 0 ? `${issueCount} ${issueCount === 1 ? "issue" : "issues"}` : "Analysis";
 
   return (
-    <div className="flex h-screen flex-col">
+    <div className="flex h-[100dvh] flex-col">
       <PageAtmosphere kind="manuscript" />
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to={signedIn ? "/practice" : "/"} size="sm" />
@@ -205,7 +205,7 @@ function SaveState({ status }: { status: SaveStatus }) {
 
 function CenteredNote({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex h-screen items-center justify-center">
+    <main className="flex h-[100dvh] items-center justify-center">
       <p className="text-ink-soft">{children}</p>
     </main>
   );

@@ -33,7 +33,7 @@ export function StyleProfile({ snapshot, level }: StyleProfileProps) {
         </li>
         {average !== null ? (
           <li className="text-ink-soft">
-            Average {average} words a sentence — {sentenceFit(average, level)}.
+            Average {average} words a sentence, {sentenceFit(average, level)}.
           </li>
         ) : null}
       </ul>

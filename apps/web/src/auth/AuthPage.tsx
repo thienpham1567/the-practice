@@ -67,7 +67,7 @@ export function AuthPage({ mode }: AuthPageProps) {
   };
 
   return (
-    <main className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-14">
+    <main className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6 py-14">
       <AuthAmbient />
       <div className="relative z-10 animate-fade-up" style={{ animationDelay: "40ms" }}>
         <BrandLockup to="/" size="xl" />
@@ -100,7 +100,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
         {alertMessage && (
           <p role="alert" className="flex items-baseline gap-1.5 text-sm text-vermilion">
-            <span aria-hidden="true">—</span>
+            <span aria-hidden="true">·</span>
             {alertMessage}
           </p>
         )}

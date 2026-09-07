@@ -4,7 +4,10 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createSpeakingAttempt, listSpeakingAttempts } from "../api/speaking";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
+import { FolioChoice } from "../folio/FolioChoice";
+import { FolioEmpty } from "../folio/FolioEmpty";
 import { FolioNav } from "../folio/FolioNav";
+import { FolioSkeleton } from "../folio/FolioSkeleton";
 import { Masthead } from "../folio/Masthead";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { BandChart } from "../practice/BandChart";
@@ -14,6 +17,7 @@ import { formatChainSummary } from "../practice/revise-availability";
 import { StreakStrip } from "../practice/StreakStrip";
 
 const LEVELS: Level[] = ["A2", "B1", "B2", "C1"];
+const LEVEL_OPTIONS = LEVELS.map((id) => ({ id, label: id }));
 
 export function SpeakingPage() {
   const navigate = useNavigate();
@@ -33,34 +37,23 @@ export function SpeakingPage() {
   const submittedDates = submitted.map((item) => new Date(item.submittedAt!));
   const streak = computeStreak(submittedDates);
   const chartPoints = firstDraftChartPoints(attempts.data ?? []);
-
+  const showLedger = submitted.length > 0;
 
   return (
-    <main className="relative mx-auto min-w-0 max-w-3xl overflow-x-hidden px-6 py-14">
+    <main className="relative mx-auto min-h-[100dvh] min-w-0 max-w-3xl overflow-x-hidden px-6 py-14">
       <PageAtmosphere kind="speaking" />
       <Masthead lockupTo="/speaking">
         <FolioNav current="/speaking" />
       </Masthead>
       <h1 className="animate-fade-up mt-8 font-display text-3xl font-semibold">Speaking</h1>
       <p className="mt-2 max-w-xl text-ink-soft">
-        IELTS Part 2 long turn — one cue card, two minutes to talk.
+        IELTS Part 2 long turn. One cue card, two minutes to talk.
       </p>
 
       <section className="animate-fade-up mt-10" style={{ animationDelay: "40ms" }}>
         <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">Level</h2>
-        <div className="mt-3 flex border border-rule">
-          {LEVELS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setLevel(option)}
-              className={`flex-1 py-2 font-mono text-[0.75rem] uppercase tracking-[0.15em] transition-colors ${
-                level === option ? "bg-ink text-paper" : "text-ink-soft hover:text-vermilion"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
+        <div className="mt-3">
+          <FolioChoice label="Level" value={level} options={LEVEL_OPTIONS} onChange={setLevel} />
         </div>
         <button
           type="button"
@@ -75,23 +68,21 @@ export function SpeakingPage() {
         )}
       </section>
 
-      <div className="animate-fade-up mt-12 space-y-10" style={{ animationDelay: "80ms" }}>
-        <StreakStrip submittedDates={submittedDates} current={streak.current} />
-        <BandChart points={chartPoints} />
-      </div>
+      {showLedger && (
+        <div className="animate-fade-up mt-12 space-y-10" style={{ animationDelay: "80ms" }}>
+          <StreakStrip submittedDates={submittedDates} current={streak.current} />
+          <BandChart points={chartPoints} />
+        </div>
+      )}
 
       <section className="animate-fade-up mt-12" style={{ animationDelay: "120ms" }}>
         <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">Talks</h2>
-        {attempts.isLoading && (
-          <p className="mt-4 font-mono text-xs uppercase tracking-[0.18em] text-ink-faint">
-            Fetching your talks…
-          </p>
-        )}
+        {attempts.isLoading && <FolioSkeleton label="Fetching your talks" />}
         {attempts.isError && (
           <p className="mt-4 text-sm text-vermilion">Could not load your talks. Refresh and try again.</p>
         )}
         {attempts.data?.length === 0 && (
-          <p className="mt-6 text-ink-soft">Nothing here yet. Pick a level and start.</p>
+          <FolioEmpty message="Nothing here yet. Pick a level and start." />
         )}
         <ul className="mt-2 divide-y divide-rule">
           {attempts.data?.map((attempt, index) => {
