@@ -1093,16 +1093,21 @@ body::before {
   opacity: 1;
 }
 
-/* Đường band tự vẽ ở màn tiến bộ. `pathLength="100"` trên <polyline> chuẩn
-   hoá độ dài path về 100 bất kể toạ độ gốc hay scale — dash math không còn
-   phụ thuộc kích thước render. */
+/* Tờ giấy kẻ dòng cho demo đánh dấu ở hero. */
+.landing-script {
+  background-color: color-mix(in srgb, var(--color-paper) 92%, var(--color-paper-deep));
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 1.75rem,
+    var(--color-rule) 1.75rem,
+    var(--color-rule) calc(1.75rem + 1px)
+  );
+}
+
 .landing-trend-line {
   stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-}
-.in-view .landing-trend-line {
   stroke-dashoffset: 0;
-  transition: stroke-dashoffset 2s var(--ease-settle);
 }
 
 /*

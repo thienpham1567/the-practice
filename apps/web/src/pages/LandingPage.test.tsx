@@ -35,12 +35,16 @@ describe("LandingPage", () => {
       ),
     ).toBeTruthy();
 
-    expect(screen.getByRole("link", { name: "Begin practice" }).getAttribute("href")).toBe(
-      "/register",
-    );
-    expect(screen.getByRole("link", { name: "Open a draft" }).getAttribute("href")).toBe(
-      "/write",
-    );
+    const begin = screen.getAllByRole("link", { name: "Begin practice" });
+    expect(begin.length).toBe(2);
+    for (const link of begin) {
+      expect(link.getAttribute("href")).toBe("/register");
+    }
+    const draft = screen.getAllByRole("link", { name: "Open a draft" });
+    expect(draft.length).toBe(2);
+    for (const link of draft) {
+      expect(link.getAttribute("href")).toBe("/write");
+    }
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/login");
   });
 });
