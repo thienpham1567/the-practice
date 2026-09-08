@@ -5,6 +5,7 @@ import { useAuthStore } from "./api/auth-store";
 import { tryRefreshSession } from "./api/client";
 import { AuthPage } from "./auth/AuthPage";
 import { CursorLamp } from "./folio/CursorLamp";
+import { paintTheme, resolvedTheme } from "./folio/theme";
 import { HomeGate } from "./folio/HomeGate";
 import { SessionSplash } from "./folio/SessionSplash";
 import { DocumentsPage } from "./pages/DocumentsPage";
@@ -44,6 +45,10 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 export function App() {
   useRestoreSession();
+
+  useEffect(() => {
+    paintTheme(resolvedTheme());
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

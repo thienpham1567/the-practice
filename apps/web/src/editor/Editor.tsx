@@ -297,7 +297,7 @@ function EditorBody({
 
   return (
     <>
-      <div className="min-w-0 border-b border-rule bg-paper/80 px-6 py-2 backdrop-blur">
+      <div className="min-w-0 border-b border-rule bg-paper/70 px-6 py-2 backdrop-blur">
         <div className="mx-auto min-w-0 max-w-[46rem]">
           <ToolbarPlugin />
         </div>
@@ -305,13 +305,13 @@ function EditorBody({
 
       <div
         ref={containerRef}
-        className="relative min-w-0 flex-1 overflow-y-auto"
+        className="relative min-w-0 flex-1 overflow-y-auto px-3 sm:px-5"
         onMouseMove={handlePointerMove}
         onMouseLeave={() => setHover(null)}
         onClick={handleClick}
         onMouseUp={handleMouseUp}
       >
-        <div className="mx-auto max-w-[46rem] px-6 py-12">
+        <div className="editor-sheet relative mx-auto my-8 max-w-[46rem] sm:my-10">
           <RichTextPlugin
             contentEditable={
               <ContentEditable
@@ -320,7 +320,7 @@ function EditorBody({
               />
             }
             placeholder={
-              <p className="pointer-events-none absolute top-12 text-[1.15rem] text-ink-faint">
+              <p className="editor-placeholder pointer-events-none text-[1.15rem] text-ink-faint">
                 {placeholder ?? "Write something worth editing."}
               </p>
             }

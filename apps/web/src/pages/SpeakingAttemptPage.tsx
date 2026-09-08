@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { BrandLockup } from "../BrandLockup";
+import { ThemeToggle } from "../folio/ThemeToggle";
 import {
   getSpeakingAttempt,
   reviseSpeakingAttempt,
@@ -185,6 +186,7 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
       <PageAtmosphere kind="talk" />
       <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
+        <ThemeToggle />
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           Part 2 · {attempt.level}
         </span>
@@ -402,6 +404,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
       <PageAtmosphere kind="result" />
       <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
+        <ThemeToggle />
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           Part 2 · {attempt.level}
         </span>

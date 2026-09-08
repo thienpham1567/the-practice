@@ -8,6 +8,22 @@
       content="Daily writing and a timed long turn, marked like an examiner."
     />
     <title>The Practice</title>
+    <script>
+      (function () {
+        var key = "the-practice-theme";
+        var stored;
+        try {
+          stored = localStorage.getItem(key);
+        } catch (e) {}
+        var theme =
+          stored === "dark" || stored === "light"
+            ? stored
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </head>

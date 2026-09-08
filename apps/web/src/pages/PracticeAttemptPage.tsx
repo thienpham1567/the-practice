@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { BrandLockup } from "../BrandLockup";
+import { ThemeToggle } from "../folio/ThemeToggle";
 import {
   getAttempt,
   getMistakeProfile,
@@ -181,6 +182,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
       <PageAtmosphere kind="exam" />
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/practice" size="sm" />
+        <ThemeToggle />
         {isRevision ? (
           <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion sm:text-[0.7rem]">
             Revision {attempt.revisionRound}/2
@@ -431,6 +433,7 @@ function ResultView({
       <PageAtmosphere kind="result" />
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to="/practice" size="sm" />
+        <ThemeToggle />
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           {spec?.label ?? attempt.taskType}
         </span>

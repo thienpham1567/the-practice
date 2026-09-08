@@ -66,7 +66,7 @@ export function LandingDemo() {
 
   return (
     <div className="landing-demo">
-      <p data-testid="demo-sentence" className="font-display text-2xl leading-relaxed sm:text-3xl">
+      <p data-testid="demo-sentence" className="landing-demo-copy font-display">
         {LANDING_DEMO.lead}{" "}
         {LANDING_DEMO.fixes.map((fix, index) => (
           <span key={fix.wrong}>
@@ -77,7 +77,7 @@ export function LandingDemo() {
             >
               <span
                 key={corrected[index] ? "right" : "wrong"}
-                className="animate-fade-up inline-block"
+                className="landing-word inline-block"
               >
                 {corrected[index] ? fix.right : fix.wrong}
               </span>
@@ -87,8 +87,8 @@ export function LandingDemo() {
         ))}
       </p>
       <p
-        className={`mt-6 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-vermilion transition-opacity duration-1000 ${
-          showCaption ? "opacity-100" : "opacity-0"
+        className={`landing-demo-caption mt-7 font-mono text-[0.7rem] uppercase tracking-[0.18em] text-vermilion ${
+          showCaption ? "is-shown" : ""
         }`}
       >
         {showCaption ? LANDING_DEMO.caption : ""}

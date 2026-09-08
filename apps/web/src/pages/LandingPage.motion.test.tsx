@@ -55,16 +55,32 @@ describe("LandingPage motion sections", () => {
   });
 
   /*
-    pathLength="100" chuẩn hoá dash math của trình duyệt về độ dài 100 bất kể
-    path thật dài bao nhiêu sau khi preserveAspectRatio="none" kéo giãn — đây
-    là cách duy nhất để stroke-dasharray/-dashoffset trong CSS (vốn không biết
-    kích thước render) khớp đúng path. Một con số cứng như 400 chỉ đúng tình cờ.
+    preserveAspectRatio="none" kéo SVG lệch trục. <circle> trong đó thành elip
+    dẹt; stroke-dasharray + non-scaling-stroke cắt polyline thành từng nét.
+    Chấm phải nằm ngoài SVG bị stretch, hoặc SVG không stretch.
   */
-  it("normalises the trend line's dash math with pathLength, not a hard-coded length", () => {
+  it("does not put circular marks inside a stretched trend svg", () => {
     const { container } = renderPage();
+    const svg = container.querySelector(
+      'svg[aria-label="Band scores rising over eight weeks"]',
+    );
+    const stretched = svg?.getAttribute("preserveAspectRatio") === "none";
+    const circles = svg?.querySelectorAll("circle").length ?? 0;
+    expect(stretched && circles > 0).toBe(false);
+    expect(container.querySelectorAll("[data-trend-dot]")).toHaveLength(
+      LANDING_TREND.bands.length,
+    );
+  });
 
+  it("keeps the trend svg unstretched so the line can draw", () => {
+    const { container } = renderPage();
+    const svg = container.querySelector(
+      'svg[aria-label="Band scores rising over eight weeks"]',
+    );
     const line = container.querySelector("polyline.landing-trend-line");
-    expect(line!.getAttribute("pathLength")).toBe("100");
+    expect(svg?.getAttribute("preserveAspectRatio")).not.toBe("none");
+    expect(line?.getAttribute("vectorEffect")).not.toBe("non-scaling-stroke");
+    expect(line?.getAttribute("pathLength")).toBe("100");
   });
 
   /*

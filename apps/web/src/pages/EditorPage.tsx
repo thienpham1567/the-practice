@@ -6,6 +6,7 @@ import { useAuthStore } from "../api/auth-store";
 import { createDocument, getDocument, updateDocument, type DocumentInput } from "../api/documents";
 import { BrandLockup } from "../BrandLockup";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
+import { ThemeToggle } from "../folio/ThemeToggle";
 import { Editor, type EditorChange, type EditorMode } from "../editor/Editor";
 import { SidePanel } from "../SidePanel";
 import { analysisIssueCount, Sidebar } from "../sidebar/Sidebar";
@@ -120,6 +121,7 @@ export function EditorPage() {
         />
 
         <SaveState status={status} />
+        <ThemeToggle />
 
         <div className="flex border border-rule">
           {(["write", "edit"] as const).map((option) => (

@@ -4,6 +4,7 @@ import { apiJson, ApiError } from "../api/client";
 import { useAuthStore, type SessionUser } from "../api/auth-store";
 import { BrandLockup } from "../BrandLockup";
 import { afterAuthPath } from "../folio/after-auth-path";
+import { ThemeToggle } from "../folio/ThemeToggle";
 import { AuthAmbient } from "./AuthAmbient";
 import { useGoogleSignIn } from "./useGoogleSignIn";
 
@@ -67,9 +68,13 @@ export function AuthPage({ mode }: AuthPageProps) {
   };
 
   return (
-    <main className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6 py-14">
+    <main className="relative mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-6 py-14">
       <AuthAmbient />
-      <div className="relative z-10 animate-fade-up" style={{ animationDelay: "40ms" }}>
+      <div className="absolute right-6 top-6 z-10">
+        <ThemeToggle />
+      </div>
+      <div className="auth-sheet relative z-10 px-7 py-9 sm:px-9 sm:py-11">
+      <div className="animate-fade-up" style={{ animationDelay: "40ms" }}>
         <BrandLockup to="/" size="xl" />
         <h1 className="mt-10 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
           {copy.heading}
@@ -79,7 +84,7 @@ export function AuthPage({ mode }: AuthPageProps) {
 
       <form
         onSubmit={(event) => void submit(event)}
-        className="relative z-10 animate-fade-up mt-10 space-y-5"
+        className="animate-fade-up mt-10 space-y-5"
         style={{ animationDelay: "90ms" }}
       >
         <Field
@@ -166,6 +171,7 @@ export function AuthPage({ mode }: AuthPageProps) {
       >
         Back to the editor
       </Link>
+      </div>
     </main>
   );
 }
