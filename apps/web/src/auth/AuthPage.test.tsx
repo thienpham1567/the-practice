@@ -33,6 +33,15 @@ vi.mock("./useGoogleSignIn", () => ({
   },
 }));
 
+const apiReady = {
+  status: "ready" as "checking" | "ready" | "failed",
+  retry: vi.fn(),
+};
+
+vi.mock("./useApiReady", () => ({
+  useApiReady: () => apiReady,
+}));
+
 function renderAuth(mode: "login" | "register" = "login") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -53,6 +62,8 @@ describe("AuthPage", () => {
     lastFormPending = false;
     navigate.mockReset();
     vi.mocked(apiJson).mockReset();
+    apiReady.status = "ready";
+    apiReady.retry.mockReset();
   });
 
   afterEach(() => {
@@ -155,5 +166,49 @@ describe("AuthPage", () => {
     expect((screen.getByRole("button", { name: "Working…" }) as HTMLButtonElement).disabled).toBe(
       true,
     );
+  });
+
+  it("covers the form with the wake overlay while the API is checking", () => {
+    apiReady.status = "checking";
+    renderAuth("register");
+    expect(screen.getByTestId("auth-wake-overlay")).toBeTruthy();
+    expect(screen.getByRole("status").textContent).toBe("One moment…");
+    expect(screen.getByRole("heading", { name: "Begin practice" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Day|Night/ }).closest("[inert]")).toBeNull();
+    expect(screen.getByTestId("auth-form-block").hasAttribute("inert")).toBe(true);
+    expect(screen.getByRole("button", { name: "Create account" }).closest("[inert]")).toBeTruthy();
+  });
+
+  it("does not submit while the overlay is up", () => {
+    apiReady.status = "checking";
+    renderAuth();
+    fireEvent.submit(screen.getByRole("button", { name: "Sign in" }).closest("form")!);
+    expect(apiJson).not.toHaveBeenCalled();
+  });
+
+  it("hides the overlay once the API is ready", () => {
+    apiReady.status = "ready";
+    renderAuth();
+    expect(screen.queryByTestId("auth-wake-overlay")).toBeNull();
+    expect(screen.getByRole("button", { name: "Sign in" }).closest("[inert]")).toBeNull();
+  });
+
+  it("keeps the form blocked on failed and retries from Try again", () => {
+    apiReady.status = "failed";
+    renderAuth();
+    expect(screen.getByRole("status").textContent).toBe("The desk isn't answering.");
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(apiReady.retry).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Sign in" }).closest("[inert]")).toBeTruthy();
+  });
+
+  it("sets aria-busy on the sheet only while checking", () => {
+    apiReady.status = "checking";
+    const { container } = renderAuth();
+    expect(container.querySelector(".auth-sheet")?.getAttribute("aria-busy")).toBe("true");
+    cleanup();
+    apiReady.status = "failed";
+    const failed = renderAuth();
+    expect(failed.container.querySelector(".auth-sheet")?.getAttribute("aria-busy")).toBeNull();
   });
 });
