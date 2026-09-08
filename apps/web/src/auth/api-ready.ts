@@ -41,7 +41,7 @@ export async function waitUntilReady(options: {
         signal: attempt.signal,
       });
       if (response.ok) return "ready";
-    } catch (error) {
+    } catch {
       if (parent?.aborted) throw new DOMException("Aborted", "AbortError");
       // network errors and attempt timeouts fall through to retry
     } finally {
