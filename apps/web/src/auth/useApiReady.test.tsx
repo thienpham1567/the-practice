@@ -23,9 +23,14 @@ describe("useApiReady", () => {
 
   it("retry starts a new probe from checking", async () => {
     const fetchImpl = vi.mocked(fetch);
+    let resolveSecondFetch!: (value: Response) => void;
+    const secondFetch = new Promise<Response>((resolve) => {
+      resolveSecondFetch = resolve;
+    });
+
     fetchImpl
       .mockResolvedValueOnce({ ok: true, status: 200 } as Response)
-      .mockResolvedValueOnce({ ok: true, status: 200 } as Response);
+      .mockImplementationOnce(() => secondFetch);
 
     const { result } = renderHook(() => useApiReady());
     await waitFor(() => expect(result.current.status).toBe("ready"));
@@ -33,8 +38,13 @@ describe("useApiReady", () => {
     await act(async () => {
       result.current.retry();
     });
-    await waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.status).toBe("checking"));
+
+    await act(async () => {
+      resolveSecondFetch({ ok: true, status: 200 } as Response);
+    });
     await waitFor(() => expect(result.current.status).toBe("ready"));
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("does not throw if unmounted while a probe is in flight", async () => {
