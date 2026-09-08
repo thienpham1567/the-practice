@@ -30,20 +30,20 @@ export async function waitUntilReady(options: {
     const attempt = new AbortController();
     const onParentAbort = () => attempt.abort();
     parent?.addEventListener("abort", onParentAbort);
+    if (parent?.aborted) attempt.abort();
     const timer = setTimeout(() => attempt.abort(), timeoutMs);
 
     try {
       const response = await fetchImpl(HEALTH_PATH, {
         method: "GET",
         credentials: "include",
+        cache: "no-store",
         signal: attempt.signal,
       });
       if (response.ok) return "ready";
     } catch (error) {
       if (parent?.aborted) throw new DOMException("Aborted", "AbortError");
-      if (!(error instanceof Error && error.name === "AbortError")) {
-        // network error: fall through to retry
-      }
+      // network errors and attempt timeouts fall through to retry
     } finally {
       clearTimeout(timer);
       parent?.removeEventListener("abort", onParentAbort);
@@ -67,14 +67,15 @@ function sleep(ms: number, parent?: AbortSignal): Promise<void> {
       reject(new DOMException("Aborted", "AbortError"));
       return;
     }
-    const timer = setTimeout(resolve, ms);
-    parent?.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timer);
-        reject(new DOMException("Aborted", "AbortError"));
-      },
-      { once: true },
-    );
+    const onAbort = () => {
+      clearTimeout(timer);
+      parent?.removeEventListener("abort", onAbort);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    const timer = setTimeout(() => {
+      parent?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    parent?.addEventListener("abort", onAbort);
   });
 }

@@ -3,6 +3,7 @@ import {
   API_READY_ATTEMPT_MS,
   API_READY_BUDGET_MS,
   API_READY_MIN_GAP_MS,
+  HEALTH_PATH,
   waitUntilReady,
 } from "./api-ready";
 
@@ -25,6 +26,13 @@ function hangUntilAbort(_url: unknown, init?: RequestInit): Promise<Response> {
 describe("waitUntilReady", () => {
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it("exports probe constants", () => {
+    expect(API_READY_ATTEMPT_MS).toBe(90_000);
+    expect(API_READY_BUDGET_MS).toBe(180_000);
+    expect(API_READY_MIN_GAP_MS).toBe(1_000);
+    expect(HEALTH_PATH).toBe("/api/health/ready");
   });
 
   it("returns ready when health is ok", async () => {
@@ -63,8 +71,9 @@ describe("waitUntilReady", () => {
       budgetMs: 2_000,
       minGapMs: 1_000,
     });
-    await vi.advanceTimersByTimeAsync(API_READY_BUDGET_MS);
+    await vi.advanceTimersByTimeAsync(2_000);
     await expect(pending).resolves.toBe("failed");
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it("stops when the parent signal aborts", async () => {
