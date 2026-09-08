@@ -86,6 +86,29 @@
   }
 }
 
+@keyframes auth-wake-rule {
+  0% {
+    transform: scaleX(0.14);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(0.14);
+    opacity: 0.35;
+  }
+}
+
+.auth-wake-rule {
+  height: 1px;
+  width: 6.5rem;
+  transform-origin: center;
+  background-color: var(--color-vermilion);
+  animation: auth-wake-rule 2.8s ease-in-out infinite;
+}
+
 /* Auth ambient — ink wash / ruled paper / editorial marks (very subtle). */
 @keyframes auth-ink-drift {
   from {
@@ -243,6 +266,7 @@
   .auth-ambient-ink,
   .auth-ambient-rules,
   .auth-ambient-mark,
+  .auth-wake-rule,
   .recording-pulse__dot,
   .recording-voice__bar,
   .page-atm--speaking,
@@ -253,6 +277,11 @@
   .page-atm-index,
   .page-atm-stamp {
     animation: none;
+  }
+
+  .auth-wake-rule {
+    transform: scaleX(1);
+    opacity: 0.55;
   }
 
   .recording-voice__bar {
