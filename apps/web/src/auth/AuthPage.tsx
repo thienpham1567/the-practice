@@ -74,7 +74,7 @@ export function AuthPage({ mode }: AuthPageProps) {
   return (
     <main className="relative mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-6 py-14">
       <AuthAmbient />
-      <div className="absolute right-6 top-6 z-10">
+      <div className="absolute right-6 top-6 z-30">
         <ThemeToggle />
       </div>
       <div
@@ -89,11 +89,11 @@ export function AuthPage({ mode }: AuthPageProps) {
         <p className="mt-3 text-lg text-ink-soft">{copy.lede}</p>
       </div>
 
-      <div className="relative mt-10">
+      <div className="mt-10">
         <div
           data-testid="auth-form-block"
           {...(blocked ? { inert: "" } : {})}
-          className={blocked ? "pointer-events-none opacity-40" : undefined}
+          className={blocked ? "pointer-events-none" : undefined}
         >
           <form
             onSubmit={(event) => void submit(event)}
@@ -126,7 +126,7 @@ export function AuthPage({ mode }: AuthPageProps) {
             <button
               type="submit"
               disabled={formBusy}
-              className="w-full bg-ink px-4 py-2.5 font-mono text-sm uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion active:scale-[0.99] disabled:opacity-50"
+              className="w-full bg-ink px-4 py-3 font-mono text-sm uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion active:scale-[0.99] disabled:opacity-50"
             >
               {pending ? "Working…" : copy.action}
             </button>
@@ -149,7 +149,7 @@ export function AuthPage({ mode }: AuthPageProps) {
                 {google.status === "loading" && (
                   <div
                     data-testid="google-sign-in-skeleton"
-                    className="pointer-events-none absolute inset-0 mx-auto h-10 max-w-[320px] border border-rule bg-paper"
+                    className="auth-google-slot pointer-events-none absolute inset-0 mx-auto h-10 max-w-[320px]"
                     aria-hidden="true"
                   />
                 )}
@@ -185,11 +185,11 @@ export function AuthPage({ mode }: AuthPageProps) {
             Back to the editor
           </Link>
         </div>
-        {blocked && (api.status === "checking" || api.status === "failed") && (
-          <AuthWakeOverlay status={api.status} onRetry={api.retry} />
-        )}
       </div>
       </div>
+      {blocked && (api.status === "checking" || api.status === "failed") && (
+        <AuthWakeOverlay status={api.status} onRetry={api.retry} />
+      )}
     </main>
   );
 }

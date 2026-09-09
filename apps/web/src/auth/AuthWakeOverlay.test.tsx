@@ -12,6 +12,7 @@ describe("AuthWakeOverlay", () => {
     render(<AuthWakeOverlay status="checking" onRetry={() => undefined} />);
     expect(screen.getByRole("status").textContent).toBe("One moment…");
     expect(document.querySelector(".auth-wake-rule")).toBeTruthy();
+    expect(screen.getByTestId("auth-wake-overlay").className).toMatch(/\bfixed\b/);
   });
 
   it("shifts copy after 8 seconds of checking", () => {

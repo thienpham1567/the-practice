@@ -109,6 +109,14 @@
   animation: auth-wake-rule 2.8s ease-in-out infinite;
 }
 
+.auth-wake-overlay {
+  background-color: color-mix(in srgb, var(--color-paper) 82%, transparent);
+  background-image: linear-gradient(
+    color-mix(in srgb, var(--color-ink) 6%, transparent),
+    color-mix(in srgb, var(--color-ink) 6%, transparent)
+  );
+}
+
 /* Auth ambient — ink wash / ruled paper / editorial marks (very subtle). */
 @keyframes auth-ink-drift {
   from {
@@ -148,23 +156,23 @@
 
 .auth-ambient-ink {
   background-image:
-    radial-gradient(ellipse 55% 40% at 18% 22%, rgba(31, 28, 24, 0.03), transparent 70%),
-    radial-gradient(ellipse 45% 35% at 82% 18%, rgba(193, 67, 36, 0.035), transparent 68%),
-    radial-gradient(ellipse 50% 45% at 70% 78%, rgba(31, 28, 24, 0.025), transparent 72%);
+    radial-gradient(ellipse 58% 42% at 10% 6%, rgba(31, 28, 24, 0.07), transparent 72%),
+    radial-gradient(ellipse 48% 38% at 88% 8%, rgba(193, 67, 36, 0.07), transparent 70%),
+    radial-gradient(ellipse 52% 48% at 82% 94%, rgba(31, 28, 24, 0.055), transparent 74%);
   animation: auth-ink-drift 42s ease-in-out infinite alternate;
   will-change: transform;
 }
 
 .auth-ambient-rules {
-  opacity: 0.16;
+  opacity: 0.34;
   background-image:
     linear-gradient(
       to right,
       transparent 0,
-      transparent calc(12% - 1px),
-      color-mix(in srgb, var(--color-vermilion) 14%, transparent) calc(12% - 1px),
-      color-mix(in srgb, var(--color-vermilion) 14%, transparent) 12%,
-      transparent 12%
+      transparent calc(10% - 1px),
+      color-mix(in srgb, var(--color-vermilion) 38%, transparent) calc(10% - 1px),
+      color-mix(in srgb, var(--color-vermilion) 38%, transparent) 10%,
+      transparent 10%
     ),
     repeating-linear-gradient(
       to bottom,
@@ -189,13 +197,16 @@
   will-change: transform;
 }
 
-.auth-ambient-mark--pilcrow {
-  top: 12%;
-  right: 8%;
-  font-size: 3rem;
-  line-height: 1;
-  animation-duration: 26s;
-  animation-delay: -3s;
+.auth-ambient-mark--watermark {
+  top: -4%;
+  right: -1%;
+  font-size: clamp(11rem, 32vw, 22rem);
+  font-weight: 600;
+  line-height: 0.82;
+  letter-spacing: -0.06em;
+  color: var(--color-ink);
+  opacity: 0.07;
+  animation: none;
 }
 
 .auth-ambient-mark--dash {
@@ -223,14 +234,14 @@
 
 @media (max-width: 639px) {
   .auth-ambient-rules {
-    opacity: 0.12;
+    opacity: 0.24;
     background-image:
       linear-gradient(
         to right,
         transparent 0,
         transparent 1.4rem,
-        color-mix(in srgb, var(--color-vermilion) 12%, transparent) 1.4rem,
-        color-mix(in srgb, var(--color-vermilion) 12%, transparent) calc(1.4rem + 1px),
+        color-mix(in srgb, var(--color-vermilion) 28%, transparent) 1.4rem,
+        color-mix(in srgb, var(--color-vermilion) 28%, transparent) calc(1.4rem + 1px),
         transparent calc(1.4rem + 1px)
       ),
       repeating-linear-gradient(
@@ -242,9 +253,10 @@
       );
   }
 
-  .auth-ambient-mark--pilcrow {
-    font-size: 2.25rem;
-    right: 4%;
+  .auth-ambient-mark--watermark {
+    font-size: clamp(8rem, 42vw, 14rem);
+    right: -6%;
+    top: -2%;
   }
 
   .auth-ambient-mark--dash {
@@ -1395,6 +1407,45 @@ html[data-theme="dark"] .auth-sheet {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent),
     0 22px 40px -18px color-mix(in srgb, #000 48%, transparent);
+}
+
+/*
+ * Auth card: a warmer slip of paper on the pad. Radius and shadow stay
+ * on this sheet only — editor and landing keep Folio's square cut.
+ */
+.auth-sheet {
+  border-radius: 0.5rem;
+  background-color: color-mix(in srgb, var(--color-paper) 28%, #e6d7c4);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 52%, transparent),
+    0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent),
+    0 28px 52px -16px color-mix(in srgb, var(--color-ink) 26%, transparent),
+    0 10px 20px -12px color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+
+.auth-sheet::before,
+.auth-sheet::after {
+  border-radius: inherit;
+}
+
+.auth-google-slot {
+  border: 1px solid color-mix(in srgb, var(--color-rule) 72%, transparent);
+  background: color-mix(in srgb, var(--color-paper) 28%, #fff);
+}
+
+html[data-theme="dark"] .auth-sheet {
+  background-color: color-mix(in srgb, var(--color-paper) 62%, #2a2620);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent),
+    0 28px 52px -16px color-mix(in srgb, #000 58%, transparent);
+}
+
+html[data-theme="dark"] .auth-google-slot {
+  background: color-mix(in srgb, var(--color-paper) 70%, #2c2924);
+}
+
+html[data-theme="dark"] .auth-ambient-mark--watermark {
+  opacity: 0.09;
 }
 
 html[data-theme="dark"] .landing-folio .landing-sheet {

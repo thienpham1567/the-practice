@@ -30,7 +30,7 @@ export function AuthWakeOverlay({
   return (
     <div
       data-testid="auth-wake-overlay"
-      className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[color-mix(in_srgb,var(--color-paper)_82%,transparent)] px-6"
+      className="auth-wake-overlay fixed inset-0 z-20 flex flex-col items-center justify-center px-6"
     >
       {status === "checking" && <div className="auth-wake-rule mb-4" aria-hidden="true" />}
       <p

@@ -16,4 +16,10 @@ describe("AuthAmbient", () => {
     expect(container.querySelector("[data-ambient='rules']")).toBeTruthy();
     expect(container.querySelector("[data-ambient='marks']")).toBeTruthy();
   });
+
+  it("paints a large faint P watermark in the corner of the pad", () => {
+    const { container } = render(<AuthAmbient />);
+    const watermark = container.querySelector("[data-ambient='watermark']");
+    expect(watermark?.textContent).toBe("P");
+  });
 });

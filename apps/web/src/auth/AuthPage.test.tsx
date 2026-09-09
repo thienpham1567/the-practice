@@ -168,14 +168,17 @@ describe("AuthPage", () => {
     );
   });
 
-  it("covers the form with the wake overlay while the API is checking", () => {
+  it("covers the page with the wake overlay while the API is checking", () => {
     apiReady.status = "checking";
     renderAuth("register");
-    expect(screen.getByTestId("auth-wake-overlay")).toBeTruthy();
+    const overlay = screen.getByTestId("auth-wake-overlay");
+    expect(overlay.className).toMatch(/\bfixed\b/);
+    expect(overlay.closest(".auth-sheet")).toBeNull();
     expect(screen.getByRole("status").textContent).toBe("One moment…");
     expect(screen.getByRole("heading", { name: "Begin practice" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Day|Night/ }).closest("[inert]")).toBeNull();
     expect(screen.getByTestId("auth-form-block").hasAttribute("inert")).toBe(true);
+    expect(screen.getByTestId("auth-form-block").className).not.toMatch(/opacity-40/);
     expect(screen.getByRole("button", { name: "Create account" }).closest("[inert]")).toBeTruthy();
   });
 
