@@ -23,5 +23,6 @@ describe("LandingPage", () => {
     expect(draft.getAttribute("href")).toBe("/write");
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/login");
     expect(document.querySelector(".landing-deckle")).toBeNull();
+    expect(document.querySelector("[data-atmosphere='folio']")).toBeTruthy();
   });
 });

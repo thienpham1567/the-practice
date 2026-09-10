@@ -30,7 +30,7 @@ export function PageAtmosphere({ kind }: { kind: AtmosphereKind }) {
 }
 
 const MARKS: Record<AtmosphereKind, ReactNode> = {
-  folio: <span className="page-atm-glyph page-atm-glyph--pilcrow">¶</span>,
+  folio: null,
   manuscript: null,
   drafts: (
     <>

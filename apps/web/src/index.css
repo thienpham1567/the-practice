@@ -481,7 +481,7 @@ html[data-theme="dark"] .cursor-lamp__bloom {
 
 /*
  * Per-page atmosphere — same paper, different object.
- * folio: journal masthead · manuscript: galley proof · drafts: stacked sheets
+ * folio: landing desk · manuscript: galley proof · drafts: stacked sheets
  * practice: city-window desk · exam: crop marks · result: examiner's red
  * speaking: tea-and-notebook desk · talk: the booth · progress: ledger line · vocab: thumb index
  */
@@ -511,12 +511,16 @@ html[data-theme="dark"] .cursor-lamp__bloom {
 }
 
 .page-atm--folio {
-  /* Quiet journal wash only — no fold or masthead rules through the reading column. */
-  background-image: radial-gradient(
-    ellipse 42% 30% at 94% 6%,
-    rgba(193, 67, 36, 0.045),
-    transparent 72%
-  );
+  background-color: #c4b09a;
+  background-image: url("./assets/landing-desk-day.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+html[data-theme="dark"] .page-atm--folio {
+  background-color: #141210;
+  background-image: url("./assets/landing-desk-night.jpg");
 }
 
 .page-atm--manuscript {
@@ -976,12 +980,40 @@ html[data-theme="dark"] .page-atm--speaking {
   z-index: 40;
 }
 
-.landing-folio .page-atm-glyph--pilcrow {
-  display: none;
+.landing-folio .landing-hero-copy {
+  --desk-ink: #1a1812;
+  color: var(--desk-ink);
+  text-shadow:
+    -1px 0 0 var(--color-paper),
+    1px 0 0 var(--color-paper),
+    0 -1px 0 var(--color-paper),
+    0 1px 0 var(--color-paper),
+    0 0 10px var(--color-paper),
+    0 0 18px color-mix(in srgb, var(--color-paper) 88%, transparent);
 }
 
-.landing-watermark-p {
-  display: none;
+.landing-folio .landing-hero-copy .text-ink-soft {
+  color: #3a332c;
+}
+
+.landing-folio .landing-hero-copy a[class*="bg-ink"],
+.landing-folio .landing-hero-copy a[class*="text-paper"] {
+  text-shadow: none;
+}
+
+html[data-theme="dark"] .landing-folio .landing-hero-copy {
+  --desk-ink: #f5f0e8;
+  color: var(--desk-ink);
+  text-shadow:
+    -1px 0 0 #0a0908,
+    1px 0 0 #0a0908,
+    0 -1px 0 #0a0908,
+    0 1px 0 #0a0908,
+    0 0 12px rgba(0, 0, 0, 0.92);
+}
+
+html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
+  color: #e4ddd2;
 }
 
 .landing-book-kicker {
@@ -1039,23 +1071,6 @@ html[data-theme="dark"] .page-atm--speaking {
 }
 
 @media (min-width: 1024px) {
-  .landing-watermark-p {
-    display: block;
-    position: absolute;
-    top: 1.8rem;
-    left: -0.12em;
-    z-index: 0;
-    font-family: var(--font-display);
-    font-size: clamp(11rem, 22vw, 18rem);
-    font-weight: 600;
-    line-height: 0.78;
-    letter-spacing: -0.06em;
-    color: var(--color-ink);
-    opacity: 0.055;
-    pointer-events: none;
-    user-select: none;
-  }
-
   .landing-hero-visual {
     /* Rotation swings the top-left corner; keep it inside the cell. */
     padding: 1.75rem 1.25rem 2.75rem 1.5rem;
@@ -1160,6 +1175,8 @@ html[data-theme="dark"] .page-atm--speaking {
 }
 .landing-folio .reveal-lines.in-view > [data-line],
 .landing-folio .in-view .reveal-lines > [data-line] {
+  opacity: 1;
+  transform: none;
   transition:
     opacity 1.1s var(--ease-land),
     transform 1.1s var(--ease-land);
@@ -1445,7 +1462,8 @@ html[data-theme="dark"] .page-atm--speaking {
 .editor-desk aside[role="complementary"],
 .practice-desk > header.practice-chrome,
 .speaking-desk > header.speaking-chrome,
-.speaking-desk aside[role="complementary"] {
+.speaking-desk aside[role="complementary"],
+.landing-folio header.landing-chrome {
   --desk-ink: #1a1812;
   --desk-ink-muted: #3a332c;
   background-color: transparent;
@@ -1468,7 +1486,8 @@ html[data-theme="dark"] .page-atm--speaking {
 .editor-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft),
 .practice-desk > header.practice-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
 .speaking-desk > header.speaking-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
-.speaking-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft) {
+.speaking-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft),
+.landing-folio header.landing-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint) {
   color: var(--desk-ink);
 }
 
@@ -1476,13 +1495,15 @@ html[data-theme="dark"] .page-atm--speaking {
 .editor-desk aside[role="complementary"] .text-ink-faint,
 .practice-desk > header.practice-chrome .text-ink-faint,
 .speaking-desk > header.speaking-chrome .text-ink-faint,
-.speaking-desk aside[role="complementary"] .text-ink-faint {
+.speaking-desk aside[role="complementary"] .text-ink-faint,
+.landing-folio header.landing-chrome .text-ink-faint {
   color: var(--desk-ink-muted);
 }
 
 .editor-desk > header.editor-chrome :is(a, button):hover:not([class*="bg-ink"]),
 .practice-desk > header.practice-chrome :is(a, button):hover:not([class*="bg-ink"]),
-.speaking-desk > header.speaking-chrome :is(a, button):hover:not([class*="bg-ink"]) {
+.speaking-desk > header.speaking-chrome :is(a, button):hover:not([class*="bg-ink"]),
+.landing-folio header.landing-chrome :is(a, button):hover:not([class*="bg-ink"]) {
   color: var(--color-vermilion);
 }
 
@@ -1498,7 +1519,8 @@ html[data-theme="dark"] .page-atm--speaking {
 }
 
 .practice-desk > header.practice-chrome,
-.speaking-desk > header.speaking-chrome {
+.speaking-desk > header.speaking-chrome,
+.landing-folio header.landing-chrome {
   border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 
@@ -1523,7 +1545,8 @@ html[data-theme="dark"] .editor-desk .editor-toolbar-bar,
 html[data-theme="dark"] .editor-desk aside[role="complementary"],
 html[data-theme="dark"] .practice-desk > header.practice-chrome,
 html[data-theme="dark"] .speaking-desk > header.speaking-chrome,
-html[data-theme="dark"] .speaking-desk aside[role="complementary"] {
+html[data-theme="dark"] .speaking-desk aside[role="complementary"],
+html[data-theme="dark"] .landing-folio header.landing-chrome {
   --desk-ink: #f5f0e8;
   --desk-ink-muted: #e4ddd2;
   border-color: color-mix(in srgb, #fff 16%, transparent);
@@ -1635,7 +1658,8 @@ html[data-theme="dark"] .desk-theme-toggle button svg {
 
 .editor-desk > header.editor-chrome .desk-theme-toggle button,
 .practice-desk > header.practice-chrome .desk-theme-toggle button,
-.speaking-desk > header.speaking-chrome .desk-theme-toggle button {
+.speaking-desk > header.speaking-chrome .desk-theme-toggle button,
+.landing-folio header.landing-chrome .desk-theme-toggle button {
   color: var(--color-ink);
   text-shadow: none;
 }

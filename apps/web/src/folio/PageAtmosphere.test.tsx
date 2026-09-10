@@ -40,4 +40,9 @@ describe("PageAtmosphere", () => {
     expect(container.querySelector(".page-atm-rings")).toBeNull();
     expect(container.querySelector(".page-atm-glyph--quote")).toBeNull();
   });
+
+  it("does not overlay a pilcrow on the landing desk plate", () => {
+    const { container } = render(<PageAtmosphere kind="folio" />);
+    expect(container.querySelector(".page-atm-glyph--pilcrow")).toBeNull();
+  });
 });

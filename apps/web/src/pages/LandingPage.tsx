@@ -35,12 +35,16 @@ function Ctas() {
 
 export function LandingPage({ now = new Date() }: { now?: Date }) {
   return (
-    <main className="landing-folio relative flex h-[100dvh] flex-col">
+    <main className="landing-folio relative flex h-dvh flex-col">
       <PageAtmosphere kind="folio" />
 
-      <div className="relative mx-auto w-full max-w-[1400px] px-4 pt-6 sm:px-6">
+      <div className="relative z-10 mx-auto w-full max-w-[1400px] px-4 pt-6 sm:px-6">
         <div className="landing-fade">
-          <Masthead lockupSize="md">
+          <Masthead
+            lockupSize="md"
+            className="landing-chrome"
+            deskToggle
+          >
             <div className="flex flex-wrap items-center justify-end gap-x-6 gap-y-2">
               <p className="font-mono text-[0.65rem] tracking-[0.14em] text-ink-faint">
                 {folioDateline(now)}
@@ -53,11 +57,8 @@ export function LandingPage({ now = new Date() }: { now?: Date }) {
         </div>
       </div>
 
-      <section className="landing-hero relative mx-auto grid min-h-0 w-full max-w-[1400px] flex-1 grid-cols-1 gap-8 px-4 pt-6 pb-8 sm:px-6 lg:grid-cols-12 lg:items-stretch lg:gap-8 lg:pt-8 lg:pb-10">
-        <div className="landing-hero-copy relative z-10 flex flex-col justify-center lg:col-span-5">
-          <span className="landing-watermark-p" aria-hidden="true">
-            P
-          </span>
+      <section className="landing-hero relative mx-auto grid min-h-0 w-full max-w-[1400px] flex-1 grid-cols-1 items-start gap-8 px-4 pt-6 pb-8 sm:px-6 lg:grid-cols-12 lg:items-stretch lg:gap-8 lg:pt-8 lg:pb-10">
+        <div className="landing-hero-copy relative z-10 flex min-h-[calc(100dvh-8.5rem)] flex-col justify-end pb-6 lg:col-span-5 lg:min-h-0 lg:justify-center lg:pb-0">
           <RevealLines
             as="h1"
             lines={HEADLINE_LINES}
