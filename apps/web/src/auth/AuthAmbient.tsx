@@ -5,7 +5,7 @@
 export function AuthAmbient() {
   return (
     <div
-      className="pointer-events-none fixed inset-0 overflow-hidden"
+      className="auth-ambient pointer-events-none fixed inset-0 overflow-hidden"
       aria-hidden="true"
     >
       <div data-ambient="ink" className="auth-ambient-ink absolute inset-0" />

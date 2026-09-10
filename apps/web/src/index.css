@@ -117,6 +117,25 @@
   );
 }
 
+/*
+ * Auth desk DNA (light): measured pad/sheet/ink/accent from the Seedream frame.
+ * Night keeps Folio inverted tokens from html[data-theme=dark].
+ */
+html:not([data-theme="dark"]) .auth-desk {
+  --color-paper: #eae5da;
+  --color-paper-deep: #e3d8c9;
+  --color-ink: #252421;
+  --color-ink-soft: #6f685b;
+  --color-ink-faint: #b4a290;
+  --color-rule: #ccc1b3;
+  --color-vermilion: #b07657;
+  --script-rule: color-mix(in srgb, var(--color-rule) 55%, transparent);
+}
+
+.auth-ambient {
+  background-color: var(--color-paper);
+}
+
 /* Auth ambient — ink wash / ruled paper / editorial marks (very subtle). */
 @keyframes auth-ink-drift {
   from {
@@ -156,9 +175,9 @@
 
 .auth-ambient-ink {
   background-image:
-    radial-gradient(ellipse 58% 42% at 10% 6%, rgba(31, 28, 24, 0.07), transparent 72%),
-    radial-gradient(ellipse 48% 38% at 88% 8%, rgba(193, 67, 36, 0.07), transparent 70%),
-    radial-gradient(ellipse 52% 48% at 82% 94%, rgba(31, 28, 24, 0.055), transparent 74%);
+    radial-gradient(ellipse 58% 42% at 10% 6%, color-mix(in srgb, var(--color-ink) 7%, transparent), transparent 72%),
+    radial-gradient(ellipse 48% 38% at 88% 8%, color-mix(in srgb, var(--color-vermilion) 7%, transparent), transparent 70%),
+    radial-gradient(ellipse 52% 48% at 82% 94%, color-mix(in srgb, var(--color-ink) 5.5%, transparent), transparent 74%);
   animation: auth-ink-drift 42s ease-in-out infinite alternate;
   will-change: transform;
 }
@@ -225,7 +244,7 @@
   right: 10%;
   width: 2.75rem;
   height: 2.75rem;
-  border: 2px double rgba(193, 67, 36, 0.18);
+  border: 2px double color-mix(in srgb, var(--color-vermilion) 18%, transparent);
   opacity: 0.1;
   animation-name: auth-stamp-float;
   animation-duration: 20s;
@@ -656,11 +675,16 @@ html[data-theme="dark"] .cursor-lamp__bloom {
 }
 
 .page-atm--manuscript {
-  background-image: radial-gradient(
-    ellipse 36% 40% at 6% 18%,
-    color-mix(in srgb, var(--color-vermilion) 5%, transparent),
-    transparent 70%
-  );
+  background-color: #c4b09a;
+  background-image: url("./assets/editor-desk-day.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+html[data-theme="dark"] .page-atm--manuscript {
+  background-color: #141210;
+  background-image: url("./assets/editor-desk-night.jpg");
 }
 
 .page-atm--drafts {
@@ -1095,6 +1119,173 @@ html[data-theme="dark"] .cursor-lamp__bloom {
 
 .landing-folio {
   --ease-land: cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@media (max-width: 1023px) {
+  .landing-folio {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+}
+
+.landing-folio header {
+  position: relative;
+  z-index: 40;
+}
+
+.landing-folio .page-atm-glyph--pilcrow {
+  display: none;
+}
+
+.landing-watermark-p {
+  display: none;
+}
+
+.landing-deckle {
+  display: none;
+}
+
+.landing-book-kicker {
+  margin-bottom: 1.35rem;
+}
+
+.landing-book-kicker span {
+  display: block;
+  font-family: var(--font-mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.landing-book-kicker span:first-child {
+  font-size: 0.7rem;
+  color: var(--color-vermilion);
+}
+
+.landing-book-kicker span:last-child {
+  margin-top: 0.35rem;
+  font-size: 0.62rem;
+  color: var(--color-ink-faint);
+}
+
+.landing-book {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 22rem;
+}
+
+.landing-book-verso {
+  display: none;
+}
+
+.landing-book-recto {
+  flex: 1;
+  min-width: 0;
+}
+
+.landing-book-recto .landing-demo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.landing-book-recto .landing-demo-caption {
+  margin-top: auto;
+  padding-top: 2rem;
+  text-align: right;
+}
+
+@media (min-width: 1024px) {
+  .landing-watermark-p {
+    display: block;
+    position: absolute;
+    top: 1.8rem;
+    left: -0.12em;
+    z-index: 0;
+    font-family: var(--font-display);
+    font-size: clamp(11rem, 22vw, 18rem);
+    font-weight: 600;
+    line-height: 0.78;
+    letter-spacing: -0.06em;
+    color: var(--color-ink);
+    opacity: 0.055;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .landing-deckle {
+    display: block;
+    position: absolute;
+    top: 0;
+    right: -4%;
+    bottom: -2.5rem;
+    left: -2.5rem;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--color-paper);
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% 91%,
+      91% 94.5%,
+      82% 92%,
+      71% 96%,
+      58% 93%,
+      46% 97%,
+      33% 94%,
+      21% 97.5%,
+      11% 93.5%,
+      0 95.5%
+    );
+    filter: drop-shadow(0 10px 8px color-mix(in srgb, var(--color-ink) 12%, transparent));
+  }
+
+  .landing-book {
+    min-height: 28rem;
+    transform-origin: 72% 86%;
+    animation: landing-book-in 1.25s var(--ease-land) 140ms both;
+  }
+
+  .landing-book-verso {
+    display: block;
+    z-index: 0;
+    width: 4.6rem;
+    flex-shrink: 0;
+    margin: 1.4rem -1.35rem 0.9rem 0;
+    overflow: hidden;
+    background-color: color-mix(in srgb, var(--color-paper-deep) 82%, var(--color-paper));
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(var(--sheet-line) - 1px),
+      var(--script-rule) calc(var(--sheet-line) - 1px),
+      var(--script-rule) var(--sheet-line)
+    );
+    box-shadow: inset -10px 0 14px -12px color-mix(in srgb, var(--color-ink) 22%, transparent);
+    transform: rotate(-5.5deg);
+    transform-origin: right center;
+  }
+
+  .landing-book-recto {
+    z-index: 1;
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--color-ink) 4%, transparent),
+      0 28px 54px -22px color-mix(in srgb, var(--color-ink) 22%, transparent),
+      0 8px 18px color-mix(in srgb, var(--color-ink) 8%, transparent);
+  }
+}
+
+@keyframes landing-book-in {
+  from {
+    opacity: 0;
+    transform: rotate(4deg) translate3d(0, 1.15rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(9.5deg) translate3d(0, 0, 0);
+  }
 }
 
 .reveal-up {
@@ -1171,26 +1362,6 @@ html[data-theme="dark"] .cursor-lamp__bloom {
   opacity: 0;
   animation: landing-fade-up 0.95s var(--ease-land) both;
   animation-delay: var(--fade-delay, 0ms);
-}
-
-@keyframes landing-sheet-in {
-  from {
-    opacity: 0;
-    transform: rotate(-1.7deg) translate3d(0, 1.05rem, 0);
-  }
-  to {
-    opacity: 1;
-    transform: rotate(-0.8deg) translate3d(0, 0, 0);
-  }
-}
-
-.landing-folio .landing-sheet {
-  transform-origin: 64% 88%;
-  animation: landing-sheet-in 1.25s var(--ease-land) 140ms both;
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-ink) 4%, transparent),
-    0 28px 54px -22px color-mix(in srgb, var(--color-ink) 22%, transparent),
-    0 6px 16px color-mix(in srgb, var(--color-ink) 7%, transparent);
 }
 
 @keyframes landing-word-in {
@@ -1373,6 +1544,20 @@ html[data-theme="dark"] .cursor-lamp__bloom {
   padding: 2.75rem 2.5rem 3rem;
 }
 
+.editor-desk .editor-sheet {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 42%, transparent),
+    0 22px 44px -18px color-mix(in srgb, #5c3d24 28%, transparent),
+    0 8px 18px -12px color-mix(in srgb, #000 16%, transparent);
+}
+
+html[data-theme="dark"] .editor-desk .editor-sheet {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, #fff 42%, transparent),
+    0 28px 56px -18px color-mix(in srgb, #000 52%, transparent),
+    0 10px 22px -12px color-mix(in srgb, #000 28%, transparent);
+}
+
 .landing-demo-copy {
   font-size: clamp(1.32rem, 2.5vw, 1.72rem);
   line-height: var(--sheet-line);
@@ -1415,12 +1600,11 @@ html[data-theme="dark"] .auth-sheet {
  */
 .auth-sheet {
   border-radius: 0.5rem;
-  background-color: color-mix(in srgb, var(--color-paper) 28%, #e6d7c4);
+  background-color: var(--color-paper-deep);
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 52%, transparent),
-    0 1px 0 color-mix(in srgb, var(--color-ink) 6%, transparent),
-    0 28px 52px -16px color-mix(in srgb, var(--color-ink) 26%, transparent),
-    0 10px 20px -12px color-mix(in srgb, var(--color-ink) 12%, transparent);
+    0 24px 48px -16px color-mix(in srgb, var(--color-ink) 24%, transparent),
+    0 8px 18px -10px color-mix(in srgb, var(--color-ink) 12%, transparent);
 }
 
 .auth-sheet::before,
@@ -1429,8 +1613,8 @@ html[data-theme="dark"] .auth-sheet {
 }
 
 .auth-google-slot {
-  border: 1px solid color-mix(in srgb, var(--color-rule) 72%, transparent);
-  background: color-mix(in srgb, var(--color-paper) 28%, #fff);
+  border: 1px solid var(--color-rule);
+  background: var(--color-paper);
 }
 
 html[data-theme="dark"] .auth-sheet {
@@ -1448,10 +1632,14 @@ html[data-theme="dark"] .auth-ambient-mark--watermark {
   opacity: 0.09;
 }
 
-html[data-theme="dark"] .landing-folio .landing-sheet {
+html[data-theme="dark"] .landing-folio .landing-book-recto {
   box-shadow:
     0 28px 54px -20px color-mix(in srgb, #000 58%, transparent),
     0 8px 18px color-mix(in srgb, #000 28%, transparent);
+}
+
+html[data-theme="dark"] .landing-deckle {
+  background: var(--color-paper);
 }
 
 html[data-theme="dark"] .landing-script::after,
@@ -1524,14 +1712,14 @@ html[data-theme="dark"] .landing-demo-copy {
   .landing-trend-line,
   .landing-demo *,
   .landing-folio .landing-fade,
-  .landing-folio .landing-sheet {
+  .landing-folio .landing-book {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
     animation: none !important;
   }
-  .landing-folio .landing-sheet {
-    transform: rotate(-0.8deg) !important;
+  .landing-book-verso {
+    transform: none !important;
   }
   /*
     Không ép opacity ở đây: LandingDemo đã nhảy thẳng tới trạng thái cuối

@@ -76,6 +76,7 @@ describe("AuthPage", () => {
     const brand = screen.getByRole("link", { name: /The Practice/ });
     expect(brand.getAttribute("href")).toBe("/");
     expect(brand.className).toContain("text-3xl");
+    expect(brand.closest("main")?.classList.contains("auth-desk")).toBe(true);
     expect(screen.getByRole("heading", { name: "Welcome back" })).toBeTruthy();
     expect(screen.getByText("Your papers and talks are waiting.")).toBeTruthy();
     expect(document.querySelector("[data-ambient='ink']")).toBeTruthy();

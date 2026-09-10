@@ -43,6 +43,7 @@ describe("ThemeToggle", () => {
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(memory.get(THEME_STORAGE_KEY)).toBe("dark");
     expect(screen.getByRole("button", { name: "Day" })).toBeTruthy();
+    expect(document.querySelector("svg")).toBeTruthy();
   });
 
   it("marks the pressed state when the paper is already dark", () => {

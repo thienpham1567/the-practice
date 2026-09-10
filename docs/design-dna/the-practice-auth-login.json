@@ -1,0 +1,383 @@
+{
+  "meta": {
+    "name": "The Practice — Auth desk (paper & ink)",
+    "description": "Login/register desk: a warmer cream slip of paper on a ruled notebook pad. Editorial serif + typewriter labels, charcoal SIGN IN, terracotta accent, analog grain — not SaaS glass.",
+    "source_references": [
+      "/Users/thienpham/.cursor/projects/Users-thienpham-Documents-writing-helper/assets/the-practice-login-c258b262-e0d4-4231-b454-6c684b44ed75.jpg"
+    ],
+    "created_at": "2026-09-09"
+  },
+  "design_system": {
+    "color": {
+      "palette_type": "analogous",
+      "primary": {
+        "hex": "#252421",
+        "role": "Ink / primary action fill (SIGN IN) and display type on paper"
+      },
+      "secondary": {
+        "hex": "#e3d8c9",
+        "role": "Warmer card stock sitting on the pad"
+      },
+      "accent": {
+        "hex": "#b07657",
+        "role": "Terracotta stamp, margin line, and text links (Create one)"
+      },
+      "neutral": {
+        "scale": [
+          "#eae5da",
+          "#e3d8c9",
+          "#ccc1b3",
+          "#b4a290",
+          "#6f685b",
+          "#252421"
+        ],
+        "usage": "Lightest #eae5da is the pad (background). #e3d8c9 is the auth sheet. #ccc1b3 is ruling, hairlines, and Google outline. #b4a290 is the faint watermark P and overline labels. #6f685b is lede and secondary copy. #252421 is foreground type and the primary button — the measured text role."
+      },
+      "semantic": {
+        "success": "#6a7a5c",
+        "warning": "#b07657",
+        "error": "#8f4a3c",
+        "info": "#789ec8"
+      },
+      "surface": {
+        "background": "#eae5da",
+        "card": "#e3d8c9",
+        "elevated": "#e3d8c9"
+      },
+      "contrast_strategy": "dark-on-light dominant: charcoal ink on cream paper; accent used sparingly as a single editorial mark",
+      "measurement": {
+        "k": 8,
+        "sampling": {
+          "method": "deterministic_stratified",
+          "max_pixels": 160000,
+          "sampled_pixels": 160000
+        }
+      },
+      "measured_palette": [
+        { "hex": "#eae5da", "coverage": 0.4608, "role": "background" },
+        { "hex": "#e3d8c9", "coverage": 0.4436, "role": "unassigned" },
+        { "hex": "#ccc1b3", "coverage": 0.044, "role": "unassigned" },
+        { "hex": "#252421", "coverage": 0.0259, "role": "text" },
+        { "hex": "#b4a290", "coverage": 0.0199, "role": "unassigned" },
+        { "hex": "#6f685b", "coverage": 0.003, "role": "unassigned" },
+        { "hex": "#b07657", "coverage": 0.0027, "role": "accent" },
+        { "hex": "#789ec8", "coverage": 0.0001, "role": "unassigned" }
+      ]
+    },
+    "typography": {
+      "type_scale": {
+        "display": {
+          "size": "2.5rem",
+          "weight": "600",
+          "line_height": "1.12",
+          "tracking": "-0.02em"
+        },
+        "heading_1": {
+          "size": "2.25rem",
+          "weight": "600",
+          "line_height": "1.15",
+          "tracking": "-0.02em"
+        },
+        "heading_2": {
+          "size": "1.875rem",
+          "weight": "600",
+          "line_height": "1.2",
+          "tracking": "-0.015em"
+        },
+        "heading_3": {
+          "size": "1.5rem",
+          "weight": "600",
+          "line_height": "1.25",
+          "tracking": "-0.01em"
+        },
+        "body": {
+          "size": "1.125rem",
+          "weight": "400",
+          "line_height": "1.55",
+          "tracking": "0"
+        },
+        "body_small": {
+          "size": "0.875rem",
+          "weight": "400",
+          "line_height": "1.5",
+          "tracking": "0"
+        },
+        "caption": {
+          "size": "0.8125rem",
+          "weight": "400",
+          "line_height": "1.45",
+          "tracking": "0"
+        },
+        "overline": {
+          "size": "0.7rem",
+          "weight": "400",
+          "line_height": "1.3",
+          "tracking": "0.18em"
+        }
+      },
+      "font_families": {
+        "heading": "Source Serif 4 Variable, Source Serif 4, Iowan Old Style, Georgia, serif",
+        "body": "Newsreader Variable, Newsreader, Iowan Old Style, Georgia, serif",
+        "mono": "IBM Plex Mono, ui-monospace, SFMono-Regular, monospace"
+      },
+      "font_style_notes": "High-contrast old-style serif for brand and headlines (Welcome back); quieter text serif for lede and footer links; IBM Plex Mono all-caps overlines (EMAIL, PASSWORD, OR, SIGN IN) as the typewriter desk. Watermark P is the same display serif at huge scale, very faint. Do not substitute Inter or geometric sans for headlines."
+    },
+    "spacing": {
+      "base_unit": "8px",
+      "scale": ["4px", "8px", "12px", "16px", "24px", "32px", "40px", "48px", "64px"],
+      "content_density": "spacious",
+      "section_rhythm": "Stacked title page: brand lockup, then a large gap into the heading, a short lede, then a second gap into the form. Fields sit on a 20–24px vertical cadence. SIGN IN is full-bleed of the text column. Footer links get another generous gap before Back to the editor."
+    },
+    "layout": {
+      "grid_system": "Single centered column; no sidebar. The pad is full-bleed; the sheet is a portrait card in the column.",
+      "max_content_width": "32rem",
+      "columns": "1",
+      "gutter": "24px",
+      "breakpoints": "Sheet padding 28px → 36px from ~640px; Night toggle stays top-right of the viewport; watermark scales down on small screens.",
+      "alignment_tendency": "centered"
+    },
+    "shape": {
+      "border_radius": {
+        "small": "0px",
+        "medium": "8px",
+        "large": "12px",
+        "pill": "999px"
+      },
+      "border_usage": "subtle 1px on the Google outline only; SIGN IN is fill with no stroke; inputs have no box, only an underline",
+      "divider_style": "Hairline #ccc1b3, 1px. Form fields are underlines. OR is a broken rule with the word in the gap. Left pad margin is a vertical terracotta rule at ~10% from the left edge."
+    },
+    "elevation": {
+      "shadow_style": "soft diffused",
+      "levels": {
+        "low": "inset 0 1px 0 rgba(255,255,255,0.42)",
+        "medium": "0 24px 48px -16px color-mix(in srgb, #252421 24%, transparent), 0 8px 18px -10px color-mix(in srgb, #252421 12%, transparent)",
+        "high": "0 32px 64px -18px color-mix(in srgb, #252421 32%, transparent)"
+      },
+      "depth_cues": "A second sheet of warmer paper on the pad: color shift (#eae5da pad vs #e3d8c9 card) plus a soft drop shadow. No glass, no glow."
+    },
+    "iconography": {
+      "style": "Physical stamp: double-square frame, slightly rotated (~-7°), filled terracotta with a white pilcrow. Google G is the vendor mark, not restyled. Decorative / and hollow square on the pad are faint editorial marks, not a UI icon set.",
+      "stroke_weight": "1.4–1.55px on the stamp frame",
+      "size_scale": ["16px", "24px", "40px", "64px"],
+      "preferred_set": "Custom AppMark (pilcrow stamp) plus the official Google G; no Lucide/Heroicons on this screen"
+    },
+    "motion": {
+      "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+      "duration_scale": {
+        "micro": "180ms",
+        "normal": "300ms",
+        "macro": "42s"
+      },
+      "entrance_pattern": "Calm fade-up of lockup then form (~40ms / 90ms stagger). Pad ink washes and ruled lines drift extremely slowly.",
+      "exit_pattern": "Instant dismiss of the paper veil when the desk is ready; no bounce.",
+      "philosophy": "minimal functional — analog stillness. Motion is paper settling, not UI chrome."
+    },
+    "components": {
+      "button_style": "Primary: full-width charcoal #252421 rectangle, sharp corners, white IBM Plex Mono uppercase tracking ~0.15em, ~12px vertical padding. Hover implied: fill shifts toward terracotta. Secondary: paper-white / #eae5da fill, 1px #ccc1b3 stroke, Google G + sans label — do not fake GIS with a custom button if the live app uses GIS.",
+      "input_style": "Unboxed. Overline label EMAIL/PASSWORD in mono. Transparent field, 1px #ccc1b3 underline. Focus: vermilion/terracotta underline grows from center. No filled well, no inner shadow.",
+      "card_style": "Portrait cream slip (~8px radius), warmer than the pad, 1px hairline optional, grain overlay, generous padding ~36–44px. Not a nested dashboard card.",
+      "navigation_pattern": "No masthead. Night is a single serif word, top-right of the pad. Brand lockup links home. Footer: Create one (accent underline) and Back to the editor (faint underline).",
+      "modal_style": "If a blocking state is needed (desk waking): full-viewport paper veil — same cream at ~82% over a 6% ink mist — with a 1px terracotta hairline and mono status. Not a dialog box, not glass.",
+      "list_style": "Not present. If needed later: ruled lines, not bordered rows.",
+      "component_notes": "This frame is a title page, not an app shell. Keep AppMark as the pilcrow stamp even if the render garbles a white P. Accent coverage is tiny (~0.27%) — do not flood terracotta. #789ec8 is the Google G, not a brand blue."
+    }
+  },
+  "design_style": {
+    "aesthetic": {
+      "mood": ["scholarly", "tactile", "quiet", "warm", "unhurried"],
+      "visual_metaphor": "A cream notebook pad with a smaller sheet of writing paper laid on top — stationery, not a login modal.",
+      "era_influence": "Mid-century academic journal + legal pad; contemporary product type (Source Serif, IBM Plex Mono).",
+      "genre": "luxury editorial / analog writing tool",
+      "personality_traits": ["meticulous", "unshowy", "literary", "slightly stubborn about paper"],
+      "adjectives": ["tactile", "ruled", "inked", "breathable", "anti-SaaS"]
+    },
+    "visual_language": {
+      "complexity": "minimal",
+      "ornamentation": "subtle accents",
+      "whitespace_usage": "Generous interior padding and stacked gaps; the pad around the sheet is open field, not empty marketing hero.",
+      "visual_weight_distribution": "Weight sits in the charcoal SIGN IN bar and the Welcome back headline. The pad is light. Accent is a pinprick.",
+      "focal_strategy": "single hero element",
+      "contrast_level": "High type contrast (ink on cream) with low chrome contrast (rules and watermark almost disappear).",
+      "texture_usage": "Paper grain across pad and sheet; watercolor ink stains at corners; horizontal notebook ruling; vermilion left margin."
+    },
+    "composition": {
+      "hierarchy_method": "typographic hierarchy",
+      "balance_type": "symmetric",
+      "flow_direction": "top-to-bottom, left-aligned copy inside a centered sheet",
+      "grouping_strategy": "Lockup → heading/lede → fields → primary action → OR/Google → account switch → back link",
+      "negative_space_role": "The pad is the margin of the notebook. Space inside the sheet is leading between type, not card-in-card padding."
+    },
+    "imagery": {
+      "photo_treatment": "none — no photography",
+      "illustration_style": "Ink wash and a giant ghost monogram, as if the paper itself were printed",
+      "graphic_elements": ["large faint serif P watermark", "vertical terracotta margin rule", "horizontal notebook ruling", "corner ink/watercolor stains", "small slash and stamp marks on the pad"],
+      "pattern_usage": "Repeating 28px ruled lines plus one margin line — ledger, not a tech grid",
+      "image_shape": "Full-bleed pad; the sheet is a tall rounded rectangle"
+    },
+    "interaction_feel": {
+      "feedback_style": "Quiet ink: underline turns terracotta, primary fill can shift toward accent, links already underlined.",
+      "hover_behavior": "Type and fill recolor; no lift, no scale-up, no glow.",
+      "transition_personality": "fade-subtle",
+      "loading_style": "Not shown in the frame. Desk-waking copy with a vermilion hairline on a full-page paper veil — analog, not a spinner.",
+      "microinteraction_density": "Sparse. One focus underline, one hover on the primary, Night toggle. No badges, no pills."
+    },
+    "brand_voice_in_ui": {
+      "tone": "Calm literary English. Short sentences. No growth-speak.",
+      "formality": "Quietly formal — a desk, not a chatbot.",
+      "cta_style": "direct imperative",
+      "empty_state_approach": "Your papers and talks are waiting. — the work already exists; you return to it.",
+      "error_tone": "Plain and brief, in the voice of a proofreader, not a system alert. Vermilion, not a red banner."
+    }
+  },
+  "visual_effects": {
+    "overview": {
+      "effect_intensity": "subtle-accent",
+      "performance_tier": "lightweight",
+      "fallback_strategy": "reduce to CSS: keep ruling, margin, and sheet; freeze ink-wash drift and grain if motion is reduced",
+      "primary_technology": "CSS only"
+    },
+    "background_effects": {
+      "type": "noise-field",
+      "description": "Full-bleed cream pad with SVG fractal-noise grain, repeating horizontal rules, a terracotta margin line, and three soft radial ink washes (charcoal and terracotta) in the corners. A huge translucent serif P occupies the top-right.",
+      "technology": "CSS gradients + SVG feTurbulence grain overlay",
+      "params": {
+        "color_palette": ["#eae5da", "#252421", "#b07657", "#ccc1b3"],
+        "speed": "very slow (rules ~64s, ink ~42s) or static",
+        "density": "low — grain opacity ~0.45 multiply; rules ~0.3 opacity",
+        "opacity": "watermark P ~0.06–0.08; washes ~0.05–0.08",
+        "blend_mode": "multiply on grain; washes are normal radial gradients"
+      }
+    },
+    "particle_systems": {
+      "enabled": false,
+      "type": "custom",
+      "description": "No particles. Ink stains are gradients, not emitters.",
+      "technology": "none",
+      "params": {
+        "count": "0",
+        "shape": "none",
+        "size_range": "none",
+        "movement_pattern": "none",
+        "color_behavior": "none",
+        "interaction": "none",
+        "spawn_area": "none"
+      }
+    },
+    "3d_elements": {
+      "enabled": false,
+      "type": "abstract-geometry",
+      "description": "No 3D. Depth is paper-on-paper.",
+      "technology": "none",
+      "params": {
+        "renderer": "none",
+        "lighting": "none",
+        "camera": "none",
+        "materials": "none",
+        "geometry": "none",
+        "post_processing": ["none"],
+        "interaction_model": "none"
+      }
+    },
+    "shader_effects": {
+      "enabled": false,
+      "type": "noise-distortion",
+      "description": "Paper grain is an SVG turbulence filter, not a GLSL shader. Do not add WebGL noise.",
+      "technology": "none",
+      "params": {
+        "uniforms": "none",
+        "vertex_manipulation": "none",
+        "fragment_output": "none",
+        "noise_type": "fbm",
+        "distortion": "none"
+      }
+    },
+    "scroll_effects": {
+      "parallax": {
+        "enabled": false,
+        "layers": "0",
+        "depth_range": "none",
+        "speed_curve": "none"
+      },
+      "scroll_triggered_animations": {
+        "enabled": false,
+        "trigger_points": "none",
+        "animation_type": "fade-up",
+        "scrub_behavior": "none"
+      },
+      "scroll_morphing": {
+        "enabled": false,
+        "description": "Auth is a single locked viewport; no scroll morph."
+      }
+    },
+    "text_effects": {
+      "type": "none",
+      "description": "Type is static ink. Watermark P is opacity, not a text effect.",
+      "technology": "CSS only",
+      "params": {
+        "split_strategy": "by-line",
+        "animation_per_unit": "none",
+        "stagger": "none",
+        "effect_style": "none"
+      }
+    },
+    "cursor_effects": {
+      "enabled": false,
+      "type": "none",
+      "description": "System cursor. No trail, no magnetic stamp.",
+      "params": {
+        "shape": "default",
+        "size": "system",
+        "blend_mode": "normal",
+        "trail": "none",
+        "interaction_zone": "none"
+      }
+    },
+    "image_effects": {
+      "type": "none",
+      "description": "No photos to treat. Grain applies to the sheet surface, not to imagery.",
+      "technology": "CSS only",
+      "params": {
+        "filter_pipeline": ["svg fractalNoise multiply at ~0.45 opacity"],
+        "hover_transform": "none",
+        "reveal_animation": "none",
+        "distortion_type": "wave"
+      }
+    },
+    "glassmorphism_neumorphism": {
+      "enabled": false,
+      "style": "none",
+      "params": {
+        "blur_radius": "0px",
+        "transparency": "0",
+        "border_treatment": "none",
+        "shadow_type": "paper drop, not inner-bevel",
+        "light_source_angle": "none"
+      }
+    },
+    "canvas_drawings": {
+      "enabled": false,
+      "type": "none",
+      "description": "No canvas. Grain and washes are CSS/SVG.",
+      "technology": "none",
+      "params": {
+        "draw_method": "none",
+        "animation_loop": "none",
+        "color_scheme": "none",
+        "responsiveness": "CSS background-size",
+        "interaction": "none"
+      }
+    },
+    "svg_animations": {
+      "enabled": false,
+      "type": "decorative-loop",
+      "description": "The stamp and slash may float 2–4px over tens of seconds in the live app; the reference frame is still. Prefer CSS keyframes over SMIL.",
+      "params": {
+        "animation_method": "CSS keyframes",
+        "path_morphing": "false",
+        "stroke_animation": "none",
+        "filter_effects": "feTurbulence grain only"
+      }
+    },
+    "composite_notes": "Screenshot-only: analog stationery stack. Pad (#eae5da) + sheet (#e3d8c9) + charcoal action (#252421) + terracotta accent (#b07657). A full-page waking overlay should be vellum of the same paper (not blur-glass, not a dimmer over just the form). Do not introduce purple, glow, or glass. Measured accent is rustier and paler than the live Folio vermilion #c14324 — keep #b07657 if matching this frame; keep #c14324 if matching the live brand stamp. #789ec8 is Google G contamination, coverage 0.0001 — never a theme color."
+  }
+}

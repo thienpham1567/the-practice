@@ -72,7 +72,7 @@ export function AuthPage({ mode }: AuthPageProps) {
   };
 
   return (
-    <main className="relative mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-6 py-14">
+    <main className="auth-desk relative mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-6 py-14">
       <AuthAmbient />
       <div className="absolute right-6 top-6 z-30">
         <ThemeToggle />
@@ -83,7 +83,7 @@ export function AuthPage({ mode }: AuthPageProps) {
       >
       <div className="animate-fade-up" style={{ animationDelay: "40ms" }}>
         <BrandLockup to="/" size="xl" />
-        <h1 className="mt-10 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+        <h1 className="mt-8 font-display text-[2.25rem] font-semibold leading-[1.15] tracking-[-0.02em] sm:text-[2.5rem] sm:leading-[1.12]">
           {copy.heading}
         </h1>
         <p className="mt-3 text-lg text-ink-soft">{copy.lede}</p>

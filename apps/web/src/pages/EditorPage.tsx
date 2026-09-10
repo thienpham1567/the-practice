@@ -102,9 +102,9 @@ export function EditorPage() {
     issueCount > 0 ? `${issueCount} ${issueCount === 1 ? "issue" : "issues"}` : "Analysis";
 
   return (
-    <div className="flex h-[100dvh] flex-col">
+    <div className="editor-desk flex h-[100dvh] flex-col">
       <PageAtmosphere kind="manuscript" />
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+      <header className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule bg-paper px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to={signedIn ? "/practice" : "/"} size="sm" />
         <Link
           to="/practice"
@@ -168,7 +168,7 @@ export function EditorPage() {
         )}
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative z-10 flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
           <Editor
             key={id ?? "new"}
