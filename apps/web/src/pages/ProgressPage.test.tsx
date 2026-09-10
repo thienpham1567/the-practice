@@ -90,6 +90,16 @@ describe("ProgressPage", () => {
     expect(screen.queryByLabelText("Speaking progress")).toBeNull();
   });
 
+  it("sits the ledger on the desk plate", async () => {
+    vi.mocked(getProgress).mockResolvedValue(summary([]));
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Progress" })).toBeTruthy();
+    expect(document.querySelector(".progress-desk")).toBeTruthy();
+    expect(document.querySelector(".progress-sheet")).toBeTruthy();
+    expect(document.querySelector("[data-atmosphere='progress']")).toBeTruthy();
+  });
+
   it("renders writing charts without merging speaking points into the band chart", async () => {
     vi.mocked(getProgress).mockResolvedValue(
       summary(

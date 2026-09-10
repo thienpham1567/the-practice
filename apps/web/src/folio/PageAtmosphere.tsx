@@ -61,15 +61,6 @@ const MARKS: Record<AtmosphereKind, ReactNode> = {
       <span className="page-atm-rings page-atm-rings--booth" />
     </>
   ),
-  progress: (
-    <svg className="page-atm-chart" viewBox="0 0 100 36" preserveAspectRatio="none">
-      <polyline
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="0.6"
-        points="0,30 14,27 28,22 42,24 56,16 70,18 86,10 100,8"
-      />
-    </svg>
-  ),
-  vocab: <span className="page-atm-index">ABCDEFGHIJKLMNOPQRSTUVWXYZ</span>,
+  progress: null,
+  vocab: null,
 };

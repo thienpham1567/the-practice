@@ -75,6 +75,16 @@ describe("VocabPage", () => {
     expect(screen.getByRole("link", { name: "Start a practice paper" })).toBeTruthy();
   });
 
+  it("sits the notebook on the desk plate", async () => {
+    vi.mocked(listVocab).mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Vocabulary" })).toBeTruthy();
+    expect(document.querySelector(".vocab-desk")).toBeTruthy();
+    expect(document.querySelector(".vocab-sheet")).toBeTruthy();
+    expect(document.querySelector("[data-atmosphere='vocab']")).toBeTruthy();
+  });
+
   it("lists words with usage badges and filters by status", async () => {
     vi.mocked(listVocab).mockResolvedValue([unused, used]);
     renderPage();

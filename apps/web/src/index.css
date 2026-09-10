@@ -483,7 +483,7 @@ html[data-theme="dark"] .cursor-lamp__bloom {
  * Per-page atmosphere — same paper, different object.
  * folio: landing desk · manuscript: galley proof · drafts: stacked sheets
  * practice: city-window desk · exam: crop marks · result: examiner's red
- * speaking: tea-and-notebook desk · talk: the booth · progress: ledger line · vocab: thumb index
+ * speaking: tea-and-notebook desk · talk: the booth · progress: cabin-window ledge · vocab: window-garden desk
  */
 @keyframes page-atm-breathe {
   from {
@@ -601,31 +601,29 @@ html[data-theme="dark"] .page-atm--speaking {
 }
 
 .page-atm--progress {
-  background-image:
-    repeating-linear-gradient(
-      to right,
-      transparent 0,
-      transparent 47px,
-      var(--script-rule) 47px,
-      var(--script-rule) 48px
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 47px,
-      var(--script-rule) 47px,
-      var(--script-rule) 48px
-    );
-  opacity: 0.32;
+  background-color: #c4b09a;
+  background-image: url("./assets/progress-desk-day.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+html[data-theme="dark"] .page-atm--progress {
+  background-color: #141210;
+  background-image: url("./assets/progress-desk-night.jpg");
 }
 
 .page-atm--vocab {
-  background-image: linear-gradient(
-    to left,
-    color-mix(in srgb, var(--color-paper-deep) 55%, transparent) 0,
-    color-mix(in srgb, var(--color-paper-deep) 55%, transparent) 2.75rem,
-    transparent 2.75rem
-  );
+  background-color: #c4b09a;
+  background-image: url("./assets/vocab-desk-day.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+html[data-theme="dark"] .page-atm--vocab {
+  background-color: #141210;
+  background-image: url("./assets/vocab-desk-night.jpg");
 }
 
 .page-atm-marks {
@@ -1273,7 +1271,9 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 .editor-sheet,
 .auth-sheet,
 .practice-sheet,
-.speaking-sheet {
+.speaking-sheet,
+.vocab-sheet,
+.progress-sheet {
   isolation: isolate;
   background-color: color-mix(in srgb, var(--color-paper) 52%, #e4d9c6);
   border: 1px solid color-mix(in srgb, var(--color-rule) 48%, transparent);
@@ -1316,7 +1316,9 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 .editor-sheet::before,
 .auth-sheet::before,
 .practice-sheet::before,
-.speaking-sheet::before {
+.speaking-sheet::before,
+.vocab-sheet::before,
+.progress-sheet::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1341,7 +1343,9 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 .editor-sheet::after,
 .auth-sheet::after,
 .practice-sheet::after,
-.speaking-sheet::after {
+.speaking-sheet::after,
+.vocab-sheet::after,
+.progress-sheet::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1357,7 +1361,9 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 .landing-leaf > *,
 .auth-sheet > *,
 .practice-sheet > *,
-.speaking-sheet > * {
+.speaking-sheet > *,
+.vocab-sheet > *,
+.progress-sheet > * {
   position: relative;
   z-index: 1;
 }
@@ -1384,7 +1390,9 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 .editor-sheet,
 .auth-sheet,
 .practice-sheet,
-.speaking-sheet {
+.speaking-sheet,
+.vocab-sheet,
+.progress-sheet {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 42%, transparent),
     0 1px 0 color-mix(in srgb, var(--color-ink) 4%, transparent),
@@ -1463,6 +1471,8 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 .practice-desk > header.practice-chrome,
 .speaking-desk > header.speaking-chrome,
 .speaking-desk aside[role="complementary"],
+.vocab-desk > header.vocab-chrome,
+.progress-desk > header.progress-chrome,
 .landing-folio header.landing-chrome {
   --desk-ink: #1a1812;
   --desk-ink-muted: #3a332c;
@@ -1487,6 +1497,8 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 .practice-desk > header.practice-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
 .speaking-desk > header.speaking-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
 .speaking-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft),
+.vocab-desk > header.vocab-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
+.progress-desk > header.progress-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
 .landing-folio header.landing-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint) {
   color: var(--desk-ink);
 }
@@ -1496,6 +1508,8 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 .practice-desk > header.practice-chrome .text-ink-faint,
 .speaking-desk > header.speaking-chrome .text-ink-faint,
 .speaking-desk aside[role="complementary"] .text-ink-faint,
+.vocab-desk > header.vocab-chrome .text-ink-faint,
+.progress-desk > header.progress-chrome .text-ink-faint,
 .landing-folio header.landing-chrome .text-ink-faint {
   color: var(--desk-ink-muted);
 }
@@ -1503,6 +1517,8 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 .editor-desk > header.editor-chrome :is(a, button):hover:not([class*="bg-ink"]),
 .practice-desk > header.practice-chrome :is(a, button):hover:not([class*="bg-ink"]),
 .speaking-desk > header.speaking-chrome :is(a, button):hover:not([class*="bg-ink"]),
+.vocab-desk > header.vocab-chrome :is(a, button):hover:not([class*="bg-ink"]),
+.progress-desk > header.progress-chrome :is(a, button):hover:not([class*="bg-ink"]),
 .landing-folio header.landing-chrome :is(a, button):hover:not([class*="bg-ink"]) {
   color: var(--color-vermilion);
 }
@@ -1520,6 +1536,8 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 
 .practice-desk > header.practice-chrome,
 .speaking-desk > header.speaking-chrome,
+.vocab-desk > header.vocab-chrome,
+.progress-desk > header.progress-chrome,
 .landing-folio header.landing-chrome {
   border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
@@ -1546,6 +1564,8 @@ html[data-theme="dark"] .editor-desk aside[role="complementary"],
 html[data-theme="dark"] .practice-desk > header.practice-chrome,
 html[data-theme="dark"] .speaking-desk > header.speaking-chrome,
 html[data-theme="dark"] .speaking-desk aside[role="complementary"],
+html[data-theme="dark"] .vocab-desk > header.vocab-chrome,
+html[data-theme="dark"] .progress-desk > header.progress-chrome,
 html[data-theme="dark"] .landing-folio header.landing-chrome {
   --desk-ink: #f5f0e8;
   --desk-ink-muted: #e4ddd2;
@@ -1592,6 +1612,8 @@ html[data-theme="dark"] .editor-sheet,
 html[data-theme="dark"] .auth-sheet,
 html[data-theme="dark"] .practice-sheet,
 html[data-theme="dark"] .speaking-sheet,
+html[data-theme="dark"] .vocab-sheet,
+html[data-theme="dark"] .progress-sheet,
 html[data-theme="dark"] .folio-sheet {
   background-color: color-mix(in srgb, var(--color-paper) 70%, #2f2a24);
 }
@@ -1604,7 +1626,9 @@ html[data-theme="dark"] .landing-leaf,
 html[data-theme="dark"] .editor-sheet,
 html[data-theme="dark"] .auth-sheet,
 html[data-theme="dark"] .practice-sheet,
-html[data-theme="dark"] .speaking-sheet {
+html[data-theme="dark"] .speaking-sheet,
+html[data-theme="dark"] .vocab-sheet,
+html[data-theme="dark"] .progress-sheet {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent),
     0 22px 40px -18px color-mix(in srgb, #000 48%, transparent);
@@ -1616,7 +1640,9 @@ html[data-theme="dark"] .speaking-sheet {
  */
 .auth-desk .auth-sheet,
 .practice-desk .practice-sheet,
-.speaking-desk .speaking-sheet {
+.speaking-desk .speaking-sheet,
+.vocab-desk .vocab-sheet,
+.progress-desk .progress-sheet {
   border-radius: 0;
   padding: 2.5rem 2.55rem 2.75rem;
   box-shadow:
@@ -1630,7 +1656,11 @@ html[data-theme="dark"] .speaking-sheet {
 .practice-sheet::before,
 .practice-sheet::after,
 .speaking-sheet::before,
-.speaking-sheet::after {
+.speaking-sheet::after,
+.vocab-sheet::before,
+.vocab-sheet::after,
+.progress-sheet::before,
+.progress-sheet::after {
   border-radius: 0;
 }
 
@@ -1659,6 +1689,8 @@ html[data-theme="dark"] .desk-theme-toggle button svg {
 .editor-desk > header.editor-chrome .desk-theme-toggle button,
 .practice-desk > header.practice-chrome .desk-theme-toggle button,
 .speaking-desk > header.speaking-chrome .desk-theme-toggle button,
+.vocab-desk > header.vocab-chrome .desk-theme-toggle button,
+.progress-desk > header.progress-chrome .desk-theme-toggle button,
 .landing-folio header.landing-chrome .desk-theme-toggle button {
   color: var(--color-ink);
   text-shadow: none;
@@ -1671,7 +1703,9 @@ html[data-theme="dark"] .desk-theme-toggle button svg {
 
 html[data-theme="dark"] .auth-desk .auth-sheet,
 html[data-theme="dark"] .practice-desk .practice-sheet,
-html[data-theme="dark"] .speaking-desk .speaking-sheet {
+html[data-theme="dark"] .speaking-desk .speaking-sheet,
+html[data-theme="dark"] .vocab-desk .vocab-sheet,
+html[data-theme="dark"] .progress-desk .progress-sheet {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent),
     0 28px 56px -18px color-mix(in srgb, #000 52%, transparent),

@@ -45,4 +45,14 @@ describe("PageAtmosphere", () => {
     const { container } = render(<PageAtmosphere kind="folio" />);
     expect(container.querySelector(".page-atm-glyph--pilcrow")).toBeNull();
   });
+
+  it("does not overlay a thumb index on the vocab desk plate", () => {
+    const { container } = render(<PageAtmosphere kind="vocab" />);
+    expect(container.querySelector(".page-atm-index")).toBeNull();
+  });
+
+  it("does not overlay a ledger line on the progress desk plate", () => {
+    const { container } = render(<PageAtmosphere kind="progress" />);
+    expect(container.querySelector(".page-atm-chart")).toBeNull();
+  });
 });
