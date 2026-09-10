@@ -1444,7 +1444,8 @@ html[data-theme="dark"] .page-atm--speaking {
 .editor-desk .editor-toolbar-bar,
 .editor-desk aside[role="complementary"],
 .practice-desk > header.practice-chrome,
-.speaking-desk > header.speaking-chrome {
+.speaking-desk > header.speaking-chrome,
+.speaking-desk aside[role="complementary"] {
   --desk-ink: #1a1812;
   --desk-ink-muted: #3a332c;
   background-color: transparent;
@@ -1466,14 +1467,16 @@ html[data-theme="dark"] .page-atm--speaking {
 .editor-desk .editor-toolbar-bar :is(.text-ink, .text-ink-soft, .text-ink-faint),
 .editor-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft),
 .practice-desk > header.practice-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
-.speaking-desk > header.speaking-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint) {
+.speaking-desk > header.speaking-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
+.speaking-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft) {
   color: var(--desk-ink);
 }
 
 .editor-desk > header.editor-chrome .text-ink-faint,
 .editor-desk aside[role="complementary"] .text-ink-faint,
 .practice-desk > header.practice-chrome .text-ink-faint,
-.speaking-desk > header.speaking-chrome .text-ink-faint {
+.speaking-desk > header.speaking-chrome .text-ink-faint,
+.speaking-desk aside[role="complementary"] .text-ink-faint {
   color: var(--desk-ink-muted);
 }
 
@@ -1484,7 +1487,9 @@ html[data-theme="dark"] .page-atm--speaking {
 }
 
 .editor-desk > header.editor-chrome :is(button, a, [role="button"])[class*="bg-ink"],
-.editor-desk > header.editor-chrome :is(button, a)[class*="text-paper"] {
+.editor-desk > header.editor-chrome :is(button, a)[class*="text-paper"],
+.speaking-desk > header.speaking-chrome :is(button, a, [role="button"])[class*="bg-ink"],
+.speaking-desk > header.speaking-chrome :is(button, a)[class*="text-paper"] {
   text-shadow: none;
 }
 
@@ -1505,7 +1510,8 @@ html[data-theme="dark"] .page-atm--speaking {
   border-left: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 
-.editor-desk aside[role="complementary"].fixed {
+.editor-desk aside[role="complementary"].fixed,
+.speaking-desk aside[role="complementary"].fixed {
   --desk-ink: var(--color-ink);
   --desk-ink-muted: var(--color-ink-faint);
   background-color: var(--color-paper);
@@ -1516,7 +1522,8 @@ html[data-theme="dark"] .editor-desk > header.editor-chrome,
 html[data-theme="dark"] .editor-desk .editor-toolbar-bar,
 html[data-theme="dark"] .editor-desk aside[role="complementary"],
 html[data-theme="dark"] .practice-desk > header.practice-chrome,
-html[data-theme="dark"] .speaking-desk > header.speaking-chrome {
+html[data-theme="dark"] .speaking-desk > header.speaking-chrome,
+html[data-theme="dark"] .speaking-desk aside[role="complementary"] {
   --desk-ink: #f5f0e8;
   --desk-ink-muted: #e4ddd2;
   border-color: color-mix(in srgb, #fff 16%, transparent);
@@ -1528,7 +1535,8 @@ html[data-theme="dark"] .speaking-desk > header.speaking-chrome {
     0 0 12px rgba(0, 0, 0, 0.92);
 }
 
-html[data-theme="dark"] .editor-desk aside[role="complementary"].fixed {
+html[data-theme="dark"] .editor-desk aside[role="complementary"].fixed,
+html[data-theme="dark"] .speaking-desk aside[role="complementary"].fixed {
   background-color: var(--color-paper);
 }
 

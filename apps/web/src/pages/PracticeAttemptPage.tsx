@@ -8,7 +8,7 @@ import {
   type WritingMark,
 } from "@writing-helper/practice";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { BrandLockup } from "../BrandLockup";
 import { ThemeToggle } from "../folio/ThemeToggle";
 import {
@@ -178,11 +178,16 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   const parentPaper = parent.data;
 
   return (
-    <div className="flex h-[100dvh] flex-col">
-      <PageAtmosphere kind="exam" />
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+    <div className="editor-desk flex h-[100dvh] flex-col">
+      <PageAtmosphere kind="manuscript" />
+      <header className="editor-chrome relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
         <BrandLockup to="/practice" size="sm" />
-        <ThemeToggle />
+        <Link
+          to="/practice"
+          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion sm:text-[0.7rem]"
+        >
+          Practice
+        </Link>
         {isRevision ? (
           <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion sm:text-[0.7rem]">
             Revision {attempt.revisionRound}/2
@@ -203,41 +208,47 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
           {wordCount}/{spec.minWords}–{spec.maxWords}
           <span className="hidden sm:inline"> words</span>
         </span>
-        <button
-          ref={promptTriggerRef}
-          type="button"
-          onClick={() => setPromptOpen((current) => !current)}
-          aria-expanded={promptOpen}
-          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion sm:text-[0.7rem] lg:hidden"
-        >
-          Prompt
-        </button>
-        <span className="ml-auto font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
-          {save.isPending ? "Saving…" : save.isSuccess ? "Saved" : null}
-        </span>
-        <AttemptDeleteControl kind="paper" attemptId={attempt.id} after="list" />
-        <button
-          type="button"
-          onClick={() => void handleSubmit()}
-          disabled={submitting}
-          className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
-        >
-          {submitting ? "Marking…" : "Submit"}
-        </button>
+
+        <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
+          <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
+            {save.isPending ? "Saving…" : save.isSuccess ? "Saved" : null}
+          </span>
+          <div className="desk-theme-toggle">
+            <ThemeToggle />
+          </div>
+          <button
+            ref={promptTriggerRef}
+            type="button"
+            onClick={() => setPromptOpen((current) => !current)}
+            aria-expanded={promptOpen}
+            className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion sm:text-[0.7rem] lg:hidden"
+          >
+            Prompt
+          </button>
+          <AttemptDeleteControl kind="paper" attemptId={attempt.id} after="list" />
+          <button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={submitting}
+            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
+          >
+            {submitting ? "Marking…" : "Submit"}
+          </button>
+        </div>
       </header>
 
       {timedOut && (
-        <p className="border-b border-vermilion/40 bg-vermilion-soft px-6 py-2 text-sm text-vermilion">
+        <p className="relative z-10 border-b border-vermilion/40 bg-vermilion-soft px-6 py-2 text-sm text-vermilion">
           Time is up. You can still submit. The paper will not send itself.
         </p>
       )}
       {submitError && (
-        <p className="border-b border-vermilion/40 px-6 py-2 text-sm text-vermilion">
+        <p className="relative z-10 border-b border-vermilion/40 px-6 py-2 text-sm text-vermilion">
           Marking failed. Try submit again.
         </p>
       )}
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative z-10 flex min-h-0 flex-1">
         <SidePanel
           open={promptOpen}
           onOpenChange={setPromptOpen}
@@ -245,7 +256,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
           triggerLabel="Prompt"
           triggerRef={promptTriggerRef}
           side="left"
-          className="w-96"
+          className="w-96 bg-transparent"
         >
           <PromptPane
             attempt={attempt}
@@ -429,11 +440,16 @@ function ResultView({
   });
 
   return (
-    <div className="flex h-[100dvh] flex-col">
-      <PageAtmosphere kind="result" />
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+    <div className="editor-desk flex h-[100dvh] flex-col">
+      <PageAtmosphere kind="manuscript" />
+      <header className="editor-chrome relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
         <BrandLockup to="/practice" size="sm" />
-        <ThemeToggle />
+        <Link
+          to="/practice"
+          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion sm:text-[0.7rem]"
+        >
+          Practice
+        </Link>
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           {spec?.label ?? attempt.taskType}
         </span>
@@ -446,47 +462,52 @@ function ResultView({
         >
           Scores
         </button>
-        <span className="ml-auto" />
-        <AttemptDeleteControl kind="paper" attemptId={attempt.id} after="list" />
-        {action.kind === "revise" && (
-          <button
-            type="button"
-            onClick={() => revise.mutate()}
-            disabled={revise.isPending}
-            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
-          >
-            Revise this paper
-          </button>
-        )}
-        {action.kind === "resume" && (
-          <button
-            type="button"
-            onClick={() => navigate(`/practice/${action.attemptId}`)}
-            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
-          >
-            Resume revision
-          </button>
-        )}
-        {attempt.marks && (
-          <div className="flex border border-rule font-mono text-[0.65rem] uppercase tracking-[0.15em]">
-            {(["mistakes", "style"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setLens(option)}
-                aria-pressed={lens === option}
-                className={`px-3 py-1 ${
-                  lens === option ? "bg-ink text-paper" : "text-ink-soft hover:text-vermilion"
-                }`}
-              >
-                {option}
-              </button>
-            ))}
+
+        <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
+          <div className="desk-theme-toggle">
+            <ThemeToggle />
           </div>
-        )}
+          <AttemptDeleteControl kind="paper" attemptId={attempt.id} after="list" />
+          {action.kind === "revise" && (
+            <button
+              type="button"
+              onClick={() => revise.mutate()}
+              disabled={revise.isPending}
+              className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
+            >
+              Revise this paper
+            </button>
+          )}
+          {action.kind === "resume" && (
+            <button
+              type="button"
+              onClick={() => navigate(`/practice/${action.attemptId}`)}
+              className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
+            >
+              Resume revision
+            </button>
+          )}
+          {attempt.marks && (
+            <div className="editor-mode-pair flex items-center gap-3">
+              {(["mistakes", "style"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setLens(option)}
+                  aria-pressed={lens === option}
+                  className={`font-mono text-[0.65rem] uppercase tracking-[0.18em] transition-colors sm:text-[0.7rem] ${
+                    lens === option ? "text-ink" : "text-ink-soft hover:text-vermilion"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative z-10 flex min-h-0 flex-1">
         <SidePanel
           open={scoresOpen}
           onOpenChange={setScoresOpen}
@@ -494,7 +515,7 @@ function ResultView({
           triggerLabel="Scores"
           triggerRef={scoresTriggerRef}
           side="left"
-          className="w-[22rem]"
+          className="w-[22rem] bg-transparent"
         >
           <div className="px-6 py-8">
             {attempt.band !== null && (

@@ -142,6 +142,8 @@ describe("PracticeAttemptPage ResultView revise button", () => {
     renderPage();
 
     expect(await screen.findByRole("button", { name: "Revise this paper" })).toBeTruthy();
+    expect(document.querySelector(".editor-desk")).toBeTruthy();
+    expect(document.querySelector("[data-atmosphere='manuscript']")).toBeTruthy();
   });
 
   it("hides the revise button when a submitted child revision already exists", async () => {
@@ -430,6 +432,16 @@ describe("PracticeAttemptPage catalog gate", () => {
 
     expect(await screen.findByText("This task type is no longer in the catalog.")).toBeTruthy();
     expect(screen.queryByTestId("editor")).toBeNull();
+  });
+
+  it("sits the exam paper on the editor desk", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(openAttemptWithReview);
+    renderPage("open-1");
+
+    expect(await screen.findByTestId("editor")).toBeTruthy();
+    expect(document.querySelector(".editor-desk")).toBeTruthy();
+    expect(document.querySelector("[data-atmosphere='manuscript']")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /^Practice$/ })).toBeTruthy();
   });
 });
 

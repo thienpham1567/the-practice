@@ -182,11 +182,16 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
   };
 
   return (
-    <div className="flex min-h-[100dvh] min-w-0 flex-col overflow-x-hidden">
-      <PageAtmosphere kind="talk" />
-      <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+    <div className="speaking-desk relative flex min-h-dvh min-w-0 flex-col overflow-x-hidden">
+      <PageAtmosphere kind="speaking" />
+      <header className="speaking-chrome relative z-10 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
-        <ThemeToggle />
+        <Link
+          to="/speaking"
+          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion sm:text-[0.7rem]"
+        >
+          Speaking
+        </Link>
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           Part 2 · {attempt.level}
         </span>
@@ -195,16 +200,16 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
             Recording {attempt.revisionRound}/2
           </span>
         )}
-        <Link
-          to="/speaking"
-          className="ml-auto font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion sm:text-[0.7rem]"
-        >
-          All talks
-        </Link>
-        <AttemptDeleteControl kind="talk" attemptId={attempt.id} after="list" />
+        <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
+          <div className="desk-theme-toggle">
+            <ThemeToggle />
+          </div>
+          <AttemptDeleteControl kind="talk" attemptId={attempt.id} after="list" />
+        </div>
       </header>
 
-      <main className="mx-auto flex w-full min-w-0 max-w-2xl flex-1 flex-col px-6 py-10">
+      <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-2xl flex-1 flex-col px-4 pb-16 pt-2 sm:px-6">
+        <div className="speaking-sheet relative">
         {phase === "prep" && (
           <PrepPhase cue={cue} secondsLeft={prepLeft} onSkip={skipPrep} />
         )}
@@ -236,7 +241,8 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
             onSubmit={() => void handleSubmit()}
           />
         )}
-      </main>
+        </div>
+      </div>
     </div>
   );
 }
@@ -400,11 +406,16 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
   }, [attempt.marks, attempt.transcript]);
 
   return (
-    <div className="flex h-[100dvh] min-w-0 flex-col overflow-x-hidden">
-      <PageAtmosphere kind="result" />
-      <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule px-3 py-3 sm:gap-x-4 sm:px-6">
+    <div className="speaking-desk relative flex h-dvh min-w-0 flex-col overflow-x-hidden">
+      <PageAtmosphere kind="speaking" />
+      <header className="speaking-chrome relative z-10 flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
         <BrandLockup to="/speaking" size="sm" />
-        <ThemeToggle />
+        <Link
+          to="/speaking"
+          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion sm:text-[0.7rem]"
+        >
+          Speaking
+        </Link>
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
           Part 2 · {attempt.level}
         </span>
@@ -417,30 +428,34 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
         >
           Scores
         </button>
-        <span className="ml-auto" />
-        <AttemptDeleteControl kind="talk" attemptId={attempt.id} after="list" />
-        {action.kind === "revise" && (
-          <button
-            type="button"
-            onClick={() => revise.mutate()}
-            disabled={revise.isPending}
-            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
-          >
-            Record again
-          </button>
-        )}
-        {action.kind === "resume" && (
-          <button
-            type="button"
-            onClick={() => navigate(`/speaking/${action.attemptId}`)}
-            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
-          >
-            Resume recording
-          </button>
-        )}
+        <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
+          <div className="desk-theme-toggle">
+            <ThemeToggle />
+          </div>
+          <AttemptDeleteControl kind="talk" attemptId={attempt.id} after="list" />
+          {action.kind === "revise" && (
+            <button
+              type="button"
+              onClick={() => revise.mutate()}
+              disabled={revise.isPending}
+              className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60 sm:px-4 sm:text-[0.7rem]"
+            >
+              Record again
+            </button>
+          )}
+          {action.kind === "resume" && (
+            <button
+              type="button"
+              onClick={() => navigate(`/speaking/${action.attemptId}`)}
+              className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
+            >
+              Resume recording
+            </button>
+          )}
+        </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative z-10 flex min-h-0 flex-1">
         <SidePanel
           open={scoresOpen}
           onOpenChange={setScoresOpen}
@@ -448,7 +463,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
           triggerLabel="Scores"
           triggerRef={scoresTriggerRef}
           side="left"
-          className="w-[22rem]"
+          className="w-[22rem] bg-transparent"
         >
           <div className="px-6 py-8">
             {attempt.band !== null && (
@@ -492,7 +507,8 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
           </div>
         </SidePanel>
 
-        <div className="flex min-w-0 flex-1 flex-col px-6 py-8 sm:px-10">
+        <div className="flex min-w-0 flex-1 flex-col px-4 py-4 sm:px-6">
+          <div className="speaking-sheet relative">
           <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
             Transcript
           </h2>
@@ -505,6 +521,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
           {attempt.marks && attempt.marks.length > 0 && (
             <MarkLegend marks={attempt.marks} />
           )}
+          </div>
         </div>
       </div>
     </div>

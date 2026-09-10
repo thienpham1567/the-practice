@@ -156,6 +156,8 @@ describe("SpeakingAttemptPage phases", () => {
     expect(await screen.findByText("Describe a memorable journey")).toBeTruthy();
     expect(screen.getByText("where you went")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Skip prep/i })).toBeTruthy();
+    expect(document.querySelector(".speaking-desk")).toBeTruthy();
+    expect(document.querySelector("[data-atmosphere='speaking']")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Skip prep/i }));
 
