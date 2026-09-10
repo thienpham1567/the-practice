@@ -2,40 +2,28 @@
 
 `/speaking`. Đêm: [dark.md](dark.md).
 
-**Chỗ:** hành lang ngoài booth — cửa kính tròn, một cue đứng. Sheet Folio giữa.
+**Chỗ:** bàn trà và sổ Speaking — chồng sách kem, cốc hoa cúc, sổ lò xo, lọ hoa, ống bút, đèn đen. Sheet Folio giữa.
 
 Seedream 5.0 Pro · 16:9 · 2K. Output: `speaking-desk-day.jpg`.
 
 ```
-JOB: A photographic BACKGROUND PLATE only. 16:9, 2K, photoreal, cinematic still. No UI. PLACE: a CORRIDOR OUTSIDE a speaking booth — institutional hallway, a closed door with a small round window — NOT inside the booth, NOT a writing desk. TIME: morning.
+JOB: A photographic BACKGROUND PLATE only. 16:9, 2K, photoreal, cinematic still. No UI. PLACE: a quiet HOME DESK by a garden WINDOW — NOT an exam hall, NOT a speaking booth, NOT the practice city desk. TIME: bright day.
 
 MEANING:
-You are about to take a long turn. One cue card is presented. The microphone waits behind the door. Invitation to speak, not recording.
+You are about to sit a long turn. The notebook is open. Cue card not yet drawn. Editorial, analog, calm.
 
 ARCHITECTURE (thumbnail test):
-- A LONG plaster corridor, cream/grey, linoleum or worn wood floor.
-- RIGHT or rear: a closed wooden booth door with a SMALL ROUND window (dark glass, no readable sign).
-- A narrow HALL BENCH or shelf along the LEFT wall.
-- Daylight from a window at the FAR END of the corridor (vanishing point), not a desk-side city window.
-- CENTER (~50%): empty floor/wall band for the HTML speaking catalog — keep a quiet vertical stage, no furniture in that column.
+- LEFT: three cream cloth books stacked — The Practice, On Writing, Essays. A ceramic mug of chamomile tea on a woven coaster, visible steam.
+- CENTER (~50%): empty walnut band for the HTML speaking catalog. A cream spiral notebook titled "Speaking" in script, gold pen across it.
+- RIGHT: small stoneware vase with eucalyptus and baby's breath. Wooden pen cup with three pens. Black task lamp entering from top-right. Garden greenery through the window.
 
-CAMERA:
-- 16:9. 28–35mm, standing height, corridor DEPTH. Environmental. No Dutch tilt, no flat-lay.
+CAMERA: 16:9, 35mm, slightly above the desk. No Dutch tilt, no flat-lay.
 
-LIGHT:
-Cool daylight from the far-end window, even, slightly institutional. Ceiling fixtures OFF. No designer desk lamp. No HDR.
+LIGHT: Daylight from the window, lamp OFF. No HDR.
 
-STILL-LIFE (edges):
-LEFT (~22%): wooden card stand on the bench; ONE cream cue card standing, completely BLANK (no "Describe", no Part 2).
-RIGHT (~28%): the booth door and round window; a vintage microphone on the floor beside the door, OFF, not a product hero.
+PALETTE: walnut #8a6244, cream books #e8e0d2, tea steam, plaster #d8d4cc. No neon.
 
-PALETTE: plaster #d8d4cc, door oak #6b5344, card #e8e0d2, mic #4a4540, far daylight #c5d0d8. No RGB mic lights, no neon.
+HARD BANS: no booth, no exam hall, no city skyline as the main view, no UI, no people, no laptop, no 16:10.
 
-HARD BANS:
-- No apartment walnut desk, no exam hall rows, no pigeonholes, no banker lamp
-- No interior booth felt walls (that's the talk plate)
-- No UI, no IELTS lettering on the card, no people, no laptop
-- No 16:10, no square
-
-SUCCESS: thumbnail reads "hallway outside a booth". Middle empty. If it is a desk still-life, generate again.
+SUCCESS: thumbnail reads "tea, Speaking notebook, garden window". Not a booth.
 ```

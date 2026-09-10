@@ -52,6 +52,9 @@ interface EditorProps {
   /** Paint stored mistakes instead of style highlights (results view). */
   savedMarks?: WritingMark[] | null;
   placeholder?: string;
+  /** Khi có, title sống trên tờ — không phải trên header. */
+  title?: string;
+  onTitleChange?: (title: string) => void;
 }
 
 interface HoverState {
@@ -82,6 +85,8 @@ export function Editor({
   savedResult = null,
   savedMarks = null,
   placeholder,
+  title,
+  onTitleChange,
 }: EditorProps) {
   return (
     <LexicalComposer
@@ -104,6 +109,8 @@ export function Editor({
         savedResult={savedResult}
         savedMarks={savedMarks}
         placeholder={placeholder}
+        title={title}
+        onTitleChange={onTitleChange}
       />
     </LexicalComposer>
   );
@@ -117,6 +124,8 @@ interface EditorBodyProps {
   savedResult: AnalysisResult | null;
   savedMarks?: WritingMark[] | null;
   placeholder?: string;
+  title?: string;
+  onTitleChange?: (title: string) => void;
 }
 
 function EditorBody({
@@ -127,6 +136,8 @@ function EditorBody({
   savedResult,
   savedMarks = null,
   placeholder,
+  title,
+  onTitleChange,
 }: EditorBodyProps) {
   const [editor] = useLexicalComposerContext();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -204,6 +215,7 @@ function EditorBody({
   };
 
   const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest(".editor-sheet-masthead")) return;
     // Lăng kính lỗi chạy được cả khi read-only, nên phải xử lý trước guard của
     // AI rewrite.
     if (savedMarks) {
@@ -241,7 +253,11 @@ function EditorBody({
     if (span) openPopover(span, containerPoint(event.clientX, event.clientY), found);
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (event: React.MouseEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest(".editor-sheet-masthead")) {
+      setSelectionTrigger(null);
+      return;
+    }
     if (readOnly || !aiEnabled) return;
     const { index } = stateRef.current;
     const selection = window.getSelection();
@@ -297,10 +313,11 @@ function EditorBody({
 
   return (
     <>
-      <div className="editor-toolbar-bar min-w-0 px-6 py-2">
-        <div className="mx-auto min-w-0 max-w-[46rem]">
-          <ToolbarPlugin />
-        </div>
+      <div
+        data-testid="editor-toolbar-bar"
+        className="editor-toolbar-bar mx-auto w-full min-w-0 max-w-[46rem] px-2 py-1.5 sm:px-0"
+      >
+        <ToolbarPlugin />
       </div>
 
       <div
@@ -311,21 +328,34 @@ function EditorBody({
         onClick={handleClick}
         onMouseUp={handleMouseUp}
       >
-        <div className="editor-sheet relative mx-auto my-8 max-w-[46rem] sm:my-10">
-          <RichTextPlugin
-            contentEditable={
-              <ContentEditable
-                className="min-h-[60vh] text-[1.15rem] leading-[1.75] outline-none"
-                aria-label="Document text"
+        <div className="editor-sheet relative mx-auto mb-10 mt-3 max-w-[46rem] sm:mb-12 sm:mt-4">
+          {onTitleChange ? (
+            <div className="editor-sheet-masthead">
+              <input
+                value={title ?? ""}
+                onChange={(event) => onTitleChange(event.target.value)}
+                aria-label="Document title"
+                placeholder="Untitled"
+                className="editor-sheet-title"
               />
-            }
-            placeholder={
-              <p className="editor-placeholder pointer-events-none text-[1.15rem] text-ink-faint">
-                {placeholder ?? "Write something worth editing."}
-              </p>
-            }
-            ErrorBoundary={LexicalErrorBoundary}
-          />
+            </div>
+          ) : null}
+          <div className="editor-sheet-body relative">
+            <RichTextPlugin
+              contentEditable={
+                <ContentEditable
+                  className="min-h-[60vh] text-[1.15rem] leading-[1.75] outline-none"
+                  aria-label="Document text"
+                />
+              }
+              placeholder={
+                <p className="editor-placeholder pointer-events-none text-[1.15rem] text-ink-faint">
+                  {placeholder ?? "Write something worth editing."}
+                </p>
+              }
+              ErrorBoundary={LexicalErrorBoundary}
+            />
+          </div>
         </div>
 
         {hover && !popover && <HighlightTooltip hover={hover} />}

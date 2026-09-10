@@ -1,25 +1,13 @@
 /**
- * Decorative editorial backdrop for AuthPage — ink wash, ruled paper, sparse marks.
- * Purely visual; never captures pointer or assistive focus.
+ * Photographic desk plate behind login/register — day/night via theme.
+ * Decorative only; never captures pointer or assistive focus.
  */
 export function AuthAmbient() {
   return (
     <div
       className="auth-ambient pointer-events-none fixed inset-0 overflow-hidden"
       aria-hidden="true"
-    >
-      <div data-ambient="ink" className="auth-ambient-ink absolute inset-0" />
-      <div data-ambient="rules" className="auth-ambient-rules absolute inset-0" />
-      <div data-ambient="marks" className="auth-ambient-marks absolute inset-0">
-        <span
-          data-ambient="watermark"
-          className="auth-ambient-mark auth-ambient-mark--watermark"
-        >
-          P
-        </span>
-        <span className="auth-ambient-mark auth-ambient-mark--dash">/</span>
-        <span className="auth-ambient-mark auth-ambient-mark--stamp" />
-      </div>
-    </div>
+      data-ambient="desk"
+    />
   );
 }

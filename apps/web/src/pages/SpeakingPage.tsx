@@ -40,95 +40,114 @@ export function SpeakingPage() {
   const showLedger = submitted.length > 0;
 
   return (
-    <main className="relative mx-auto min-h-[100dvh] min-w-0 max-w-3xl overflow-x-hidden px-6 py-14">
+    <main className="speaking-desk relative flex min-h-dvh min-w-0 flex-col overflow-x-hidden">
       <PageAtmosphere kind="speaking" />
-      <Masthead lockupTo="/speaking">
+      <Masthead
+        lockupTo="/speaking"
+        className="speaking-chrome relative z-10 px-4 py-4 sm:px-6"
+        deskToggle
+      >
         <FolioNav current="/speaking" />
       </Masthead>
-      <h1 className="animate-fade-up mt-8 font-display text-3xl font-semibold">Speaking</h1>
-      <p className="mt-2 max-w-xl text-ink-soft">
-        IELTS Part 2 long turn. One cue card, two minutes to talk.
-      </p>
+      <div className="relative z-10 mx-auto w-full max-w-2xl flex-1 px-4 pb-16 pt-2 sm:px-6">
+        <div className="speaking-sheet relative">
+          <h1 className="animate-fade-up font-display text-3xl font-semibold">Speaking</h1>
+          <p className="animate-fade-up mt-2 max-w-xl text-ink-soft">
+            IELTS Part 2 long turn. One cue card, two minutes to talk.
+          </p>
 
-      <section className="animate-fade-up mt-10" style={{ animationDelay: "40ms" }}>
-        <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">Level</h2>
-        <div className="mt-3">
-          <FolioChoice label="Level" value={level} options={LEVEL_OPTIONS} onChange={setLevel} />
-        </div>
-        <button
-          type="button"
-          onClick={() => start.mutate()}
-          disabled={start.isPending}
-          className="mt-4 min-h-11 bg-ink px-5 py-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
-        >
-          {start.isPending ? "Setting the cue card…" : "Start speaking"}
-        </button>
-        {start.isError && (
-          <p className="mt-3 text-sm text-vermilion">Could not start. Try again in a moment.</p>
-        )}
-      </section>
+          <section className="animate-fade-up mt-10" style={{ animationDelay: "40ms" }}>
+            <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+              Level
+            </h2>
+            <div className="mt-3">
+              <FolioChoice
+                label="Level"
+                value={level}
+                options={LEVEL_OPTIONS}
+                onChange={setLevel}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => start.mutate()}
+              disabled={start.isPending}
+              className="mt-4 min-h-11 bg-ink px-5 py-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion disabled:opacity-60"
+            >
+              {start.isPending ? "Setting the cue card…" : "Start speaking"}
+            </button>
+            {start.isError && (
+              <p className="mt-3 text-sm text-vermilion">Could not start. Try again in a moment.</p>
+            )}
+          </section>
 
-      {showLedger && (
-        <div className="animate-fade-up mt-12 space-y-10" style={{ animationDelay: "80ms" }}>
-          <StreakStrip submittedDates={submittedDates} current={streak.current} />
-          <BandChart points={chartPoints} />
-        </div>
-      )}
+          {showLedger && (
+            <div className="animate-fade-up mt-12 space-y-10" style={{ animationDelay: "80ms" }}>
+              <StreakStrip submittedDates={submittedDates} current={streak.current} />
+              <BandChart points={chartPoints} />
+            </div>
+          )}
 
-      <section className="animate-fade-up mt-12" style={{ animationDelay: "120ms" }}>
-        <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">Talks</h2>
-        {attempts.isLoading && <FolioSkeleton label="Fetching your talks" />}
-        {attempts.isError && (
-          <p className="mt-4 text-sm text-vermilion">Could not load your talks. Refresh and try again.</p>
-        )}
-        {attempts.data?.length === 0 && (
-          <FolioEmpty message="Nothing here yet. Pick a level and start." />
-        )}
-        <ul className="mt-2 divide-y divide-rule">
-          {attempts.data?.map((attempt, index) => {
-            const when = new Date(attempt.submittedAt ?? attempt.startedAt);
-            return (
-              <li
-                key={attempt.id}
-                className="animate-fade-up"
-                style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-              >
-                <div className="flex items-center gap-x-3">
-                  <Link
-                    to={`/speaking/${attempt.id}`}
-                    className="group flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 py-4"
+          <section className="animate-fade-up mt-12" style={{ animationDelay: "120ms" }}>
+            <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+              Talks
+            </h2>
+            {attempts.isLoading && <FolioSkeleton label="Fetching your talks" />}
+            {attempts.isError && (
+              <p className="mt-4 text-sm text-vermilion">
+                Could not load your talks. Refresh and try again.
+              </p>
+            )}
+            {attempts.data?.length === 0 && (
+              <FolioEmpty message="Nothing here yet. Pick a level and start." />
+            )}
+            <ul className="mt-2 divide-y divide-rule">
+              {attempts.data?.map((attempt, index) => {
+                const when = new Date(attempt.submittedAt ?? attempt.startedAt);
+                return (
+                  <li
+                    key={attempt.id}
+                    className="animate-fade-up"
+                    style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="font-display text-lg transition-colors group-hover:text-vermilion">
-                        Part 2 · {attempt.level}
-                      </span>
-                      <span className="ml-3 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
-                        {when.toLocaleDateString(undefined, {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </span>
-                      {!attempt.submittedAt && (
-                        <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion">
-                          In progress
+                    <div className="flex items-center gap-x-3">
+                      <Link
+                        to={`/speaking/${attempt.id}`}
+                        className="group flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 py-4"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="font-display text-lg transition-colors group-hover:text-vermilion">
+                            Part 2 · {attempt.level}
+                          </span>
+                          <span className="ml-3 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
+                            {when.toLocaleDateString(undefined, {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                          {!attempt.submittedAt && (
+                            <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion">
+                              In progress
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </span>
-                    <TalkBandMeta
-                      band={attempt.band}
-                      level={attempt.level}
-                      latestBand={attempt.latestBand}
-                      revisionCount={attempt.revisionCount}
-                    />
-                  </Link>
-                  <AttemptDeleteControl kind="talk" attemptId={attempt.id} />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+                        <TalkBandMeta
+                          band={attempt.band}
+                          level={attempt.level}
+                          latestBand={attempt.latestBand}
+                          revisionCount={attempt.revisionCount}
+                        />
+                      </Link>
+                      <AttemptDeleteControl kind="talk" attemptId={attempt.id} />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        </div>
+      </div>
     </main>
   );
 }

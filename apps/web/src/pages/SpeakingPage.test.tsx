@@ -116,6 +116,16 @@ describe("SpeakingPage", () => {
     expect(screen.getByRole("link", { name: "Writing" }).getAttribute("href")).toBe("/practice");
   });
 
+  it("sits the catalog on the desk plate", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Speaking" })).toBeTruthy();
+    expect(document.querySelector(".speaking-desk")).toBeTruthy();
+    expect(document.querySelector(".speaking-sheet")).toBeTruthy();
+    expect(document.querySelector("[data-atmosphere='speaking']")).toBeTruthy();
+  });
+
   it("asks before deleting a talk and cancels without calling the API", async () => {
     vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisions]);
     renderPage();

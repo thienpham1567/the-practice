@@ -28,4 +28,16 @@ describe("PageAtmosphere", () => {
     expect(container.querySelector(`[data-atmosphere='${kind}']`)).toBeTruthy();
     expect(container.querySelector(`.page-atm--${kind}`)).toBeTruthy();
   });
+
+  it("does not overlay exam marks on the practice desk plate", () => {
+    const { container } = render(<PageAtmosphere kind="practice" />);
+    expect(container.querySelector(".page-atm-spine")).toBeNull();
+    expect(container.querySelector(".page-atm-glyph--box")).toBeNull();
+  });
+
+  it("does not overlay rings on the speaking desk plate", () => {
+    const { container } = render(<PageAtmosphere kind="speaking" />);
+    expect(container.querySelector(".page-atm-rings")).toBeNull();
+    expect(container.querySelector(".page-atm-glyph--quote")).toBeNull();
+  });
 });

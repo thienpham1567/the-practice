@@ -10,16 +10,10 @@ describe("AuthAmbient", () => {
     expect(root.className).toMatch(/pointer-events-none/);
   });
 
-  it("renders ink, rules, and marks layers", () => {
+  it("paints the desk plate, not the old ink-and-rules wash", () => {
     const { container } = render(<AuthAmbient />);
-    expect(container.querySelector("[data-ambient='ink']")).toBeTruthy();
-    expect(container.querySelector("[data-ambient='rules']")).toBeTruthy();
-    expect(container.querySelector("[data-ambient='marks']")).toBeTruthy();
-  });
-
-  it("paints a large faint P watermark in the corner of the pad", () => {
-    const { container } = render(<AuthAmbient />);
-    const watermark = container.querySelector("[data-ambient='watermark']");
-    expect(watermark?.textContent).toBe("P");
+    expect(container.querySelector("[data-ambient='desk']")).toBeTruthy();
+    expect(container.querySelector("[data-ambient='ink']")).toBeNull();
+    expect(container.querySelector("[data-ambient='rules']")).toBeNull();
   });
 });

@@ -75,11 +75,11 @@ describe("AuthPage", () => {
     renderAuth();
     const brand = screen.getByRole("link", { name: /The Practice/ });
     expect(brand.getAttribute("href")).toBe("/");
-    expect(brand.className).toContain("text-3xl");
+    expect(brand.className).toContain("text-2xl");
     expect(brand.closest("main")?.classList.contains("auth-desk")).toBe(true);
     expect(screen.getByRole("heading", { name: "Welcome back" })).toBeTruthy();
     expect(screen.getByText("Your papers and talks are waiting.")).toBeTruthy();
-    expect(document.querySelector("[data-ambient='ink']")).toBeTruthy();
+    expect(document.querySelector("[data-ambient='desk']")).toBeTruthy();
     expect(document.querySelector("header.border-b")).toBeNull();
   });
 
@@ -87,8 +87,7 @@ describe("AuthPage", () => {
     renderAuth("register");
     expect(screen.getByRole("heading", { name: "Begin practice" })).toBeTruthy();
     expect(screen.getByText("An account keeps your papers and talks.")).toBeTruthy();
-    expect(document.querySelector("[data-ambient='rules']")).toBeTruthy();
-    expect(document.querySelector("[data-ambient='marks']")).toBeTruthy();
+    expect(document.querySelector("[data-ambient='desk']")).toBeTruthy();
   });
 
   it("sends Back to the editor to /write", () => {

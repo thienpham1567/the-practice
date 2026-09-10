@@ -39,12 +39,7 @@ const MARKS: Record<AtmosphereKind, ReactNode> = {
       <span className="page-atm-sheet page-atm-sheet--c" />
     </>
   ),
-  practice: (
-    <>
-      <span className="page-atm-spine">Script</span>
-      <span className="page-atm-glyph page-atm-glyph--box">Task</span>
-    </>
-  ),
+  practice: null,
   exam: (
     <>
       <span className="page-atm-crop page-atm-crop--tl" />
@@ -60,12 +55,7 @@ const MARKS: Record<AtmosphereKind, ReactNode> = {
       <span className="page-atm-glyph page-atm-glyph--caret page-atm-glyph--caret-b">^</span>
     </>
   ),
-  speaking: (
-    <>
-      <span className="page-atm-rings" />
-      <span className="page-atm-glyph page-atm-glyph--quote">“</span>
-    </>
-  ),
+  speaking: null,
   talk: (
     <>
       <span className="page-atm-rings page-atm-rings--booth" />

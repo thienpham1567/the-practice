@@ -124,6 +124,16 @@ describe("PracticePage papers list", () => {
     expect(screen.getByRole("link", { name: "Speaking" }).getAttribute("href")).toBe("/speaking");
   });
 
+  it("sits the catalog on the desk plate", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([]);
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Practice" })).toBeTruthy();
+    expect(document.querySelector(".practice-desk")).toBeTruthy();
+    expect(document.querySelector(".practice-sheet")).toBeTruthy();
+    expect(document.querySelector("[data-atmosphere='practice']")).toBeTruthy();
+  });
+
   it("shows chain summary when a paper has revisions", async () => {
     vi.mocked(listAttempts).mockResolvedValue([rootWithRevisions]);
     renderPage();

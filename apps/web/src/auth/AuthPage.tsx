@@ -72,120 +72,122 @@ export function AuthPage({ mode }: AuthPageProps) {
   };
 
   return (
-    <main className="auth-desk relative mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-6 py-14">
+    <main className="auth-desk relative flex min-h-[100dvh] flex-col">
       <AuthAmbient />
-      <div className="absolute right-6 top-6 z-30">
+      <div className="auth-theme-toggle desk-theme-toggle absolute right-16 top-5 z-30 sm:right-20">
         <ThemeToggle />
       </div>
-      <div
-        className="auth-sheet relative z-10 px-7 py-9 sm:px-9 sm:py-11"
-        aria-busy={api.status === "checking" ? true : undefined}
-      >
-      <div className="animate-fade-up" style={{ animationDelay: "40ms" }}>
-        <BrandLockup to="/" size="xl" />
-        <h1 className="mt-8 font-display text-[2.25rem] font-semibold leading-[1.15] tracking-[-0.02em] sm:text-[2.5rem] sm:leading-[1.12]">
-          {copy.heading}
-        </h1>
-        <p className="mt-3 text-lg text-ink-soft">{copy.lede}</p>
-      </div>
-
-      <div className="mt-10">
+      <div className="relative z-10 mx-auto flex w-full max-w-[26rem] flex-1 flex-col justify-center px-4 py-14 sm:px-0">
         <div
-          data-testid="auth-form-block"
-          {...(blocked ? { inert: "" } : {})}
-          className={blocked ? "pointer-events-none" : undefined}
+          className="auth-sheet relative"
+          aria-busy={api.status === "checking" ? true : undefined}
         >
-          <form
-            onSubmit={(event) => void submit(event)}
-            className="animate-fade-up space-y-5"
-            style={{ animationDelay: "90ms" }}
-          >
-            <Field
-              label="Email"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              autoComplete="email"
-            />
-            <Field
-              label="Password"
-              type="password"
-              value={password}
-              onChange={setPassword}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              hint={mode === "register" ? "At least 8 characters." : undefined}
-            />
+          <div className="animate-fade-up" style={{ animationDelay: "40ms" }}>
+            <BrandLockup to="/" size="lg" />
+            <h1 className="mt-7 font-display text-[1.85rem] font-semibold leading-[1.15] tracking-[-0.02em] sm:text-[2.05rem]">
+              {copy.heading}
+            </h1>
+            <p className="mt-2.5 text-[1.05rem] leading-relaxed text-ink-soft">{copy.lede}</p>
+          </div>
 
-            {alertMessage && (
-              <p role="alert" className="flex items-baseline gap-1.5 text-sm text-vermilion">
-                <span aria-hidden="true">·</span>
-                {alertMessage}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={formBusy}
-              className="w-full bg-ink px-4 py-3 font-mono text-sm uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion active:scale-[0.99] disabled:opacity-50"
+          <div className="mt-8">
+            <div
+              data-testid="auth-form-block"
+              {...(blocked ? { inert: "" } : {})}
+              className={blocked ? "pointer-events-none" : undefined}
             >
-              {pending ? "Working…" : copy.action}
-            </button>
-          </form>
-
-          {google.status !== "hidden" && (
-            <div className="relative z-10 mt-8" data-testid="google-sign-in">
-              <div className="flex items-center gap-3" aria-hidden="true">
-                <span className="h-px flex-1 bg-rule" />
-                <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
-                  or
-                </span>
-                <span className="h-px flex-1 bg-rule" />
-              </div>
-              <div
-                data-testid="google-sign-in-slot"
-                className={`relative mt-5 flex h-10 justify-center overflow-hidden${formBusy ? " pointer-events-none" : ""}`}
+              <form
+                onSubmit={(event) => void submit(event)}
+                className="animate-fade-up space-y-5"
+                style={{ animationDelay: "90ms" }}
               >
-                <div ref={google.containerRef} className="h-10 w-full max-w-[320px]" />
-                {google.status === "loading" && (
-                  <div
-                    data-testid="google-sign-in-skeleton"
-                    className="auth-google-slot pointer-events-none absolute inset-0 mx-auto h-10 max-w-[320px]"
-                    aria-hidden="true"
-                  />
+                <Field
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={setEmail}
+                  autoComplete="email"
+                />
+                <Field
+                  label="Password"
+                  type="password"
+                  value={password}
+                  onChange={setPassword}
+                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  hint={mode === "register" ? "At least 8 characters." : undefined}
+                />
+
+                {alertMessage && (
+                  <p role="alert" className="flex items-baseline gap-1.5 text-sm text-vermilion">
+                    <span aria-hidden="true">·</span>
+                    {alertMessage}
+                  </p>
                 )}
-              </div>
-              {google.status === "loading" && (
-                <p className="sr-only" aria-live="polite">
-                  Loading Google Sign-In…
-                </p>
+
+                <button
+                  type="submit"
+                  disabled={formBusy}
+                  className="w-full bg-ink px-4 py-3 font-mono text-sm uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion active:scale-[0.99] disabled:opacity-50"
+                >
+                  {pending ? "Working…" : copy.action}
+                </button>
+              </form>
+
+              {google.status !== "hidden" && (
+                <div className="relative z-10 mt-8" data-testid="google-sign-in">
+                  <div className="flex items-center gap-3" aria-hidden="true">
+                    <span className="h-px flex-1 bg-rule" />
+                    <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+                      or
+                    </span>
+                    <span className="h-px flex-1 bg-rule" />
+                  </div>
+                  <div
+                    data-testid="google-sign-in-slot"
+                    className={`relative mt-5 flex h-10 justify-center overflow-hidden${formBusy ? " pointer-events-none" : ""}`}
+                  >
+                    <div ref={google.containerRef} className="h-10 w-full max-w-[320px]" />
+                    {google.status === "loading" && (
+                      <div
+                        data-testid="google-sign-in-skeleton"
+                        className="auth-google-slot pointer-events-none absolute inset-0 mx-auto h-10 max-w-[320px]"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </div>
+                  {google.status === "loading" && (
+                    <p className="sr-only" aria-live="polite">
+                      Loading Google Sign-In…
+                    </p>
+                  )}
+                  {google.status === "submitting" && (
+                    <p className="sr-only" aria-live="polite">
+                      Signing in with Google…
+                    </p>
+                  )}
+                </div>
               )}
-              {google.status === "submitting" && (
-                <p className="sr-only" aria-live="polite">
-                  Signing in with Google…
-                </p>
-              )}
+
+              <p
+                className="relative z-10 animate-fade-up mt-6 text-sm text-ink-soft"
+                style={{ animationDelay: "130ms" }}
+              >
+                {copy.switchText}{" "}
+                <Link to={copy.switchTo} className="text-vermilion underline underline-offset-2">
+                  {copy.switchLabel}
+                </Link>
+              </p>
+
+              <Link
+                to="/write"
+                className="relative z-10 animate-fade-up mt-10 text-sm text-ink-faint underline underline-offset-2 hover:text-ink"
+                style={{ animationDelay: "160ms" }}
+              >
+                Back to the editor
+              </Link>
             </div>
-          )}
-
-          <p
-            className="relative z-10 animate-fade-up mt-6 text-sm text-ink-soft"
-            style={{ animationDelay: "130ms" }}
-          >
-            {copy.switchText}{" "}
-            <Link to={copy.switchTo} className="text-vermilion underline underline-offset-2">
-              {copy.switchLabel}
-            </Link>
-          </p>
-
-          <Link
-            to="/write"
-            className="relative z-10 animate-fade-up mt-10 text-sm text-ink-faint underline underline-offset-2 hover:text-ink"
-            style={{ animationDelay: "160ms" }}
-          >
-            Back to the editor
-          </Link>
+          </div>
         </div>
-      </div>
       </div>
       {blocked && (api.status === "checking" || api.status === "failed") && (
         <AuthWakeOverlay status={api.status} onRetry={api.retry} />

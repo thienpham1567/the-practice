@@ -110,183 +110,31 @@
 }
 
 .auth-wake-overlay {
-  background-color: color-mix(in srgb, var(--color-paper) 82%, transparent);
-  background-image: linear-gradient(
-    color-mix(in srgb, var(--color-ink) 6%, transparent),
-    color-mix(in srgb, var(--color-ink) 6%, transparent)
-  );
+  background-color: color-mix(in srgb, var(--color-paper) 22%, transparent);
+}
+
+.auth-wake-overlay [role="status"] {
+  text-shadow:
+    0 0 12px var(--color-paper),
+    0 0 22px var(--color-paper);
 }
 
 /*
- * Auth desk DNA (light): measured pad/sheet/ink/accent from the Seedream frame.
- * Night keeps Folio inverted tokens from html[data-theme=dark].
+ * Auth form sits on the photographic desk. Use Folio paper/ink — not a
+ * separate terracotta pad that fought the new plates.
  */
-html:not([data-theme="dark"]) .auth-desk {
-  --color-paper: #eae5da;
-  --color-paper-deep: #e3d8c9;
-  --color-ink: #252421;
-  --color-ink-soft: #6f685b;
-  --color-ink-faint: #b4a290;
-  --color-rule: #ccc1b3;
-  --color-vermilion: #b07657;
-  --script-rule: color-mix(in srgb, var(--color-rule) 55%, transparent);
-}
 
 .auth-ambient {
-  background-color: var(--color-paper);
+  background-color: #cbb89a;
+  background-image: url("./assets/auth-desk-day.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
-/* Auth ambient — ink wash / ruled paper / editorial marks (very subtle). */
-@keyframes auth-ink-drift {
-  from {
-    transform: translate3d(-1%, 0.5%, 0) scale(1);
-  }
-  to {
-    transform: translate3d(1.5%, -1%, 0) scale(1.02);
-  }
-}
-
-@keyframes auth-rules-drift {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 0 28px;
-  }
-}
-
-@keyframes auth-mark-float {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(0, -4px, 0);
-  }
-}
-
-@keyframes auth-stamp-float {
-  from {
-    transform: rotate(-2deg) translate3d(0, 0, 0);
-  }
-  to {
-    transform: rotate(-2deg) translate3d(0, -4px, 0);
-  }
-}
-
-.auth-ambient-ink {
-  background-image:
-    radial-gradient(ellipse 58% 42% at 10% 6%, color-mix(in srgb, var(--color-ink) 7%, transparent), transparent 72%),
-    radial-gradient(ellipse 48% 38% at 88% 8%, color-mix(in srgb, var(--color-vermilion) 7%, transparent), transparent 70%),
-    radial-gradient(ellipse 52% 48% at 82% 94%, color-mix(in srgb, var(--color-ink) 5.5%, transparent), transparent 74%);
-  animation: auth-ink-drift 42s ease-in-out infinite alternate;
-  will-change: transform;
-}
-
-.auth-ambient-rules {
-  opacity: 0.34;
-  background-image:
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent calc(10% - 1px),
-      color-mix(in srgb, var(--color-vermilion) 38%, transparent) calc(10% - 1px),
-      color-mix(in srgb, var(--color-vermilion) 38%, transparent) 10%,
-      transparent 10%
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 27px,
-      var(--script-rule) 27px,
-      var(--script-rule) 28px
-    );
-  background-size: 100% 100%, 100% 28px;
-  animation: auth-rules-drift 64s linear infinite;
-}
-
-.auth-ambient-marks {
-  font-family: var(--font-display);
-}
-
-.auth-ambient-mark {
-  position: absolute;
-  color: var(--color-ink-faint);
-  opacity: 0.09;
-  animation: auth-mark-float 22s ease-in-out infinite alternate;
-  will-change: transform;
-}
-
-.auth-ambient-mark--watermark {
-  top: -4%;
-  right: -1%;
-  font-size: clamp(11rem, 32vw, 22rem);
-  font-weight: 600;
-  line-height: 0.82;
-  letter-spacing: -0.06em;
-  color: var(--color-ink);
-  opacity: 0.07;
-  animation: none;
-}
-
-.auth-ambient-mark--dash {
-  bottom: 18%;
-  left: 7%;
-  font-size: 2rem;
-  line-height: 1;
-  color: var(--color-vermilion);
-  opacity: 0.07;
-  animation-duration: 28s;
-  animation-delay: -7s;
-}
-
-.auth-ambient-mark--stamp {
-  top: 58%;
-  right: 10%;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 2px double color-mix(in srgb, var(--color-vermilion) 18%, transparent);
-  opacity: 0.1;
-  animation-name: auth-stamp-float;
-  animation-duration: 20s;
-  animation-delay: -1s;
-}
-
-@media (max-width: 639px) {
-  .auth-ambient-rules {
-    opacity: 0.24;
-    background-image:
-      linear-gradient(
-        to right,
-        transparent 0,
-        transparent 1.4rem,
-        color-mix(in srgb, var(--color-vermilion) 28%, transparent) 1.4rem,
-        color-mix(in srgb, var(--color-vermilion) 28%, transparent) calc(1.4rem + 1px),
-        transparent calc(1.4rem + 1px)
-      ),
-      repeating-linear-gradient(
-        to bottom,
-        transparent 0,
-        transparent 27px,
-        var(--script-rule) 27px,
-        var(--script-rule) 28px
-      );
-  }
-
-  .auth-ambient-mark--watermark {
-    font-size: clamp(8rem, 42vw, 14rem);
-    right: -6%;
-    top: -2%;
-  }
-
-  .auth-ambient-mark--dash {
-    left: 4%;
-  }
-
-  .auth-ambient-mark--stamp {
-    right: 5%;
-    width: 2.25rem;
-    height: 2.25rem;
-  }
+html[data-theme="dark"] .auth-ambient {
+  background-color: #1a1610;
+  background-image: url("./assets/auth-desk-night.jpg");
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -294,9 +142,6 @@ html:not([data-theme="dark"]) .auth-desk {
     scroll-behavior: auto;
   }
 
-  .auth-ambient-ink,
-  .auth-ambient-rules,
-  .auth-ambient-mark,
   .auth-wake-rule,
   .recording-pulse__dot,
   .recording-voice__bar,
@@ -637,8 +482,8 @@ html[data-theme="dark"] .cursor-lamp__bloom {
 /*
  * Per-page atmosphere — same paper, different object.
  * folio: journal masthead · manuscript: galley proof · drafts: stacked sheets
- * practice: exam script · exam: crop marks · result: examiner's red
- * speaking: voice radiating · talk: the booth · progress: ledger line · vocab: thumb index
+ * practice: city-window desk · exam: crop marks · result: examiner's red
+ * speaking: tea-and-notebook desk · talk: the booth · progress: ledger line · vocab: thumb index
  */
 @keyframes page-atm-breathe {
   from {
@@ -696,23 +541,16 @@ html[data-theme="dark"] .page-atm--manuscript {
 }
 
 .page-atm--practice {
-  background-image:
-    linear-gradient(
-      to right,
-      transparent 0,
-      transparent 2.85rem,
-      color-mix(in srgb, var(--color-vermilion) 16%, transparent) 2.85rem,
-      color-mix(in srgb, var(--color-vermilion) 16%, transparent) calc(2.85rem + 1px),
-      transparent calc(2.85rem + 1px)
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 30px,
-      var(--script-rule) 30px,
-      var(--script-rule) 31px
-    );
-  opacity: 0.26;
+  background-color: #b89a7a;
+  background-image: url("./assets/practice-desk-day.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+html[data-theme="dark"] .page-atm--practice {
+  background-color: #141210;
+  background-image: url("./assets/practice-desk-night.jpg");
 }
 
 .page-atm--exam {
@@ -739,13 +577,16 @@ html[data-theme="dark"] .page-atm--manuscript {
 }
 
 .page-atm--speaking {
-  background-image:
-    radial-gradient(circle at 86% 14%, transparent 3.2rem, rgba(193, 67, 36, 0.1) 3.25rem, transparent 3.4rem),
-    radial-gradient(circle at 86% 14%, transparent 6.4rem, rgba(193, 67, 36, 0.08) 6.45rem, transparent 6.65rem),
-    radial-gradient(circle at 86% 14%, transparent 9.8rem, rgba(193, 67, 36, 0.06) 9.85rem, transparent 10.1rem),
-    radial-gradient(circle at 86% 14%, transparent 13.4rem, rgba(31, 28, 24, 0.05) 13.45rem, transparent 13.7rem);
-  animation: page-atm-ring 28s ease-in-out infinite alternate;
-  transform-origin: 86% 14%;
+  background-color: #c4b09a;
+  background-image: url("./assets/speaking-desk-day.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+html[data-theme="dark"] .page-atm--speaking {
+  background-color: #141210;
+  background-image: url("./assets/speaking-desk-night.jpg");
 }
 
 .page-atm--talk {
@@ -1413,7 +1254,9 @@ html[data-theme="dark"] .page-atm--manuscript {
 .landing-script,
 .landing-leaf,
 .editor-sheet,
-.auth-sheet {
+.auth-sheet,
+.practice-sheet,
+.speaking-sheet {
   isolation: isolate;
   background-color: color-mix(in srgb, var(--color-paper) 52%, #e4d9c6);
   border: 1px solid color-mix(in srgb, var(--color-rule) 48%, transparent);
@@ -1454,7 +1297,9 @@ html[data-theme="dark"] .page-atm--manuscript {
 .landing-script::before,
 .landing-leaf::before,
 .editor-sheet::before,
-.auth-sheet::before {
+.auth-sheet::before,
+.practice-sheet::before,
+.speaking-sheet::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -1477,7 +1322,9 @@ html[data-theme="dark"] .page-atm--manuscript {
 .landing-script::after,
 .landing-leaf::after,
 .editor-sheet::after,
-.auth-sheet::after {
+.auth-sheet::after,
+.practice-sheet::after,
+.speaking-sheet::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1491,7 +1338,9 @@ html[data-theme="dark"] .page-atm--manuscript {
 .folio-sheet > *,
 .landing-script > *,
 .landing-leaf > *,
-.auth-sheet > * {
+.auth-sheet > *,
+.practice-sheet > *,
+.speaking-sheet > * {
   position: relative;
   z-index: 1;
 }
@@ -1504,14 +1353,21 @@ html[data-theme="dark"] .page-atm--manuscript {
 .editor-sheet .editor-placeholder {
   position: absolute;
   z-index: 1;
-  top: 2.75rem;
-  right: 2.5rem;
-  left: 2.5rem;
+  top: 0;
+  right: 0;
+  left: 0;
+}
+
+.editor-sheet-body {
+  position: relative;
+  z-index: 1;
 }
 
 .landing-leaf,
 .editor-sheet,
-.auth-sheet {
+.auth-sheet,
+.practice-sheet,
+.speaking-sheet {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 42%, transparent),
     0 1px 0 color-mix(in srgb, var(--color-ink) 4%, transparent),
@@ -1523,10 +1379,58 @@ html[data-theme="dark"] .page-atm--manuscript {
 }
 
 .editor-desk .editor-sheet {
+  padding: 2.5rem 2.75rem 3.25rem 3.4rem;
+  background-image: linear-gradient(
+    to right,
+    transparent 2.55rem,
+    color-mix(in srgb, var(--color-vermilion) 55%, transparent) 2.55rem,
+    color-mix(in srgb, var(--color-vermilion) 55%, transparent) calc(2.55rem + 1px),
+    transparent calc(2.55rem + 1px)
+  );
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 42%, transparent),
-    0 22px 44px -18px color-mix(in srgb, #5c3d24 28%, transparent),
-    0 8px 18px -12px color-mix(in srgb, #000 16%, transparent);
+    0 28px 50px -16px color-mix(in srgb, #5c3d24 36%, transparent),
+    0 10px 22px -10px color-mix(in srgb, #000 18%, transparent);
+}
+
+.editor-sheet-masthead {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 1.35rem;
+  padding-bottom: 1.05rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
+}
+
+.editor-sheet-title {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 2.4vw, 1.85rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  outline: none;
+}
+
+.editor-sheet-title::placeholder {
+  color: var(--color-ink-faint);
+  font-style: italic;
+}
+
+.editor-desk .editor-mode-pair button[aria-pressed="true"] {
+  color: var(--desk-ink);
+  box-shadow: inset 0 -2px 0 var(--color-vermilion);
+  padding-bottom: 0.12rem;
+  text-shadow:
+    -1px 0 0 var(--color-paper),
+    1px 0 0 var(--color-paper),
+    0 -1px 0 var(--color-paper),
+    0 1px 0 var(--color-paper);
 }
 
 /*
@@ -1538,7 +1442,9 @@ html[data-theme="dark"] .page-atm--manuscript {
  */
 .editor-desk > header.editor-chrome,
 .editor-desk .editor-toolbar-bar,
-.editor-desk aside[role="complementary"] {
+.editor-desk aside[role="complementary"],
+.practice-desk > header.practice-chrome,
+.speaking-desk > header.speaking-chrome {
   --desk-ink: #1a1812;
   --desk-ink-muted: #3a332c;
   background-color: transparent;
@@ -1558,16 +1464,22 @@ html[data-theme="dark"] .page-atm--manuscript {
 
 .editor-desk > header.editor-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
 .editor-desk .editor-toolbar-bar :is(.text-ink, .text-ink-soft, .text-ink-faint),
-.editor-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft) {
+.editor-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft),
+.practice-desk > header.practice-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
+.speaking-desk > header.speaking-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint) {
   color: var(--desk-ink);
 }
 
 .editor-desk > header.editor-chrome .text-ink-faint,
-.editor-desk aside[role="complementary"] .text-ink-faint {
+.editor-desk aside[role="complementary"] .text-ink-faint,
+.practice-desk > header.practice-chrome .text-ink-faint,
+.speaking-desk > header.speaking-chrome .text-ink-faint {
   color: var(--desk-ink-muted);
 }
 
-.editor-desk > header.editor-chrome :is(a, button):hover:not([class*="bg-ink"]) {
+.editor-desk > header.editor-chrome :is(a, button):hover:not([class*="bg-ink"]),
+.practice-desk > header.practice-chrome :is(a, button):hover:not([class*="bg-ink"]),
+.speaking-desk > header.speaking-chrome :is(a, button):hover:not([class*="bg-ink"]) {
   color: var(--color-vermilion);
 }
 
@@ -1577,6 +1489,11 @@ html[data-theme="dark"] .page-atm--manuscript {
 }
 
 .editor-desk > header.editor-chrome {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+}
+
+.practice-desk > header.practice-chrome,
+.speaking-desk > header.speaking-chrome {
   border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 
@@ -1597,7 +1514,9 @@ html[data-theme="dark"] .page-atm--manuscript {
 
 html[data-theme="dark"] .editor-desk > header.editor-chrome,
 html[data-theme="dark"] .editor-desk .editor-toolbar-bar,
-html[data-theme="dark"] .editor-desk aside[role="complementary"] {
+html[data-theme="dark"] .editor-desk aside[role="complementary"],
+html[data-theme="dark"] .practice-desk > header.practice-chrome,
+html[data-theme="dark"] .speaking-desk > header.speaking-chrome {
   --desk-ink: #f5f0e8;
   --desk-ink-muted: #e4ddd2;
   border-color: color-mix(in srgb, #fff 16%, transparent);
@@ -1640,6 +1559,8 @@ html[data-theme="dark"] .landing-script,
 html[data-theme="dark"] .landing-leaf,
 html[data-theme="dark"] .editor-sheet,
 html[data-theme="dark"] .auth-sheet,
+html[data-theme="dark"] .practice-sheet,
+html[data-theme="dark"] .speaking-sheet,
 html[data-theme="dark"] .folio-sheet {
   background-color: color-mix(in srgb, var(--color-paper) 70%, #2f2a24);
 }
@@ -1650,28 +1571,65 @@ html[data-theme="dark"] .landing-script {
 
 html[data-theme="dark"] .landing-leaf,
 html[data-theme="dark"] .editor-sheet,
-html[data-theme="dark"] .auth-sheet {
+html[data-theme="dark"] .auth-sheet,
+html[data-theme="dark"] .practice-sheet,
+html[data-theme="dark"] .speaking-sheet {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 6%, transparent),
     0 22px 40px -18px color-mix(in srgb, #000 48%, transparent);
 }
 
 /*
- * Auth card: a warmer slip of paper on the pad. Radius and shadow stay
- * on this sheet only — editor and landing keep Folio's square cut.
+ * Auth letter on the desk: square Folio cut, shadow on the wood.
+ * No margin rule — the photo already has enough verticals (lamp, spines).
  */
-.auth-sheet {
-  border-radius: 0.5rem;
-  background-color: var(--color-paper-deep);
+.auth-desk .auth-sheet,
+.practice-desk .practice-sheet,
+.speaking-desk .speaking-sheet {
+  border-radius: 0;
+  padding: 2.5rem 2.55rem 2.75rem;
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, #fff 52%, transparent),
-    0 24px 48px -16px color-mix(in srgb, var(--color-ink) 24%, transparent),
-    0 8px 18px -10px color-mix(in srgb, var(--color-ink) 12%, transparent);
+    inset 0 1px 0 color-mix(in srgb, #fff 42%, transparent),
+    0 28px 50px -16px color-mix(in srgb, #5c3d24 36%, transparent),
+    0 10px 22px -10px color-mix(in srgb, #000 18%, transparent);
 }
 
 .auth-sheet::before,
-.auth-sheet::after {
-  border-radius: inherit;
+.auth-sheet::after,
+.practice-sheet::before,
+.practice-sheet::after,
+.speaking-sheet::before,
+.speaking-sheet::after {
+  border-radius: 0;
+}
+
+.desk-theme-toggle button {
+  color: var(--color-ink);
+}
+
+.desk-theme-toggle button svg {
+  width: calc(1.05rem + 2px);
+  height: calc(1.05rem + 2px);
+  filter:
+    drop-shadow(0 0 3px var(--color-paper))
+    drop-shadow(0 0 6px color-mix(in srgb, currentColor 50%, transparent));
+}
+
+.desk-theme-toggle button:hover {
+  color: var(--color-vermilion);
+}
+
+html[data-theme="dark"] .desk-theme-toggle button svg {
+  filter:
+    drop-shadow(0 0 3px color-mix(in srgb, var(--color-ink) 70%, transparent))
+    drop-shadow(0 0 8px color-mix(in srgb, var(--color-ink) 35%, transparent));
+}
+
+.editor-desk > header.editor-chrome .desk-theme-toggle button,
+.practice-desk > header.practice-chrome .desk-theme-toggle button,
+.speaking-desk > header.speaking-chrome .desk-theme-toggle button {
+  color: var(--color-ink);
+  text-shadow: none;
 }
 
 .auth-google-slot {
@@ -1679,19 +1637,17 @@ html[data-theme="dark"] .auth-sheet {
   background: var(--color-paper);
 }
 
-html[data-theme="dark"] .auth-sheet {
-  background-color: color-mix(in srgb, var(--color-paper) 62%, #2a2620);
+html[data-theme="dark"] .auth-desk .auth-sheet,
+html[data-theme="dark"] .practice-desk .practice-sheet,
+html[data-theme="dark"] .speaking-desk .speaking-sheet {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 8%, transparent),
-    0 28px 52px -16px color-mix(in srgb, #000 58%, transparent);
+    0 28px 56px -18px color-mix(in srgb, #000 52%, transparent),
+    0 10px 22px -12px color-mix(in srgb, #000 28%, transparent);
 }
 
 html[data-theme="dark"] .auth-google-slot {
   background: color-mix(in srgb, var(--color-paper) 70%, #2c2924);
-}
-
-html[data-theme="dark"] .auth-ambient-mark--watermark {
-  opacity: 0.09;
 }
 
 html[data-theme="dark"] .landing-folio .landing-book-recto {

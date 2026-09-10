@@ -104,7 +104,7 @@ export function EditorPage() {
   return (
     <div className="editor-desk flex h-[100dvh] flex-col">
       <PageAtmosphere kind="manuscript" />
-      <header className="editor-chrome relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:gap-x-4 sm:px-6">
+      <header className="editor-chrome relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
         <BrandLockup to={signedIn ? "/practice" : "/"} size="sm" />
         <Link
           to="/practice"
@@ -113,59 +113,57 @@ export function EditorPage() {
           Practice
         </Link>
 
-        <input
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          aria-label="Document title"
-          className="min-w-[8rem] flex-1 basis-40 border-b border-transparent bg-transparent px-1 py-0.5 text-ink-soft outline-none transition-colors hover:border-rule focus:border-vermilion focus:text-ink"
-        />
+        <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
+          <SaveState status={status} />
+          <div className="desk-theme-toggle">
+            <ThemeToggle />
+          </div>
 
-        <SaveState status={status} />
-        <ThemeToggle />
+          <div className="editor-mode-pair flex items-center gap-3">
+            {(["write", "edit"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setMode(option)}
+                aria-pressed={mode === option}
+                className={`font-mono text-[0.65rem] uppercase tracking-[0.18em] transition-colors sm:text-[0.7rem] ${
+                  mode === option ? "text-ink" : "text-ink-soft hover:text-vermilion"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
 
-        <div className="flex border border-rule">
-          {(["write", "edit"] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setMode(option)}
-              className={`px-2 py-1 font-mono text-[0.65rem] uppercase tracking-[0.15em] transition-colors sm:px-3 sm:text-[0.7rem] ${
-                mode === option ? "bg-ink text-paper" : "text-ink-soft hover:text-vermilion"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-
-        <button
-          ref={panelTriggerRef}
-          type="button"
-          onClick={() => setPanelOpen((current) => !current)}
-          aria-expanded={panelOpen}
-          className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion sm:text-[0.7rem] lg:hidden"
-        >
-          {panelLabel}
-        </button>
-
-        {!id && (
           <button
+            ref={panelTriggerRef}
             type="button"
-            onClick={() => {
-              if (!signedIn) {
-                if (draftRef.current) {
-                  stashDraft({ title, content: draftRef.current.editorState });
-                }
-                void navigate("/login");
-                return;
-              }
-              save.mutate(currentInput());
-            }}
-            className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
+            onClick={() => setPanelOpen((current) => !current)}
+            aria-expanded={panelOpen}
+            className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-soft hover:text-vermilion sm:text-[0.7rem] lg:hidden"
           >
-            Save
+            {panelLabel}
           </button>
-        )}
+
+          {!id && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!signedIn) {
+                  if (draftRef.current) {
+                    stashDraft({ title, content: draftRef.current.editorState });
+                  }
+                  void navigate("/login");
+                  return;
+                }
+                save.mutate(currentInput());
+              }}
+              className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
+            >
+              Save
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="relative z-10 flex min-h-0 flex-1">
@@ -173,6 +171,8 @@ export function EditorPage() {
           <Editor
             key={id ?? "new"}
             mode={mode}
+            title={title}
+            onTitleChange={setTitle}
             initialEditorState={document.data?.content ?? restored?.content ?? null}
             onChange={handleChange}
             onAnalysis={handleAnalysis}

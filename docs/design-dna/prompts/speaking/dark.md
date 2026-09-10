@@ -1,32 +1,27 @@
 # Speaking — dark
 
-`/speaking`. Ngày: [light.md](light.md). Cùng hành lang; ánh sáng dưới cửa booth.
+`/speaking`. Ngày: [light.md](light.md). Cùng bàn trà và sổ Speaking.
 
 Seedream 5.0 Pro · 16:9 · 2K. Gắn `speaking-desk-day.jpg` nếu có. Output: `speaking-desk-night.jpg`.
 
 ```
-JOB: A photographic BACKGROUND PLATE only. 16:9, 2K, photoreal, cinematic still. No UI. PLACE: a CORRIDOR OUTSIDE a speaking booth — closed door with a round window — NOT inside the booth, NOT a writing desk. TIME: night.
+JOB: A photographic BACKGROUND PLATE only. 16:9, 2K, photoreal, cinematic still. No UI. PLACE: the SAME HOME DESK by a WINDOW — NOT a booth. TIME: night.
 
 MEANING:
-Same invitation after dark. Card standing. Mic still unused, still outside the door.
+Same invitation to talk after dark. Notebook still open. Cue card not yet drawn.
 
-ARCHITECTURE (same corridor as morning speaking):
-- Long plaster hall. Booth door with round window.
-- Hall bench LEFT. CENTER (~50%) empty for HTML.
-- Far-end window now night — faint, not a city-desk hero.
+ARCHITECTURE (same desk as morning speaking):
+- LEFT: cream books The Practice / On Writing / Essays. Chamomile tea, little steam.
+- CENTER: empty walnut band for the HTML catalog. Spiral notebook "Speaking", gold pen.
+- RIGHT: stoneware vase, wooden pen cup, black task lamp ON. Night garden / city lights in the window.
 
-CAMERA: 28–35mm, standing, corridor depth. No Dutch tilt.
+CAMERA: 35mm, slightly above the desk. No Dutch tilt.
 
-LIGHT:
-Dim corridor. Warm light leaking THROUGH the booth door's round window (someone could be inside — we are not). Optional weak sconce. Microphone has NO LED. No HDR, no neon.
+LIGHT: Warm lamp pool on the right. Window indigo. Catalog band a little dimmer. No HDR, no neon.
 
-STILL-LIFE (same as morning):
-LEFT: wooden stand, one BLANK standing cue card.
-RIGHT: booth door, round window glow, mic OFF on the floor.
+PALETTE: walnut #2a1c12, lamp pool #e0c090, window #1b2433. No neon.
 
-PALETTE: plaster #1c1916, door #2a2018, window glow #e8c48a, card rim-lit. No RGB.
+HARD BANS: no booth, no exam hall, no UI, no people, no laptop, no 16:10.
 
-HARD BANS: no apartment desk, no booth interior as the main room, no UI, no text on the card, no people, no laptop, no 16:10.
-
-SUCCESS: night corridor. If you are inside the booth or at the editor desk, generate again.
+SUCCESS: night tea-and-notebook desk, same objects as morning. Not a booth.
 ```
