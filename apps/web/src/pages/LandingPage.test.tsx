@@ -22,5 +22,6 @@ describe("LandingPage", () => {
     const draft = screen.getByRole("link", { name: "Open a draft" });
     expect(draft.getAttribute("href")).toBe("/write");
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/login");
+    expect(document.querySelector(".landing-deckle")).toBeNull();
   });
 });

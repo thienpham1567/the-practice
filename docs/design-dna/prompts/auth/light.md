@@ -2,39 +2,51 @@
 
 `/login` `/register`. Đêm: [dark.md](dark.md).
 
-**Chỗ:** tiền sảnh — bàn console hẹp, cửa/sidelight. Papers & talks waiting. Form HTML giữa.
+**Chỗ:** cửa **phòng viết đang đóng**. Không phải sảnh nhà, không bàn console kem.
+
+Copy khớp shot:
+
+- *Welcome back* — phòng bên trong là chỗ cũ; cửa chưa mở.
+- *Begin practice* — chưa bước vào.
+- *Your papers and talks are waiting* — thư + cue nằm **ngoài cửa**.
+- *The desk is waking* — một khe sáng dưới cửa / transom (đêm sẽ rõ hơn; ban ngày là vệt sáng mát).
+
+Form HTML ngồi giữa kệ trống. Light **trầm**: trời âm, tường putty, một stop tối hơn — không hành lang trắng sáng.
 
 Seedream 5.0 Pro · 16:9 · 2K. Không gắn editor. Output: `auth-desk-day.jpg`.
 
 ```
-JOB: A photographic BACKGROUND PLATE only. 16:9, 2K, photoreal, cinematic still. No user interface. PLACE: the ENTRANCE HALL of a writer's house — a vestibule — NOT a window-side writing desk. TIME: morning.
+JOB: A photographic BACKGROUND PLATE only. 16:9, 2K, photoreal, cinematic still. No user interface. PLACE: the CLOSED DOOR of a writer's STUDY, seen from a quiet inner corridor — an anteroom, not a street vestibule, NOT a hall console catalog, NOT a window-side writing desk. TIME: overcast morning, muted.
 
 MEANING:
-Threshold. Papers and talks are waiting, unopened. You have not entered the study yet. Editorial, analog, expensive. A still from a quiet film.
+Auth is admission. Welcome back / begin practice. You have not opened the door. Papers and talks wait on a shelf OUTSIDE. Behind the door the desk exists but you are not in it yet. Editorial, analog, expensive — a STILL, SUBDUED corridor, not a bright hotel lobby.
 
-ARCHITECTURE (must read at thumbnail):
-- A NARROW hall console table (oak or painted cream, NOT wide walnut like a dining desk).
-- Behind/left: a front door or tall sidelight with translucent glass and a dark frame — DAYLIGHT from the street, not a large apartment city window on the right.
-- Plaster walls, a coat hook or empty brass hook at the far left edge. Optional: a cream umbrella stand cropped. No art with text.
-- CENTER (~46%): empty console surface — a tall quiet rectangle for a real HTML login sheet. No objects in that column.
+ARCHITECTURE (must read at thumbnail — a DOOR, not a table):
+- Fill the BACK with a closed DARK OAK study door, centered-right or fully behind the shelf. Solid panels, brass knob, no nameplate, no "Study", no numbers. A narrow transom or a hairline of cool morning light at the door's edges / under the door — the room is occupied by light, not by us.
+- Corridor plaster walls, muted putty / warm grey, slightly scuffed — NOT bright off-white, not gallery white. Optional: one empty brass coat peg far left, cropped — no umbrellas, no coats, no rain stand.
+- FOREGROUND: a SHALLOW wall-mounted oak shelf OR a very thin monk's bench against the wall under the door — dark oiled oak, not painted cream, NOT a four-legged console table filling the frame.
+- CENTER (~46%): EMPTY oak shelf surface, a tall quiet rectangle for a real HTML login sheet. This void is the title page. No objects in that column.
 
 CAMERA:
-- 16:9, full-bleed. Eye HEIGHT of a standing person looking slightly down at the console — 35mm, not 50mm desk-hero. Hall DEPTH visible (door behind), not a flat desk horizon filling the frame.
-- Shallow: door glass creamy; console objects sharp. No Dutch tilt, no overhead flat-lay, no curved table.
+- 16:9, full-bleed. Standing in the corridor, 35mm, looking slightly down at the shelf; the DOOR is the architecture. Depth is short — wall and door, not a long hall to a street.
+- Shallow: shelf objects sharp; door panels tactile; transom light grey-cool, not creamy. No Dutch tilt, no overhead flat-lay, no hero furniture shot.
 
 LIGHT:
-Morning through the DOOR / sidelight. Cool street daylight. No black metal task lamp. No 2700K pool. Soft shadows along the hall. No HDR, no teal-orange.
+Overcast late morning — one stop underexposed. North light through the TRANSOM and a hairline under the door, GREY-COOL not creamy, not sunny. The corridor is a muted putty; plaster never blows out. Soft low contrast. No sun disc, no bright sidelight, no glass front door, no black metal task lamp, no 2700K pool, no HDR, no teal-orange, no high-key interior catalog light.
 
-STILL-LIFE (edges only):
-LEFT (~22%): closed tan leather folio, cream envelope flap-shut (no address, no stamp), capped fountain pen. Blind-stamped leather only.
-RIGHT (~32%): shallow wooden letter tray with 2–3 BLANK cream cue cards, slightly fanned. No "Part 1".
+STILL-LIFE (edges of the shelf only):
+LEFT (~22%): a closed tan-brown leather writing folio (not honey-tan), one taupe-cream envelope flap-shut (no address, no stamp, no crest), capped fountain pen. Unopened = papers waiting. Blind-stamped texture only. Envelope is dull rag paper, not bright white.
+RIGHT (~28%): two or three BLANK taupe cue cards in a small wooden dish or leaning against the door frame — talks not yet taken. No "Part 1", no IELTS.
 
-PALETTE: plaster #d9d2c6, oak/cream console #c4b49a, door glass #c5d0d8, leather #6b5344, envelope #e8e0d2. No purple, magenta, neon, no pure-white laminate.
+PALETTE: door oak #2f2924, shelf oak #4a3c32, plaster #c4bdb3 (putty, not off-white), transom #9aa3ab, leather #5c4a40, envelope #d8d0c4. Exposure sits in the mid-darks; no painted-cream furniture, no pure-white walls, no blown highlights, no purple, no neon.
 
 HARD BANS:
-- Do NOT recreate the editor room: no wide walnut plane, no large right-hand city window, no black cone lamp, no linen notebook, no rocks glass, no book stack
+- No cream/white console table, no hotel lobby, no IKEA, no umbrella stand, no street door with large sidelight glass
+- No bright white plaster, no high-key daylight, no sun-washed hall, no "airy Scandinavian morning"
+- No editor room: no wide walnut desk, no city window, no black cone lamp, no "DISCIPLINE BEATS MOTIVATION", no rocks glass, no book stack
+- No exam hall, no carrel, no booth, no round booth-window, no pigeonholes
 - No UI, logo, SIGN IN, Google G, people, hands, laptop, phone, readable text
 - No 16:10, no square, no collage
 
-SUCCESS: thumbnail reads "front hall, mail waiting". Middle empty for login. If it looks like a study desk by a window, generate again.
+SUCCESS: thumbnail reads "closed study door, mail on a shelf, empty wood for a title page" — daytime but subdued, grey-putty, not a bright cream hall. If it looks sunlit, white, or like a furniture catalog, generate again.
 ```

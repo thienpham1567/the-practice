@@ -53,9 +53,8 @@ export function LandingPage({ now = new Date() }: { now?: Date }) {
         </div>
       </div>
 
-      <section className="landing-hero relative mx-auto grid min-h-0 w-full max-w-[1400px] flex-1 grid-cols-1 gap-8 overflow-hidden px-4 pt-6 pb-8 sm:px-6 lg:grid-cols-12 lg:items-stretch lg:gap-8 lg:pt-8 lg:pb-10">
+      <section className="landing-hero relative mx-auto grid min-h-0 w-full max-w-[1400px] flex-1 grid-cols-1 gap-8 px-4 pt-6 pb-8 sm:px-6 lg:grid-cols-12 lg:items-stretch lg:gap-8 lg:pt-8 lg:pb-10">
         <div className="landing-hero-copy relative z-10 flex flex-col justify-center lg:col-span-5">
-          <span className="landing-deckle" aria-hidden="true" />
           <span className="landing-watermark-p" aria-hidden="true">
             P
           </span>

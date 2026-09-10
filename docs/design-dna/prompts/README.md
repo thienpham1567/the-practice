@@ -6,7 +6,7 @@ Cùng gia đình analog (giấy kem, gỗ, mực, terracotta hiếm). **Không c
 
 | Light | Dark | Trang | Bối cảnh |
 |---|---|---|---|
-| [auth/light.md](auth/light.md) | [auth/dark.md](auth/dark.md) | `/login` `/register` | Tiền sảnh |
+| [auth/light.md](auth/light.md) | [auth/dark.md](auth/dark.md) | `/login` `/register` | Cửa phòng viết đóng, kệ thư; đêm: sáng khe cửa |
 | *(đã có ảnh)* | | Editor `/write` | Bàn cửa sổ căn hộ — không gen lại |
 | [drafts/light.md](drafts/light.md) | [drafts/dark.md](drafts/dark.md) | `/docs` | Phòng pigeonhole |
 | [practice/light.md](practice/light.md) | [practice/dark.md](practice/dark.md) | `/practice` | Hội trường thi trống |

@@ -297,7 +297,7 @@ function EditorBody({
 
   return (
     <>
-      <div className="min-w-0 border-b border-rule bg-paper/70 px-6 py-2 backdrop-blur">
+      <div className="editor-toolbar-bar min-w-0 px-6 py-2">
         <div className="mx-auto min-w-0 max-w-[46rem]">
           <ToolbarPlugin />
         </div>

@@ -104,7 +104,7 @@ export function EditorPage() {
   return (
     <div className="editor-desk flex h-[100dvh] flex-col">
       <PageAtmosphere kind="manuscript" />
-      <header className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-rule bg-paper px-3 py-3 sm:gap-x-4 sm:px-6">
+      <header className="editor-chrome relative z-10 flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:gap-x-4 sm:px-6">
         <BrandLockup to={signedIn ? "/practice" : "/"} size="sm" />
         <Link
           to="/practice"
@@ -186,7 +186,7 @@ export function EditorPage() {
           triggerLabel={panelLabel}
           triggerRef={panelTriggerRef}
           side="right"
-          className="w-80"
+          className="w-80 bg-transparent"
         >
           <Sidebar result={analysis} />
         </SidePanel>

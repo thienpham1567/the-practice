@@ -12,16 +12,16 @@
  * Display: Source Serif 4 (không Fraunces). Body: Newsreader. Accent: vermilion.
  */
 @theme {
-  /* Giấy và mực */
-  --color-paper: #f3f1ec;
-  --color-paper-deep: #eae7e0;
-  --color-paper-edge: #e0dcd3;
+  /* Giấy và mực — light trầm: putty, không kem sáng. */
+  --color-paper: #ebe6d8;
+  --color-paper-deep: #e0d8c8;
+  --color-paper-edge: #d4ccbc;
   --color-ink: #1c1c1b;
-  --color-ink-soft: #5a5854;
-  --color-ink-faint: #8a867e;
-  --color-rule: #d6d1c6;
+  --color-ink-soft: #564f47;
+  --color-ink-faint: #6b6359;
+  --color-rule: #c9bdab;
   --color-vermilion: #c14324;
-  --color-vermilion-soft: #e8d3cb;
+  --color-vermilion-soft: #e2cfc4;
 
   /*
    * Bốn series band-over-time theo CEFR — phân biệt rõ trên nền giấy,
@@ -416,10 +416,10 @@ body {
   font-family: var(--font-body);
   font-optical-sizing: auto;
   position: relative;
-  /* Vân giấy: gradient rất nhạt để mặt phẳng bớt chết, cộng noise thật bên dưới. */
+  /* Vân giấy: wash trầm, không làm góc sáng lên. */
   background-image:
-    radial-gradient(circle at 15% 12%, rgba(193, 67, 36, 0.035), transparent 42%),
-    radial-gradient(circle at 85% 8%, rgba(107, 98, 85, 0.05), transparent 38%);
+    radial-gradient(circle at 15% 12%, rgba(193, 67, 36, 0.028), transparent 42%),
+    radial-gradient(circle at 85% 8%, rgba(90, 82, 70, 0.06), transparent 40%);
   background-attachment: fixed;
 }
 
@@ -1143,10 +1143,6 @@ html[data-theme="dark"] .page-atm--manuscript {
   display: none;
 }
 
-.landing-deckle {
-  display: none;
-}
-
 .landing-book-kicker {
   margin-bottom: 1.35rem;
 }
@@ -1178,6 +1174,10 @@ html[data-theme="dark"] .page-atm--manuscript {
 
 .landing-book-verso {
   display: none;
+}
+
+.landing-hero-visual {
+  overflow: visible;
 }
 
 .landing-book-recto {
@@ -1215,31 +1215,9 @@ html[data-theme="dark"] .page-atm--manuscript {
     user-select: none;
   }
 
-  .landing-deckle {
-    display: block;
-    position: absolute;
-    top: 0;
-    right: -4%;
-    bottom: -2.5rem;
-    left: -2.5rem;
-    z-index: 0;
-    pointer-events: none;
-    background: var(--color-paper);
-    clip-path: polygon(
-      0 0,
-      100% 0,
-      100% 91%,
-      91% 94.5%,
-      82% 92%,
-      71% 96%,
-      58% 93%,
-      46% 97%,
-      33% 94%,
-      21% 97.5%,
-      11% 93.5%,
-      0 95.5%
-    );
-    filter: drop-shadow(0 10px 8px color-mix(in srgb, var(--color-ink) 12%, transparent));
+  .landing-hero-visual {
+    /* Rotation swings the top-left corner; keep it inside the cell. */
+    padding: 1.75rem 1.25rem 2.75rem 1.5rem;
   }
 
   .landing-book {
@@ -1251,10 +1229,10 @@ html[data-theme="dark"] .page-atm--manuscript {
   .landing-book-verso {
     display: block;
     z-index: 0;
+    align-self: stretch;
     width: 4.6rem;
     flex-shrink: 0;
-    margin: 1.4rem -1.35rem 0.9rem 0;
-    overflow: hidden;
+    margin: 0.55rem -1.5rem 0.45rem 0;
     background-color: color-mix(in srgb, var(--color-paper-deep) 82%, var(--color-paper));
     background-image: repeating-linear-gradient(
       to bottom,
@@ -1264,7 +1242,7 @@ html[data-theme="dark"] .page-atm--manuscript {
       var(--script-rule) var(--sheet-line)
     );
     box-shadow: inset -10px 0 14px -12px color-mix(in srgb, var(--color-ink) 22%, transparent);
-    transform: rotate(-5.5deg);
+    transform: rotate(-4deg);
     transform-origin: right center;
   }
 
@@ -1551,6 +1529,90 @@ html[data-theme="dark"] .page-atm--manuscript {
     0 8px 18px -12px color-mix(in srgb, #000 16%, transparent);
 }
 
+/*
+ * Chrome trong suốt — bàn là chủ đạo, không kính mờ.
+ * Overlay mobile (aside.fixed) giữ giấy để đọc được khi đè lên tờ.
+ *
+ * Ảnh bàn trộn gỗ / cửa sổ tối / gáy sách kem: một màu chữ không đủ tương phản
+ * cả ba vùng. Mực gần đen (ngày) và ngà (đêm) + viền đối lập.
+ */
+.editor-desk > header.editor-chrome,
+.editor-desk .editor-toolbar-bar,
+.editor-desk aside[role="complementary"] {
+  --desk-ink: #1a1812;
+  --desk-ink-muted: #3a332c;
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--color-ink) 16%, transparent);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  color: var(--desk-ink);
+  text-shadow:
+    -1px 0 0 var(--color-paper),
+    1px 0 0 var(--color-paper),
+    0 -1px 0 var(--color-paper),
+    0 1px 0 var(--color-paper),
+    0 0 10px var(--color-paper),
+    0 0 18px color-mix(in srgb, var(--color-paper) 88%, transparent);
+}
+
+.editor-desk > header.editor-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
+.editor-desk .editor-toolbar-bar :is(.text-ink, .text-ink-soft, .text-ink-faint),
+.editor-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft) {
+  color: var(--desk-ink);
+}
+
+.editor-desk > header.editor-chrome .text-ink-faint,
+.editor-desk aside[role="complementary"] .text-ink-faint {
+  color: var(--desk-ink-muted);
+}
+
+.editor-desk > header.editor-chrome :is(a, button):hover:not([class*="bg-ink"]) {
+  color: var(--color-vermilion);
+}
+
+.editor-desk > header.editor-chrome :is(button, a, [role="button"])[class*="bg-ink"],
+.editor-desk > header.editor-chrome :is(button, a)[class*="text-paper"] {
+  text-shadow: none;
+}
+
+.editor-desk > header.editor-chrome {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+}
+
+.editor-desk .editor-toolbar-bar {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+}
+
+.editor-desk aside[role="complementary"] {
+  border-left: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+}
+
+.editor-desk aside[role="complementary"].fixed {
+  --desk-ink: var(--color-ink);
+  --desk-ink-muted: var(--color-ink-faint);
+  background-color: var(--color-paper);
+  text-shadow: none;
+}
+
+html[data-theme="dark"] .editor-desk > header.editor-chrome,
+html[data-theme="dark"] .editor-desk .editor-toolbar-bar,
+html[data-theme="dark"] .editor-desk aside[role="complementary"] {
+  --desk-ink: #f5f0e8;
+  --desk-ink-muted: #e4ddd2;
+  border-color: color-mix(in srgb, #fff 16%, transparent);
+  text-shadow:
+    -1px 0 0 #0a0908,
+    1px 0 0 #0a0908,
+    0 -1px 0 #0a0908,
+    0 1px 0 #0a0908,
+    0 0 12px rgba(0, 0, 0, 0.92);
+}
+
+html[data-theme="dark"] .editor-desk aside[role="complementary"].fixed {
+  background-color: var(--color-paper);
+}
+
 html[data-theme="dark"] .editor-desk .editor-sheet {
   box-shadow:
     inset 0 1px 0 color-mix(in srgb, #fff 42%, transparent),
@@ -1636,10 +1698,6 @@ html[data-theme="dark"] .landing-folio .landing-book-recto {
   box-shadow:
     0 28px 54px -20px color-mix(in srgb, #000 58%, transparent),
     0 8px 18px color-mix(in srgb, #000 28%, transparent);
-}
-
-html[data-theme="dark"] .landing-deckle {
-  background: var(--color-paper);
 }
 
 html[data-theme="dark"] .landing-script::after,
