@@ -73,6 +73,8 @@ export interface PracticeAttemptDetail
   enhancements: Enhancement[] | null;
   /** Khoá "start:end" của mark bài gốc mà bản sửa này đã xử lý. */
   handledMarks: string[] | null;
+  /** 2 bài mẫu tham khảo AI sinh sau khi chấm. null = chưa bấm sinh. */
+  sampleEssays: string[] | null;
 }
 
 export interface CreateAttemptInput {
@@ -116,6 +118,9 @@ export const submitAttempt = (id: string, input: SubmitAttemptInput) =>
 
 export const reviseAttempt = (id: string) =>
   apiJson<PracticeAttemptDetail>(`/practice/attempts/${id}/revise`, "POST", {});
+
+export const generateSampleEssays = (id: string) =>
+  apiJson<PracticeAttemptDetail>(`/practice/attempts/${id}/samples`, "POST", {});
 
 export const deleteAttempt = (id: string) =>
   apiFetch<void>(`/practice/attempts/${id}`, { method: "DELETE" });

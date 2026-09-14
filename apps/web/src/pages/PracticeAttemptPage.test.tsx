@@ -47,6 +47,7 @@ vi.mock("../api/practice", async (importOriginal) => {
     deleteAttempt: vi.fn(),
     updateAttempt: vi.fn(),
     getMistakeProfile: vi.fn(),
+    generateSampleEssays: vi.fn(),
   };
 });
 
@@ -58,6 +59,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 
 import {
   deleteAttempt,
+  generateSampleEssays,
   getAttempt,
   getMistakeProfile,
   reviseAttempt,
@@ -103,6 +105,7 @@ const gradedAttempt: PracticeAttemptDetail = {
   marks: null,
   enhancements: null,
   handledMarks: null,
+  sampleEssays: null,
 };
 
 function renderPage(attemptId = "a1") {
@@ -609,6 +612,53 @@ describe("PracticeAttemptPage ResultView Fix these first", () => {
     await screen.findByText("Next time");
     expect(screen.queryByText("Fix these first")).toBeNull();
     expect(screen.queryByText(/Nothing to fix/)).toBeNull();
+  });
+});
+
+describe("PracticeAttemptPage ResultView sample essays", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+    vi.mocked(generateSampleEssays).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("shows the generate button when no samples exist yet", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(markedResult);
+    renderPage("marked-1");
+
+    expect(await screen.findByRole("button", { name: "See model answers" })).toBeTruthy();
+  });
+
+  it("calls generateSampleEssays and renders both essays on success", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(markedResult);
+    vi.mocked(generateSampleEssays).mockResolvedValue({
+      ...markedResult,
+      sampleEssays: ["First model essay.", "Second model essay."],
+    });
+    renderPage("marked-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "See model answers" }));
+
+    expect(await screen.findByText("First model essay.")).toBeTruthy();
+    expect(screen.getByText("Second model essay.")).toBeTruthy();
+    expect(generateSampleEssays).toHaveBeenCalledWith("marked-1");
+    expect(screen.queryByRole("button", { name: "See model answers" })).toBeNull();
+  });
+
+  it("renders existing samples directly without showing the button", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...markedResult,
+      sampleEssays: ["Already generated essay one.", "Already generated essay two."],
+    });
+    renderPage("marked-1");
+
+    expect(await screen.findByText("Already generated essay one.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "See model answers" })).toBeNull();
+    expect(generateSampleEssays).not.toHaveBeenCalled();
   });
 });
 

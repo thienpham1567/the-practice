@@ -12,6 +12,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { BrandLockup } from "../BrandLockup";
 import { ThemeToggle } from "../folio/ThemeToggle";
 import {
+  generateSampleEssays,
   getAttempt,
   getMistakeProfile,
   reviseAttempt,
@@ -32,6 +33,7 @@ import {
 } from "../practice/exam-math";
 import { FeedbackAuditList } from "../practice/FeedbackAuditList";
 import { FixTheseFirst } from "../practice/FixTheseFirst";
+import { SampleEssays } from "../practice/SampleEssays";
 import { WriteBetter } from "../practice/WriteBetter";
 import { promptBody } from "../practice/prompt-body";
 import { RevisionChecklist } from "../practice/RevisionChecklist";
@@ -417,6 +419,7 @@ function ResultView({
   spec?: TaskSpec;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const snapshot = attempt.styleSnapshot;
   // Mặc định lăng kính lỗi — đó là thứ người học sửa được ngay. Bóc lỗi hỏng
   // (`marks === null`) thì không có gì để xem ở đó, lùi về Style.
@@ -437,6 +440,13 @@ function ResultView({
     mutationFn: () => reviseAttempt(attempt.id),
     onSuccess: (created) => {
       navigate(`/writing/${created.id}`);
+    },
+  });
+
+  const samples = useMutation({
+    mutationFn: () => generateSampleEssays(attempt.id),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["practice-attempt", attempt.id], updated);
     },
   });
 
@@ -570,6 +580,12 @@ function ResultView({
                 <StyleProfile snapshot={snapshot} level={attempt.level} />
               </div>
             )}
+
+            <SampleEssays
+              sampleEssays={attempt.sampleEssays}
+              onGenerate={() => samples.mutate()}
+              isPending={samples.isPending}
+            />
           </div>
         </SidePanel>
 

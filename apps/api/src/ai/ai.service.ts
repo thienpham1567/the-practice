@@ -32,6 +32,7 @@ export type AiEndpoint =
   | "practice.generate"
   | "practice.grade"
   | "practice.marks"
+  | "practice.samples"
   | "speaking.generate"
   | "speaking.grade";
 

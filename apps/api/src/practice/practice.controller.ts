@@ -74,4 +74,11 @@ export class PracticeController {
   revise(@CurrentUserId() userId: string, @Param("id") id: string) {
     return this.practice.revise(userId, id);
   }
+
+  @Post(":id/samples")
+  @UseGuards(UserThrottlerGuard, DailyAiQuotaGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  generateSamples(@CurrentUserId() userId: string, @Param("id") id: string) {
+    return this.practice.generateSamples(userId, id);
+  }
 }

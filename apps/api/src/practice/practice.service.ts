@@ -46,6 +46,11 @@ import {
   parseFeedbackAudit,
   type RevisionGradeResult,
 } from "./revision-grade-prompt";
+import {
+  SAMPLE_ESSAY_SCHEMA,
+  buildSampleEssayPrompt,
+  type SampleEssayResult,
+} from "./sample-essay-prompt";
 import { normalizeWord } from "./vocab-match";
 import { VocabService, type VocabSuggestItem } from "./vocab.service";
 
@@ -246,6 +251,38 @@ export class PracticeService {
         },
       });
     });
+  }
+
+  /**
+   * Sinh 2 bài mẫu tham khảo cho đúng đề đã chấm. Sinh một lần duy nhất —
+   * bấm lại chỉ trả về kết quả cũ, không gọi AI thêm (xem
+   * docs/superpowers/specs/2026-09-14-sample-essays-and-path-rename-design.md).
+   */
+  async generateSamples(userId: string, id: string) {
+    const attempt = await this.findOne(userId, id);
+    if (!attempt.submittedAt || attempt.band == null) {
+      throw new ConflictException("Practice attempt has not been graded yet");
+    }
+    if (attempt.sampleEssays != null) {
+      return attempt;
+    }
+
+    const task = this.taskByType(attempt.taskType as TaskType);
+    const generated = await this.ai.complete<SampleEssayResult>({
+      prompt: buildSampleEssayPrompt(task, attempt.prompt, attempt.level as Level),
+      schema: SAMPLE_ESSAY_SCHEMA,
+      maxTokens: 3000,
+      timeoutMs: PRACTICE_TIMEOUT_MS,
+      deadlineMs: PRACTICE_DEADLINE_MS,
+      usage: { userId, endpoint: "practice.samples" },
+    });
+    const sampleEssays = generated.essays.map((essay) => essay.text);
+
+    const updated = await this.prisma.practiceAttempt.update({
+      where: { id },
+      data: { sampleEssays: sampleEssays as unknown as Prisma.InputJsonValue },
+    });
+    return { ...attempt, ...updated };
   }
 
   async update(userId: string, id: string, dto: UpdateAttemptDto) {

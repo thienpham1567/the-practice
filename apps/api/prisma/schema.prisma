@@ -104,6 +104,11 @@ model PracticeAttempt {
   /// `marks`); [] khi không có gợi ý nào.
   enhancements Json?
 
+  /// string[] đúng 2 phần tử — 2 bài mẫu hoàn chỉnh AI sinh để người học tham
+  /// khảo sau khi bài đã chấm xong. null = chưa bấm sinh; sinh một lần duy
+  /// nhất, không tái sinh khi đã có.
+  sampleEssays Json?
+
   /// string[] khoá "start:end" của mark thuộc bài gốc mà bản sửa này đã xử lý.
   /// Đặt trên bản sửa vì đây là tiến độ của lượt sửa, không phải thuộc tính bài gốc.
   handledMarks Json?

@@ -5,6 +5,7 @@ import type { PrismaService } from "../prisma/prisma.service";
 import { GRADE_TASK_SCHEMA } from "./grade-prompt";
 import { PracticeService } from "./practice.service";
 import { REVISION_GRADE_SCHEMA } from "./revision-grade-prompt";
+import { SAMPLE_ESSAY_SCHEMA } from "./sample-essay-prompt";
 
 const generated = {
   prompt: "You are writing to a friend about a concert you went to last weekend.",
@@ -1246,6 +1247,77 @@ describe("PracticeService", () => {
         },
       });
       expect(complete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("generateSamples", () => {
+    const gradedAttempt = {
+      id: "a1",
+      userId: "user-1",
+      level: "B1",
+      taskType: "email",
+      prompt: "Write to your teacher.",
+      submittedAt: new Date("2026-08-25T10:05:00Z"),
+      band: 6,
+      sampleEssays: null,
+      revisions: [] as { id: string; submittedAt: Date | null }[],
+    };
+
+    it("returns 409 when the attempt has not been graded", async () => {
+      const { service, complete } = serviceWith({
+        attempt: { ...gradedAttempt, submittedAt: null, band: null },
+      });
+
+      await expect(service.generateSamples("user-1", "a1")).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(complete).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 when the attempt is missing or belongs to someone else", async () => {
+      const { service } = serviceWith({ attempt: null });
+
+      await expect(service.generateSamples("user-1", "missing")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it("returns the existing samples without calling AI when already generated", async () => {
+      const existing = ["Essay one text.", "Essay two text."];
+      const { service, complete } = serviceWith({
+        attempt: { ...gradedAttempt, sampleEssays: existing },
+      });
+
+      const result = await service.generateSamples("user-1", "a1");
+
+      expect(result.sampleEssays).toEqual(existing);
+      expect(complete).not.toHaveBeenCalled();
+    });
+
+    it("generates and saves two samples, sized to the task level, when none exist yet", async () => {
+      const { service, prisma, complete } = serviceWith({
+        attempt: gradedAttempt,
+        updated: { id: "a1", sampleEssays: ["Essay one.", "Essay two."] },
+      });
+      complete.mockResolvedValueOnce({
+        essays: [{ text: "Essay one." }, { text: "Essay two." }],
+      });
+
+      const result = await service.generateSamples("user-1", "a1");
+
+      expect(complete).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining("Write to your teacher."),
+          schema: SAMPLE_ESSAY_SCHEMA,
+          usage: { userId: "user-1", endpoint: "practice.samples" },
+        }),
+      );
+      expect(complete.mock.calls[0]![0].prompt).toContain("B1");
+      expect(prisma.practiceAttempt.update).toHaveBeenCalledWith({
+        where: { id: "a1" },
+        data: { sampleEssays: ["Essay one.", "Essay two."] },
+      });
+      expect(result.sampleEssays).toEqual(["Essay one.", "Essay two."]);
     });
   });
 });
