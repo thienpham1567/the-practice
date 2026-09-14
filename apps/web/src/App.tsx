@@ -71,7 +71,7 @@ export function App() {
               }
             />
             <Route
-              path="/practice"
+              path="/writing"
               element={
                 <RequireAuth>
                   <PracticePage />
@@ -79,7 +79,7 @@ export function App() {
               }
             />
             <Route
-              path="/practice/:id"
+              path="/writing/:id"
               element={
                 <RequireAuth>
                   <PracticeAttemptPage />

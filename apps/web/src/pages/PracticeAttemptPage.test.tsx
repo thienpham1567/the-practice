@@ -111,9 +111,9 @@ function renderPage(attemptId = "a1") {
   });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[`/practice/${attemptId}`]}>
+      <MemoryRouter initialEntries={[`/writing/${attemptId}`]}>
         <Routes>
-          <Route path="/practice/:id" element={<PracticeAttemptPage />} />
+          <Route path="/writing/:id" element={<PracticeAttemptPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -184,7 +184,7 @@ describe("PracticeAttemptPage ResultView revise button", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Resume revision" }));
 
     expect(reviseAttempt).not.toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith("/practice/rev-orphan");
+    expect(navigate).toHaveBeenCalledWith("/writing/rev-orphan");
   });
 
   it("calls reviseAttempt and navigates to the new attempt", async () => {
@@ -196,7 +196,7 @@ describe("PracticeAttemptPage ResultView revise button", () => {
 
     await waitFor(() => {
       expect(reviseAttempt).toHaveBeenCalledWith("a1");
-      expect(navigate).toHaveBeenCalledWith("/practice/rev-1");
+      expect(navigate).toHaveBeenCalledWith("/writing/rev-1");
     });
   });
 });
@@ -356,7 +356,7 @@ describe("PracticeAttemptPage ResultView revision results", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(deleteAttempt).toHaveBeenCalledWith("a1"));
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/practice"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/writing"));
   });
 });
 

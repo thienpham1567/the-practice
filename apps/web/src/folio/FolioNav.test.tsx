@@ -22,7 +22,7 @@ describe("FolioNav", () => {
   afterEach(cleanup);
 
   it("reaches every other section from any page", () => {
-    for (const current of ["/practice", "/speaking", "/vocab", "/progress", "/docs"]) {
+    for (const current of ["/writing", "/speaking", "/vocab", "/progress", "/docs"]) {
       const { unmount } = renderNav(current);
       const shown = screen.getAllByRole("link").map((link) => link.textContent);
       // Bốn đích còn lại đều có mặt — không trang nào là ngõ cụt.
@@ -46,7 +46,7 @@ describe("FolioNav", () => {
   });
 
   it("hides sign out until there is a session", () => {
-    renderNav("/practice");
+    renderNav("/writing");
     expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
     cleanup();
 
@@ -55,7 +55,7 @@ describe("FolioNav", () => {
       user: { id: "u1", email: "writer@example.com" },
       status: "ready",
     });
-    renderNav("/practice");
+    renderNav("/writing");
     expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
   });
 });

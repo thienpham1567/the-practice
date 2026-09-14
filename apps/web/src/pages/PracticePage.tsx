@@ -27,7 +27,7 @@ export function PracticePage() {
 
   const start = useMutation({
     mutationFn: () => createAttempt({ level }),
-    onSuccess: (attempt) => void navigate(`/practice/${attempt.id}`),
+    onSuccess: (attempt) => void navigate(`/writing/${attempt.id}`),
   });
 
   const submitted = (attempts.data ?? []).filter((item) => item.submittedAt);
@@ -40,11 +40,11 @@ export function PracticePage() {
     <main className="practice-desk relative flex min-h-dvh flex-col">
       <PageAtmosphere kind="practice" />
       <Masthead
-        lockupTo="/practice"
+        lockupTo="/writing"
         className="practice-chrome relative z-10 px-4 py-4 sm:px-6"
         deskToggle
       >
-        <FolioNav current="/practice" />
+        <FolioNav current="/writing" />
       </Masthead>
       <div className="relative z-10 mx-auto w-full max-w-2xl flex-1 px-4 pb-16 pt-2 sm:px-6">
         <div className="practice-sheet relative">
@@ -112,7 +112,7 @@ export function PracticePage() {
                   >
                     <div className="flex items-center gap-x-3">
                       <Link
-                        to={`/practice/${attempt.id}`}
+                        to={`/writing/${attempt.id}`}
                         className="group flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2 py-4"
                       >
                         <span className="min-w-0 flex-1">

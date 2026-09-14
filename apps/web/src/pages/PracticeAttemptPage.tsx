@@ -182,9 +182,9 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
     <div className="editor-desk flex h-[100dvh] flex-col">
       <PageAtmosphere kind="manuscript" />
       <header className="editor-chrome relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
-        <BrandLockup to="/practice" size="sm" />
+        <BrandLockup to="/writing" size="sm" />
         <Link
-          to="/practice"
+          to="/writing"
           className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion sm:text-[0.7rem]"
         >
           Practice
@@ -436,7 +436,7 @@ function ResultView({
   const revise = useMutation({
     mutationFn: () => reviseAttempt(attempt.id),
     onSuccess: (created) => {
-      navigate(`/practice/${created.id}`);
+      navigate(`/writing/${created.id}`);
     },
   });
 
@@ -444,9 +444,9 @@ function ResultView({
     <div className="editor-desk flex h-[100dvh] flex-col">
       <PageAtmosphere kind="manuscript" />
       <header className="editor-chrome relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
-        <BrandLockup to="/practice" size="sm" />
+        <BrandLockup to="/writing" size="sm" />
         <Link
-          to="/practice"
+          to="/writing"
           className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion sm:text-[0.7rem]"
         >
           Practice
@@ -482,7 +482,7 @@ function ResultView({
           {action.kind === "resume" && (
             <button
               type="button"
-              onClick={() => navigate(`/practice/${action.attemptId}`)}
+              onClick={() => navigate(`/writing/${action.attemptId}`)}
               className="bg-ink px-3 py-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion sm:px-4 sm:text-[0.7rem]"
             >
               Resume revision

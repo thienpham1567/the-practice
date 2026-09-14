@@ -35,7 +35,7 @@ export function VocabPage() {
     <main className="vocab-desk relative flex min-h-dvh flex-col">
       <PageAtmosphere kind="vocab" />
       <Masthead
-        lockupTo="/practice"
+        lockupTo="/writing"
         className="vocab-chrome relative z-10 px-4 py-4 sm:px-6"
         deskToggle
       >
@@ -72,7 +72,7 @@ export function VocabPage() {
           {vocab.isSuccess && vocab.data.length === 0 && (
             <FolioEmpty
               message="Nothing here yet."
-              actions={[{ to: "/practice", label: "Start a practice paper" }]}
+              actions={[{ to: "/writing", label: "Start a practice paper" }]}
             />
           )}
 

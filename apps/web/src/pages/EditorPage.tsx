@@ -105,9 +105,9 @@ export function EditorPage() {
     <div className="editor-desk flex h-[100dvh] flex-col">
       <PageAtmosphere kind="manuscript" />
       <header className="editor-chrome relative z-10 flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
-        <BrandLockup to={signedIn ? "/practice" : "/"} size="sm" />
+        <BrandLockup to={signedIn ? "/writing" : "/"} size="sm" />
         <Link
-          to="/practice"
+          to="/writing"
           className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint hover:text-vermilion sm:text-[0.7rem]"
         >
           Practice

@@ -42,7 +42,7 @@ export function AttemptDeleteControl({
       });
       await queryClient.invalidateQueries({ queryKey: ["practice-progress"] });
       if (after === "list") {
-        navigate(kind === "paper" ? "/practice" : "/speaking");
+        navigate(kind === "paper" ? "/writing" : "/speaking");
       }
     },
   });

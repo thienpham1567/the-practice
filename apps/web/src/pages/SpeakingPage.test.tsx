@@ -113,7 +113,7 @@ describe("SpeakingPage", () => {
     renderPage();
 
     expect(await screen.findByRole("link", { name: "Writing" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Writing" }).getAttribute("href")).toBe("/practice");
+    expect(screen.getByRole("link", { name: "Writing" }).getAttribute("href")).toBe("/writing");
   });
 
   it("sits the catalog on the desk plate", async () => {

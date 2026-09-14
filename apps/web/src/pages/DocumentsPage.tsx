@@ -23,7 +23,7 @@ export function DocumentsPage() {
   return (
     <main className="relative mx-auto min-h-[100dvh] max-w-3xl px-6 py-14">
       <PageAtmosphere kind="drafts" />
-      <Masthead lockupTo="/practice">
+      <Masthead lockupTo="/writing">
         <FolioNav current="/docs" />
       </Masthead>
       <h1 className="animate-fade-up mt-8 font-display text-3xl font-semibold">Drafts</h1>

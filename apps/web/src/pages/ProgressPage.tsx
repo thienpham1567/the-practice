@@ -29,7 +29,7 @@ export function ProgressPage() {
     <main className="progress-desk relative flex min-h-dvh min-w-0 flex-col">
       <PageAtmosphere kind="progress" />
       <Masthead
-        lockupTo="/practice"
+        lockupTo="/writing"
         className="progress-chrome relative z-10 px-4 py-4 sm:px-6"
         deskToggle
       >
@@ -54,7 +54,7 @@ export function ProgressPage() {
             <FolioEmpty
               message="Sit your first practice paper or talk to see progress."
               actions={[
-                { to: "/practice", label: "Start writing" },
+                { to: "/writing", label: "Start writing" },
                 { to: "/speaking", label: "Start speaking" },
               ]}
             />

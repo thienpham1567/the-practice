@@ -10,7 +10,7 @@ import { apiFetch } from "../api/client";
  * cụt. Một nguồn sự thật duy nhất: thêm một đích là sửa đúng một chỗ.
  */
 const DESTINATIONS = [
-  { to: "/practice", label: "Writing" },
+  { to: "/writing", label: "Writing" },
   { to: "/speaking", label: "Speaking" },
   { to: "/vocab", label: "Vocabulary" },
   { to: "/progress", label: "Progress" },

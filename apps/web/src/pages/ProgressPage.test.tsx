@@ -82,7 +82,7 @@ describe("ProgressPage", () => {
     renderPage();
 
     expect(await screen.findByText(/Sit your first practice paper or talk/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Start writing" }).getAttribute("href")).toBe("/practice");
+    expect(screen.getByRole("link", { name: "Start writing" }).getAttribute("href")).toBe("/writing");
     expect(screen.getByRole("link", { name: "Start speaking" }).getAttribute("href")).toBe(
       "/speaking",
     );

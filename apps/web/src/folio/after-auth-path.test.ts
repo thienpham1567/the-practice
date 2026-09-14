@@ -16,6 +16,6 @@ describe("afterAuthPath", () => {
   });
 
   it("sends everyone else to practice", () => {
-    expect(afterAuthPath()).toBe("/practice");
+    expect(afterAuthPath()).toBe("/writing");
   });
 });
