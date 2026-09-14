@@ -257,7 +257,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
           triggerLabel="Prompt"
           triggerRef={promptTriggerRef}
           side="left"
-          className="w-96 bg-transparent"
+          className="w-[30rem] bg-transparent"
         >
           <PromptPane
             attempt={attempt}
@@ -516,7 +516,7 @@ function ResultView({
           triggerLabel="Scores"
           triggerRef={scoresTriggerRef}
           side="left"
-          className="w-[22rem] bg-transparent"
+          className="w-[30rem] bg-transparent"
         >
           <div className="px-6 py-8">
             {attempt.band !== null && (

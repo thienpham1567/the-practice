@@ -1467,7 +1467,6 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
  */
 .editor-desk > header.editor-chrome,
 .editor-desk .editor-toolbar-bar,
-.editor-desk aside[role="complementary"],
 .practice-desk > header.practice-chrome,
 .speaking-desk > header.speaking-chrome,
 .speaking-desk aside[role="complementary"],
@@ -1493,7 +1492,6 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 
 .editor-desk > header.editor-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
 .editor-desk .editor-toolbar-bar :is(.text-ink, .text-ink-soft, .text-ink-faint),
-.editor-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft),
 .practice-desk > header.practice-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
 .speaking-desk > header.speaking-chrome :is(.text-ink, .text-ink-soft, .text-ink-faint),
 .speaking-desk aside[role="complementary"] :is(.text-ink, .text-ink-soft),
@@ -1504,7 +1502,6 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 }
 
 .editor-desk > header.editor-chrome .text-ink-faint,
-.editor-desk aside[role="complementary"] .text-ink-faint,
 .practice-desk > header.practice-chrome .text-ink-faint,
 .speaking-desk > header.speaking-chrome .text-ink-faint,
 .speaking-desk aside[role="complementary"] .text-ink-faint,
@@ -1546,8 +1543,16 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
   border-bottom: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 
+/*
+ * Sidebar (prompt/scores) đọc trực tiếp bằng token ink thường — không dùng
+ * hiệu ứng "chữ nổi trên ảnh" của header, vì panel có nền giấy bán-đặc riêng
+ * (không phải ảnh bàn viết full-bleed), nên không cần viền sáng chống ảnh.
+ */
 .editor-desk aside[role="complementary"] {
-  border-left: 1px solid color-mix(in srgb, var(--color-ink) 14%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--color-ink) 22%, transparent);
+  background-color: color-mix(in srgb, var(--color-paper) 93%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .editor-desk aside[role="complementary"].fixed,
@@ -1560,7 +1565,6 @@ html[data-theme="dark"] .landing-folio .landing-hero-copy .text-ink-soft {
 
 html[data-theme="dark"] .editor-desk > header.editor-chrome,
 html[data-theme="dark"] .editor-desk .editor-toolbar-bar,
-html[data-theme="dark"] .editor-desk aside[role="complementary"],
 html[data-theme="dark"] .practice-desk > header.practice-chrome,
 html[data-theme="dark"] .speaking-desk > header.speaking-chrome,
 html[data-theme="dark"] .speaking-desk aside[role="complementary"],
