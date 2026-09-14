@@ -1,6 +1,7 @@
 export type {
   AttemptMarkInput,
   CriterionScores,
+  Enhancement,
   Feedback,
   Level,
   MarkCategory,

@@ -34,6 +34,7 @@ export const GRADE_TASK_SCHEMA: JsonSchemaSpec = {
           "grammaticalRange",
           "overview",
           "nextFocus",
+          "improvements",
         ],
         properties: {
           taskResponse: { type: "string" },
@@ -42,6 +43,7 @@ export const GRADE_TASK_SCHEMA: JsonSchemaSpec = {
           grammaticalRange: { type: "string" },
           overview: { type: "string" },
           nextFocus: { type: "string" },
+          improvements: { type: "array", items: { type: "string" } },
         },
       },
     },
@@ -69,6 +71,8 @@ export interface GradeResult {
     grammaticalRange: string;
     overview: string;
     nextFocus: string;
+    /** 2-3 whole-essay suggestions — ideas, structure, vocabulary to reach for. */
+    improvements: string[];
   };
 }
 
@@ -84,6 +88,9 @@ export function buildGradePrompt(input: GradeInput): string {
     `Writer's response:\n${input.essay}\n\n` +
     `Give each criterion a score from 0 to 9 in 0.5 steps. ` +
     `Do not compute an overall band — the server will do that. ` +
-    `For feedback, comment on each criterion, add a short overview, and name one concrete thing to do better next time.`
+    `For feedback, comment on each criterion, add a short overview, and name one concrete thing to do better next time. ` +
+    `Also return "improvements": 2-3 short, concrete suggestions for making this specific response ` +
+    `better beyond fixing mistakes — a stronger idea to develop, a way to organize it, a more precise ` +
+    `word or phrase to reach for. Ground each one in this response, not generic advice.`
   );
 }

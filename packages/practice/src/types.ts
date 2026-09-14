@@ -35,6 +35,9 @@ export interface Feedback {
   grammaticalRange: string;
   overview: string;
   nextFocus: string;
+  /** 2-3 whole-essay suggestions (ideas, structure, vocabulary) — attempts
+   * graded before this field existed won't have it. */
+  improvements?: string[];
 }
 
 export interface VocabularyItem {
@@ -74,6 +77,20 @@ export interface WritingMark {
   category: MarkCategory;
   severity: MarkSeverity;
   correction: string;
+  note: string;
+}
+
+/**
+ * A stylistic upgrade on already-correct text — not a mistake, so it never
+ * enters the "to fix" count or the mistake profile. Same offset shape as
+ * WritingMark for reuse of the same locate/render machinery.
+ */
+export interface Enhancement {
+  /** inclusive */
+  start: number;
+  /** exclusive */
+  end: number;
+  suggestion: string;
   note: string;
 }
 

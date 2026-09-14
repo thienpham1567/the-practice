@@ -10,13 +10,16 @@ import {
   overallBand,
   pickTask,
   TASK_CATALOG,
+  type Enhancement,
   type Level,
   type TaskSpec,
   type TaskType,
+  type WritingMark,
 } from "@writing-helper/practice";
 import { AiService, PRACTICE_DEADLINE_MS, PRACTICE_TIMEOUT_MS } from "../ai/ai.service";
 import { DEFAULT_PAGE_SIZE, toCursorPage } from "../common/cursor-page";
 import { PrismaService } from "../prisma/prisma.service";
+import { computeMarksResolution } from "./audit-marks-resolution";
 import type {
   CreateAttemptDto,
   SubmitAttemptDto,
@@ -24,7 +27,18 @@ import type {
 } from "./dto/practice.dto";
 import { GENERATE_TASK_SCHEMA, buildGeneratePrompt, type GeneratedTask } from "./generate-prompt";
 import { GRADE_TASK_SCHEMA, buildGradePrompt, type GradeResult } from "./grade-prompt";
-import { EXTRACT_MARKS_SCHEMA, buildMarkPrompt, type ExtractMarksResult } from "./mark-prompt";
+import {
+  EXTRACT_MARKS_SCHEMA,
+  VERIFY_MARKS_SCHEMA,
+  buildMarkPrompt,
+  buildVerifyMarksPrompt,
+  toPriorMarkContext,
+  type ExtractMarksResult,
+  type PriorMarkContext,
+  type RawWritingMark,
+  type VerifyMarksResult,
+} from "./mark-prompt";
+import { resolveEnhancements } from "./resolve-enhancements";
 import { resolveWritingMarks } from "./resolve-marks";
 import {
   REVISION_GRADE_SCHEMA,
@@ -284,60 +298,59 @@ export class PracticeService {
     const isRevision = Boolean(attempt.parentAttemptId);
 
     try {
-      // Bóc lỗi chạy song song với chấm điểm. `.catch` gắn ngay tại đây nên
-      // promise này không bao giờ reject: chấm điểm hỏng thì submit hỏng như
-      // cũ, còn bóc lỗi hỏng thì người học vẫn có band, chỉ mất phần đánh dấu.
-      const marksPromise = this.ai
-        .complete<ExtractMarksResult>({
-          prompt: buildMarkPrompt(task, attempt.prompt, plainText),
-          schema: EXTRACT_MARKS_SCHEMA,
-          maxTokens: 2000,
-          timeoutMs: PRACTICE_TIMEOUT_MS,
-          deadlineMs: PRACTICE_DEADLINE_MS,
-          usage: { userId, endpoint: "practice.marks" },
-        })
-        .then((result) => {
-          // Model trả lỗi nhưng không định vị được cái nào (thường vì nó diễn
-          // đạt lại thay vì trích nguyên văn) là bóc lỗi thất bại, không phải
-          // bài sạch lỗi — trả `null` để không đếm nhầm thành bài không lỗi.
-          const raw = result.marks ?? [];
-          const resolved = resolveWritingMarks(plainText, raw);
-          if (raw.length > 0 && resolved.length === 0) {
-            this.logger.warn(
-              `event=practice_marks_unlocatable attemptId=${id} returned=${raw.length}`,
-            );
-            return null;
-          }
-          return resolved;
-        })
-        .catch((error: unknown) => {
-          this.logger.warn(
-            `event=practice_marks_failed attemptId=${id} ${error instanceof Error ? error.message : "unknown"}`,
-          );
-          return null;
-        });
-
-      let graded: GradeResult | RevisionGradeResult;
+      // Bài revision cần bài cha SỚM: vừa để chấm (feedback + audit), vừa để
+      // cấp ngữ cảnh cho lượt bóc lỗi — không phải chờ tới lúc chấm mới biết
+      // bài cha nói gì (xem docs/superpowers/specs/2026-09-14-grading-exhaustiveness-design.md).
+      let parent: {
+        feedback: Prisma.JsonValue;
+        band: number | null;
+        marks: Prisma.JsonValue;
+        plainText: string;
+      } | null = null;
+      let parentMarksContext: PriorMarkContext[] = [];
       if (isRevision) {
-        const parent = await this.prisma.practiceAttempt.findFirst({
+        parent = await this.prisma.practiceAttempt.findFirst({
           where: { id: attempt.parentAttemptId! },
-          select: { feedback: true, band: true },
+          select: { feedback: true, band: true, marks: true, plainText: true },
         });
         if (!parent || parent.band == null || parent.feedback == null) {
           throw new NotFoundException("Parent practice attempt not found");
         }
+        const parentMarks = (parent.marks as unknown as WritingMark[] | null) ?? [];
+        parentMarksContext = toPriorMarkContext(parent.plainText, parentMarks);
+      }
+
+      // Bóc lỗi chạy song song với chấm điểm. `.catch` gắn ngay tại đây nên
+      // promise này không bao giờ reject: chấm điểm hỏng thì submit hỏng như
+      // cũ, còn bóc lỗi hỏng thì người học vẫn có band, chỉ mất phần đánh dấu.
+      const marksPromise = this.extractMarksAndEnhancements({
+        userId,
+        attemptId: id,
+        task,
+        promptText: attempt.prompt,
+        plainText,
+        parentMarks: parentMarksContext,
+      });
+
+      let graded: GradeResult | RevisionGradeResult;
+      if (isRevision) {
         graded = await this.ai.complete<RevisionGradeResult>({
           prompt: buildRevisionGradePrompt({
             task,
             promptText: attempt.prompt,
             essay: plainText,
             wordCount,
-            parentFeedback: parent.feedback as GradeResult["feedback"],
-            parentBand: parent.band,
+            parentFeedback: parent!.feedback as GradeResult["feedback"],
+            parentBand: parent!.band!,
+            parentMarks: parentMarksContext,
             level: attempt.level,
           }),
           schema: REVISION_GRADE_SCHEMA,
-          maxTokens: 1500,
+          // Was 1500; feedback.improvements pushed revision grading (already the
+          // heaviest schema — scores + feedback + feedbackAudit) past that budget
+          // and truncated mid-JSON. Bumped for both calls so base and revision
+          // grading stay comparable.
+          maxTokens: 2000,
           timeoutMs: PRACTICE_TIMEOUT_MS,
           deadlineMs: PRACTICE_DEADLINE_MS,
           usage: { userId, endpoint: "practice.grade" },
@@ -351,7 +364,7 @@ export class PracticeService {
             wordCount,
           }),
           schema: GRADE_TASK_SCHEMA,
-          maxTokens: 1500,
+          maxTokens: 2000,
           timeoutMs: PRACTICE_TIMEOUT_MS,
           deadlineMs: PRACTICE_DEADLINE_MS,
           usage: { userId, endpoint: "practice.grade" },
@@ -363,19 +376,26 @@ export class PracticeService {
         0,
         Math.round((submittedAt.getTime() - attempt.startedAt.getTime()) / 1000),
       );
-      let feedbackAudit: ReturnType<typeof parseFeedbackAudit> | undefined;
+      // Vế "criteria" do AI thuật lại (có thể sai, xem note ở buildRevisionGradePrompt);
+      // vế "marksResolution" tính bằng code từ đúng bài hiện tại nên không thể ảo giác.
+      let feedbackAudit: { criteria: NonNullable<ReturnType<typeof parseFeedbackAudit>>; marksResolution: ReturnType<typeof computeMarksResolution> } | undefined;
       if (isRevision) {
-        feedbackAudit = parseFeedbackAudit(
+        const criteria = parseFeedbackAudit(
           "feedbackAudit" in graded ? graded.feedbackAudit : undefined,
         );
-        if (feedbackAudit === null) {
+        if (criteria === null) {
           this.logger.warn(
             `event=revision_feedback_audit_dropped attemptId=${id} reason=invalid_or_missing`,
           );
         }
+        const parentMarks = (parent!.marks as unknown as WritingMark[] | null) ?? [];
+        feedbackAudit = {
+          criteria: criteria ?? [],
+          marksResolution: computeMarksResolution(parent!.plainText, parentMarks, plainText),
+        };
       }
 
-      const marks = await marksPromise;
+      const { marks, enhancements } = await marksPromise;
 
       const updated = await this.prisma.practiceAttempt.update({
         where: { id },
@@ -394,6 +414,9 @@ export class PracticeService {
           }),
           styleSnapshot: dto.styleSnapshot as Prisma.InputJsonValue,
           ...(marks !== null && { marks: marks as unknown as Prisma.InputJsonValue }),
+          ...(enhancements !== null && {
+            enhancements: enhancements as unknown as Prisma.InputJsonValue,
+          }),
         },
       });
 
@@ -412,6 +435,71 @@ export class PracticeService {
         data: { gradingStartedAt: null },
       });
       throw error;
+    }
+  }
+
+  /**
+   * Trích lỗi 2 lượt: extract rồi verify. Một lượt sinh duy nhất luôn có xác
+   * suất bỏ sót — verify đưa lại bài + danh sách vừa tìm, ép AI rà lại và chỉ
+   * trả về lỗi CHƯA có trong danh sách. Verify hỏng thì vẫn dùng kết quả lượt
+   * extract (không để một lượt phụ kéo sập cả lượt chính). Xem
+   * docs/superpowers/specs/2026-09-14-grading-exhaustiveness-design.md.
+   */
+  private async extractMarksAndEnhancements(params: {
+    userId: string;
+    attemptId: string;
+    task: TaskSpec;
+    promptText: string;
+    plainText: string;
+    parentMarks: PriorMarkContext[];
+  }): Promise<{ marks: WritingMark[] | null; enhancements: Enhancement[] | null }> {
+    const { userId, attemptId, task, promptText, plainText, parentMarks } = params;
+
+    try {
+      const first = await this.ai.complete<ExtractMarksResult>({
+        prompt: buildMarkPrompt(task, promptText, plainText, parentMarks),
+        schema: EXTRACT_MARKS_SCHEMA,
+        maxTokens: 2000,
+        timeoutMs: PRACTICE_TIMEOUT_MS,
+        deadlineMs: PRACTICE_DEADLINE_MS,
+        usage: { userId, endpoint: "practice.marks" },
+      });
+
+      let combinedRaw: RawWritingMark[] = first.marks ?? [];
+      try {
+        const verify = await this.ai.complete<VerifyMarksResult>({
+          prompt: buildVerifyMarksPrompt(task, promptText, plainText, combinedRaw),
+          schema: VERIFY_MARKS_SCHEMA,
+          maxTokens: 1500,
+          timeoutMs: PRACTICE_TIMEOUT_MS,
+          deadlineMs: PRACTICE_DEADLINE_MS,
+          usage: { userId, endpoint: "practice.marks" },
+        });
+        combinedRaw = combinedRaw.concat(verify.marks ?? []);
+      } catch (error: unknown) {
+        this.logger.warn(
+          `event=practice_marks_verify_failed attemptId=${attemptId} ${error instanceof Error ? error.message : "unknown"}`,
+        );
+      }
+
+      // Model trả lỗi nhưng không định vị được cái nào (thường vì nó diễn đạt
+      // lại thay vì trích nguyên văn) là bóc lỗi thất bại, không phải bài sạch
+      // lỗi — trả `null` để không đếm nhầm thành bài không lỗi.
+      const resolvedMarks = resolveWritingMarks(plainText, combinedRaw);
+      if (combinedRaw.length > 0 && resolvedMarks.length === 0) {
+        this.logger.warn(
+          `event=practice_marks_unlocatable attemptId=${attemptId} returned=${combinedRaw.length}`,
+        );
+        return { marks: null, enhancements: null };
+      }
+
+      const resolvedEnhancements = resolveEnhancements(plainText, first.enhancements ?? []);
+      return { marks: resolvedMarks, enhancements: resolvedEnhancements };
+    } catch (error: unknown) {
+      this.logger.warn(
+        `event=practice_marks_failed attemptId=${attemptId} ${error instanceof Error ? error.message : "unknown"}`,
+      );
+      return { marks: null, enhancements: null };
     }
   }
 

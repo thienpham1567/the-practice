@@ -15,6 +15,7 @@ const parentFeedback: GradeResult["feedback"] = {
   grammaticalRange: "Use a wider range of complex sentences.",
   overview: "Solid structure but limited development.",
   nextFocus: "Expand each body paragraph with one concrete example.",
+  improvements: ["Add a concrete example to the second body paragraph."],
 };
 
 describe("buildRevisionGradePrompt", () => {
@@ -26,6 +27,7 @@ describe("buildRevisionGradePrompt", () => {
       wordCount: 180,
       parentFeedback,
       parentBand: 5.5,
+      parentMarks: [],
     });
 
     expect(prompt).toContain(parentFeedback.taskResponse);
@@ -47,11 +49,30 @@ describe("buildRevisionGradePrompt", () => {
       wordCount: 200,
       parentFeedback,
       parentBand: 6.0,
+      parentMarks: [],
     });
 
     expect(prompt).not.toContain(parentEssay);
     expect(prompt).not.toContain("PARENT_OLD_ESSAY_MARKER");
     expect(prompt).toContain("Revised essay about urban transport policy.");
+  });
+
+  it("includes specific prior corrections and warns against reversing them", () => {
+    const prompt = buildRevisionGradePrompt({
+      task: essay,
+      promptText: "Some people think cities should ban cars.",
+      essay: "Cities should ban cars because...",
+      wordCount: 180,
+      parentFeedback,
+      parentBand: 5.5,
+      parentMarks: [
+        { quote: "Best,", category: "register", correction: "Best regards," },
+      ],
+    });
+
+    expect(prompt).toContain("Best,");
+    expect(prompt).toContain("Best regards,");
+    expect(prompt).toMatch(/reverse a recommendation/i);
   });
 });
 

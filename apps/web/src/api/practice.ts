@@ -1,8 +1,10 @@
 import type { AnalysisResult } from "@writing-helper/analysis";
 import type {
   CriterionScores,
+  Enhancement,
   Feedback,
   Level,
+  MarkCategory,
   MistakeProfile,
   TaskType,
   VocabularyItem,
@@ -16,6 +18,19 @@ export type FeedbackAuditStatus = "resolved" | "partial" | "unresolved";
 export interface FeedbackAuditItem {
   point: string;
   status: FeedbackAuditStatus;
+}
+
+/** Whether one specific mistake from the parent is still literally present in
+ * this revision — computed server-side by string match, not AI judgment. */
+export interface MarkResolutionItem {
+  quote: string;
+  category: MarkCategory;
+  resolved: boolean;
+}
+
+export interface RevisionAudit {
+  criteria: FeedbackAuditItem[];
+  marksResolution: MarkResolutionItem[];
 }
 
 export interface PracticeAttemptSummary {
@@ -46,13 +61,16 @@ export interface PracticeAttemptDetail
   styleSnapshot: AnalysisResult | null;
   parentAttemptId: string | null;
   revisionRound: number;
-  feedbackAudit: FeedbackAuditItem[] | null;
+  feedbackAudit: RevisionAudit | null;
   parentBand: number | null;
   hasRevision: boolean;
   /** Child revision id when one exists but has not been submitted; otherwise null. */
   pendingRevisionId: string | null;
   /** null khi bóc lỗi thất bại; [] khi bài không có lỗi nào. */
   marks: WritingMark[] | null;
+  /** Gợi ý viết hay hơn trên chữ đã đúng — tách khỏi marks, không tính là lỗi.
+   * null đi cùng marks khi bóc lỗi thất bại; [] khi không có gợi ý nào. */
+  enhancements: Enhancement[] | null;
   /** Khoá "start:end" của mark bài gốc mà bản sửa này đã xử lý. */
   handledMarks: string[] | null;
 }

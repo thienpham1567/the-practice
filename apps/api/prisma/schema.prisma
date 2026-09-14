@@ -99,6 +99,11 @@ model PracticeAttempt {
   /// WritingMark[] — null khi bóc lỗi thất bại; [] khi bài không có lỗi nào.
   marks Json?
 
+  /// Enhancement[] — gợi ý viết hay hơn trên chữ đã đúng ngữ pháp, tách khỏi
+  /// `marks` vì không phải lỗi cần sửa. null khi bóc lỗi thất bại (đi cùng
+  /// `marks`); [] khi không có gợi ý nào.
+  enhancements Json?
+
   /// string[] khoá "start:end" của mark thuộc bài gốc mà bản sửa này đã xử lý.
   /// Đặt trên bản sửa vì đây là tiến độ của lượt sửa, không phải thuộc tính bài gốc.
   handledMarks Json?

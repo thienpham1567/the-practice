@@ -101,6 +101,7 @@ const gradedAttempt: PracticeAttemptDetail = {
   hasRevision: false,
   pendingRevisionId: null,
   marks: null,
+  enhancements: null,
   handledMarks: null,
 };
 
@@ -271,11 +272,14 @@ const gradedRevision: PracticeAttemptDetail = {
   revisionRound: 1,
   parentBand: 5.5,
   hasRevision: false,
-  feedbackAudit: [
-    { point: "Task address fixed.", status: "resolved" },
-    { point: "Cohesion partly improved.", status: "partial" },
-    { point: "Grammar still weak.", status: "unresolved" },
-  ],
+  feedbackAudit: {
+    criteria: [
+      { point: "Task address fixed.", status: "resolved" },
+      { point: "Cohesion partly improved.", status: "partial" },
+      { point: "Grammar still weak.", status: "unresolved" },
+    ],
+    marksResolution: [],
+  },
 };
 
 describe("PracticeAttemptPage ResultView revision results", () => {

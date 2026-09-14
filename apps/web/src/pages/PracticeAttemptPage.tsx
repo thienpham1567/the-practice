@@ -32,6 +32,7 @@ import {
 } from "../practice/exam-math";
 import { FeedbackAuditList } from "../practice/FeedbackAuditList";
 import { FixTheseFirst } from "../practice/FixTheseFirst";
+import { WriteBetter } from "../practice/WriteBetter";
 import { promptBody } from "../practice/prompt-body";
 import { RevisionChecklist } from "../practice/RevisionChecklist";
 import { formatBandDelta, reviseAction } from "../practice/revise-availability";
@@ -529,14 +530,16 @@ function ResultView({
               </div>
             )}
 
-            {attempt.feedbackAudit && attempt.feedbackAudit.length > 0 && (
-              <section className="mb-8 border-t border-rule pt-6">
-                <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
-                  Feedback audit
-                </h2>
-                <FeedbackAuditList items={attempt.feedbackAudit} />
-              </section>
-            )}
+            {attempt.feedbackAudit &&
+              (attempt.feedbackAudit.criteria.length > 0 ||
+                attempt.feedbackAudit.marksResolution.length > 0) && (
+                <section className="mb-8 border-t border-rule pt-6">
+                  <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+                    Feedback audit
+                  </h2>
+                  <FeedbackAuditList audit={attempt.feedbackAudit} />
+                </section>
+              )}
 
             {attempt.scores && attempt.feedback && (
               <CriteriaBars scores={attempt.scores} feedback={attempt.feedback} />
@@ -549,10 +552,18 @@ function ResultView({
                 </h2>
                 <p className="mt-3 font-display text-lg leading-snug">{attempt.feedback.nextFocus}</p>
                 <p className="mt-3 text-sm leading-relaxed text-ink-soft">{attempt.feedback.overview}</p>
+                {attempt.feedback.improvements && attempt.feedback.improvements.length > 0 && (
+                  <ul className="mt-3 list-disc space-y-1 pl-4 text-sm leading-relaxed text-ink-soft">
+                    {attempt.feedback.improvements.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                )}
               </section>
             )}
 
             <FixTheseFirst marks={attempt.marks} />
+            <WriteBetter enhancements={attempt.enhancements} plainText={attempt.plainText} />
 
             {snapshot && (
               <div className="mt-8 border-t border-rule pt-6">
