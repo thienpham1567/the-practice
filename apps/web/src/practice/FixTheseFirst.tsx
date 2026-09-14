@@ -1,5 +1,9 @@
 import { MARK_LABELS, focusCategories, type WritingMark } from "@writing-helper/practice";
-import { MARK_HIGHLIGHT_GROUP } from "../editor/mark-highlight-groups";
+import {
+  MARK_HIGHLIGHT_GROUP,
+  MARK_HIGHLIGHT_GROUP_LABELS,
+  type MarkHighlightGroup,
+} from "../editor/mark-highlight-groups";
 
 /**
  * A starting point: a paper with 30 underlines tells the learner nothing about
@@ -8,7 +12,10 @@ import { MARK_HIGHLIGHT_GROUP } from "../editor/mark-highlight-groups";
  *
  * The left-edge color matches the highlight color for that category in the
  * editor (same `MARK_HIGHLIGHT_GROUP` token) — the list and the underlying
- * paper read as one system instead of two disconnected views.
+ * paper read as one system instead of two disconnected views. The color key
+ * below it explains what each color painted on the paper means — computed
+ * from every mark, not just the top 3 listed here, since the editor paints
+ * all of them.
  *
  * `null` means extraction failed — stay silent, which is a different thing
  * from a paper that came back clean.
@@ -65,6 +72,34 @@ export function FixTheseFirst({
           })}
         </ol>
       )}
+      {marks.length > 0 && <ColorKey marks={marks} />}
     </section>
+  );
+}
+
+/** Every color painted in the paper, once each, in a fixed order — not just
+ * the 3 in "Fix these first" above. */
+function ColorKey({ marks }: { marks: WritingMark[] }) {
+  const present = new Set(marks.map((mark) => MARK_HIGHLIGHT_GROUP[mark.category]));
+  const groups = (Object.keys(MARK_HIGHLIGHT_GROUP_LABELS) as MarkHighlightGroup[]).filter(
+    (group) => present.has(group),
+  );
+
+  return (
+    <ul className="mt-5 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-rule pt-4">
+      {groups.map((group) => (
+        <li
+          key={group}
+          className="flex items-center gap-1.5 font-mono text-[0.6rem] uppercase tracking-[0.12em] text-ink-faint"
+        >
+          <span
+            aria-hidden
+            className="h-2 w-2 shrink-0 rounded-full"
+            style={{ backgroundColor: `var(--color-mistake-${group})` }}
+          />
+          {MARK_HIGHLIGHT_GROUP_LABELS[group]}
+        </li>
+      ))}
+    </ul>
   );
 }

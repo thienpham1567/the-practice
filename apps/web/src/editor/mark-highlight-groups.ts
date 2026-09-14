@@ -36,3 +36,16 @@ export const MARK_HIGHLIGHT_GROUP: Record<MarkCategory, MarkHighlightGroup> = {
   "verb-tense": "verbs",
   "subject-verb-agreement": "verbs",
 };
+
+/** Short label for the color-key row — the exact category still shows in the
+ * popover and in "Fix these first"; this is just enough to read the swatch. */
+export const MARK_HIGHLIGHT_GROUP_LABELS: Record<MarkHighlightGroup, string> = {
+  style: "Style suggestion",
+  nouns: "Articles & nouns",
+  prepositions: "Prepositions",
+  "word-form": "Word form",
+  pronouns: "Pronouns",
+  structure: "Word order & structure",
+  mechanics: "Spelling & punctuation",
+  verbs: "Verbs",
+};

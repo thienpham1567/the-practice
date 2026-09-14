@@ -58,4 +58,38 @@ describe("FixTheseFirst", () => {
     const { container } = render(<FixTheseFirst marks={null} plainText={plainText} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("shows a color key naming only the colors actually used, once each", () => {
+    render(
+      <FixTheseFirst marks={[articleOne, articleTwo, spelling]} plainText={plainText} />,
+    );
+    // article + article -> "nouns" once; spelling -> "mechanics".
+    expect(screen.getByText("Articles & nouns")).toBeInTheDocument();
+    expect(screen.getAllByText("Articles & nouns")).toHaveLength(1);
+    expect(screen.getByText("Spelling & punctuation")).toBeInTheDocument();
+    // Categories with no marks in this paper stay out of the key.
+    expect(screen.queryByText("Verbs")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pronouns")).not.toBeInTheDocument();
+  });
+
+  it("still shows the color key when every mark is refinement-tier (nothing in 'fix these first')", () => {
+    const registerMark: WritingMark = {
+      start: 0,
+      end: 5,
+      category: "register",
+      severity: "refinement",
+      correction: "Hi there",
+      note: "Too formal for a friend.",
+    };
+    render(<FixTheseFirst marks={[registerMark]} plainText={plainText} />);
+
+    expect(screen.getByText(/nothing to fix/i)).toBeInTheDocument();
+    expect(screen.getByText("Style suggestion")).toBeInTheDocument();
+  });
+
+  it("shows no color key when there are no marks at all", () => {
+    render(<FixTheseFirst marks={[]} plainText={plainText} />);
+    expect(screen.queryByText("Style suggestion")).not.toBeInTheDocument();
+    expect(screen.queryByText("Articles & nouns")).not.toBeInTheDocument();
+  });
 });
