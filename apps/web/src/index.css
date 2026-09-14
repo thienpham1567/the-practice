@@ -272,6 +272,18 @@ button.bg-vermilion {
     transform 0.15s var(--ease-settle);
 }
 
+/*
+ * bg-ink buttons stay text-paper on hover (only the background swaps to
+ * vermilion) — paper-on-vermilion fails WCAG AA for small text in both
+ * themes (~4.1:1 light, ~3.5:1 dark, need 4.5:1), so the exact moment a
+ * learner is about to click Submit/Revise/etc the label gets harder to
+ * read, not easier. White clears 4.5:1 against vermilion in both themes.
+ */
+button.bg-ink.text-paper:hover,
+a.bg-ink.text-paper:hover {
+  color: #fff;
+}
+
 button.bg-ink:active:not(:disabled),
 a.bg-ink:active,
 button.bg-vermilion:active:not(:disabled) {
