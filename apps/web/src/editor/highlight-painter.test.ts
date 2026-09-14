@@ -46,43 +46,43 @@ describe("paintSpans / clearSpans layer scoping", () => {
 
     // A mistake painter (e.g. SavedMarksPlugin) paints its own layer, scoped
     // to MISTAKE_LAYERS only.
-    paintSpans(index, [{ start: 4, end: 7, layer: "error" }], MISTAKE_LAYERS);
+    paintSpans(index, [{ start: 4, end: 7, layer: "verbs" }], MISTAKE_LAYERS);
 
     // Both layers should be present — the mistake paint must not have wiped
     // the style layer that isn't in its own layer set.
     expect(registry.has("wh-passive")).toBe(true);
-    expect(registry.has("wh-error")).toBe(true);
+    expect(registry.has("wh-verbs")).toBe(true);
   });
 
   it("clearSpans(STYLE_LAYERS) removes only style layers, not mistake layers", () => {
     const index = buildTextIndex(root("<p>The cat sat.</p>"));
 
     paintSpans(index, [{ start: 0, end: 3, layer: "passive" }], STYLE_LAYERS);
-    paintSpans(index, [{ start: 4, end: 7, layer: "error" }], MISTAKE_LAYERS);
+    paintSpans(index, [{ start: 4, end: 7, layer: "verbs" }], MISTAKE_LAYERS);
     expect(registry.has("wh-passive")).toBe(true);
-    expect(registry.has("wh-error")).toBe(true);
+    expect(registry.has("wh-verbs")).toBe(true);
 
     // Unmounting the style painter (SavedHighlightsPlugin) must not wipe the
     // mistake painter's (SavedMarksPlugin) layer.
     clearSpans(STYLE_LAYERS);
 
     expect(registry.has("wh-passive")).toBe(false);
-    expect(registry.has("wh-error")).toBe(true);
+    expect(registry.has("wh-verbs")).toBe(true);
   });
 
   it("clearSpans(MISTAKE_LAYERS) removes only mistake layers, not style layers", () => {
     const index = buildTextIndex(root("<p>The cat sat.</p>"));
 
     paintSpans(index, [{ start: 0, end: 3, layer: "passive" }], STYLE_LAYERS);
-    paintSpans(index, [{ start: 4, end: 7, layer: "error" }], MISTAKE_LAYERS);
+    paintSpans(index, [{ start: 4, end: 7, layer: "verbs" }], MISTAKE_LAYERS);
     expect(registry.has("wh-passive")).toBe(true);
-    expect(registry.has("wh-error")).toBe(true);
+    expect(registry.has("wh-verbs")).toBe(true);
 
     // Unmounting the mistake painter (SavedMarksPlugin) must not wipe the
     // style painter's (SavedHighlightsPlugin) layer.
     clearSpans(MISTAKE_LAYERS);
 
-    expect(registry.has("wh-error")).toBe(false);
+    expect(registry.has("wh-verbs")).toBe(false);
     expect(registry.has("wh-passive")).toBe(true);
   });
 

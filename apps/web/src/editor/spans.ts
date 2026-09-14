@@ -1,12 +1,13 @@
 import type { Highlight, HighlightType } from "@writing-helper/analysis";
-import type { MarkSeverity, WritingMark } from "@writing-helper/practice";
+import type { WritingMark } from "@writing-helper/practice";
+import { MARK_HIGHLIGHT_GROUP, type MarkHighlightGroup } from "./mark-highlight-groups";
 
 /**
  * One paint layer. The two sources are very different — a rule engine running
  * in the browser, and mistakes a model quoted — but to the painter they are
  * only spans carrying a layer name.
  */
-export type SpanLayer = HighlightType | MarkSeverity;
+export type SpanLayer = HighlightType | MarkHighlightGroup;
 
 export interface EditorSpan {
   start: number;
@@ -22,4 +23,8 @@ export const styleSpans = (highlights: Highlight[]): EditorSpan[] =>
   }));
 
 export const markSpans = (marks: WritingMark[]): EditorSpan[] =>
-  marks.map((mark) => ({ start: mark.start, end: mark.end, layer: mark.severity }));
+  marks.map((mark) => ({
+    start: mark.start,
+    end: mark.end,
+    layer: MARK_HIGHLIGHT_GROUP[mark.category],
+  }));

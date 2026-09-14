@@ -19,15 +19,18 @@ export function WriteBetter({
       <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
         Could read better
       </h2>
-      <ul className="mt-3 space-y-3">
+      <ul className="mt-4 space-y-4">
         {enhancements.map((item) => {
           const quote = plainText.slice(item.start, item.end);
           return (
-            <li key={`${item.start}:${item.end}`} className="text-sm leading-snug">
+            <li
+              key={`${item.start}:${item.end}`}
+              className="border-l-2 border-rule pl-3 text-sm leading-snug"
+            >
               <span className="text-ink-soft">{quote}</span>
               <span className="text-ink-faint"> → </span>
               <span className="font-display">{item.suggestion}</span>
-              <span className="mt-0.5 block text-ink-faint">{item.note}</span>
+              <span className="mt-1 block text-ink-faint">{item.note}</span>
             </li>
           );
         })}

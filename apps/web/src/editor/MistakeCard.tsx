@@ -1,5 +1,6 @@
 import { MARK_LABELS, type WritingMark } from "@writing-helper/practice";
 import { clampAnchorX, shouldFlipBelow } from "./anchor-position";
+import { MARK_HIGHLIGHT_GROUP } from "./mark-highlight-groups";
 
 /** Khớp với `max-w-72` bên dưới — clamp cần biết bề rộng tối đa thật. */
 const CARD_MAX_WIDTH_PX = 288;
@@ -28,7 +29,14 @@ export function MistakeCard({
       }`}
       style={{ left, top: pick.y + (flipBelow ? 14 : -10) }}
     >
-      <p className="font-mono text-[0.7rem] uppercase tracking-wider text-vermilion">
+      <p className="flex items-center gap-1.5 font-mono text-[0.7rem] uppercase tracking-wider text-vermilion">
+        <span
+          aria-hidden
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{
+            backgroundColor: `var(--color-mistake-${MARK_HIGHLIGHT_GROUP[pick.mark.category]})`,
+          }}
+        />
         {MARK_LABELS[pick.mark.category]}
       </p>
       <p className="mt-1 font-display text-base leading-snug">{pick.mark.correction}</p>

@@ -572,7 +572,7 @@ function ResultView({
               </section>
             )}
 
-            <FixTheseFirst marks={attempt.marks} />
+            <FixTheseFirst marks={attempt.marks} plainText={attempt.plainText} />
             <WriteBetter enhancements={attempt.enhancements} plainText={attempt.plainText} />
 
             {snapshot && (

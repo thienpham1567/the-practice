@@ -25,9 +25,9 @@ export function CriteriaBars({ scores, feedback }: CriteriaBarsProps) {
               </h3>
               <span className="font-display text-lg leading-none">{score}</span>
             </div>
-            <div className="mt-1.5 h-px bg-rule">
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-rule">
               <div
-                className="h-px bg-vermilion"
+                className="h-full rounded-full bg-vermilion"
                 style={{ width: `${(score / 9) * 100}%` }}
               />
             </div>

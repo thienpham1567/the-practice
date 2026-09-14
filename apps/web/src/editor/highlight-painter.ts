@@ -21,8 +21,17 @@ export const STYLE_LAYERS: SpanLayer[] = [
   "complex-phrase",
 ];
 
-/** Lỗi ngôn ngữ vẽ trên cùng. */
-export const MISTAKE_LAYERS: SpanLayer[] = ["refinement", "error"];
+/** Lỗi ngôn ngữ vẽ trên cùng — 8 nhóm màu theo category, xem mark-highlight-groups.ts. */
+export const MISTAKE_LAYERS: SpanLayer[] = [
+  "style",
+  "nouns",
+  "prepositions",
+  "word-form",
+  "pronouns",
+  "structure",
+  "mechanics",
+  "verbs",
+];
 
 const SENTENCE_LAYERS = new Set<SpanLayer>(["hard-sentence", "very-hard-sentence"]);
 const MISTAKE_LAYER_SET = new Set<SpanLayer>(MISTAKE_LAYERS);
