@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import type { Level } from "@writing-helper/practice";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { listVocab, type VocabEntry, type VocabStatusFilter } from "../api/vocab";
 import { FolioChoice } from "../folio/FolioChoice";
@@ -9,26 +10,51 @@ import { FolioSkeleton } from "../folio/FolioSkeleton";
 import { Masthead } from "../folio/Masthead";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 
-const FILTERS: { id: VocabStatusFilter; label: string }[] = [
+type LevelFilter = "all" | Level;
+
+const STATUS_FILTERS: { id: VocabStatusFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "unused", label: "Unused" },
   { id: "used", label: "Used" },
 ];
 
-function matchesFilter(entry: VocabEntry, filter: VocabStatusFilter): boolean {
+const LEVEL_FILTERS: { id: LevelFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "A2", label: "A2" },
+  { id: "B1", label: "B1" },
+  { id: "B2", label: "B2" },
+  { id: "C1", label: "C1" },
+];
+
+function matchesStatus(entry: VocabEntry, filter: VocabStatusFilter): boolean {
   if (filter === "unused") return entry.usedCount === 0;
   if (filter === "used") return entry.usedCount > 0;
   return true;
 }
 
 export function VocabPage() {
-  const [filter, setFilter] = useState<VocabStatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<VocabStatusFilter>("all");
+  const [levelFilter, setLevelFilter] = useState<LevelFilter>("all");
+  const [search, setSearch] = useState("");
 
   const vocab = useQuery({ queryKey: ["practice-vocab"], queryFn: listVocab });
 
+  const query = search.trim().toLowerCase();
   const items = useMemo(
-    () => (vocab.data ?? []).filter((entry) => matchesFilter(entry, filter)),
-    [vocab.data, filter],
+    () =>
+      (vocab.data ?? []).filter((entry) => {
+        if (!matchesStatus(entry, statusFilter)) return false;
+        if (levelFilter !== "all" && entry.level !== levelFilter) return false;
+        if (
+          query &&
+          !entry.word.toLowerCase().includes(query) &&
+          !entry.meaning.toLowerCase().includes(query)
+        ) {
+          return false;
+        }
+        return true;
+      }),
+    [vocab.data, statusFilter, levelFilter, query],
   );
 
   return (
@@ -41,20 +67,36 @@ export function VocabPage() {
       >
         <FolioNav current="/vocab" />
       </Masthead>
-      <div className="relative z-10 mx-auto w-full max-w-2xl flex-1 px-4 pb-16 pt-2 sm:px-6">
+      <div className="relative z-10 mx-auto w-full max-w-4xl flex-1 px-4 pb-16 pt-2 sm:px-6">
         <div className="vocab-sheet relative">
           <h1 className="animate-fade-up font-display text-3xl font-semibold">Vocabulary</h1>
-          <p className="animate-fade-up mt-2 max-w-xl text-ink-soft" style={{ animationDelay: "40ms" }}>
+          <p
+            className="animate-fade-up mt-2 max-w-xl text-ink-soft"
+            style={{ animationDelay: "40ms" }}
+          >
             Words suggested in practice. Unused ones resurface when they fit a new topic.
           </p>
 
-          <div className="animate-fade-up mt-8" style={{ animationDelay: "80ms" }}>
-            <FolioChoice
-              label="Filter by status"
-              value={filter}
-              options={FILTERS}
-              onChange={setFilter}
-            />
+          <div className="animate-fade-up mt-8 space-y-4" style={{ animationDelay: "80ms" }}>
+            <SearchField value={search} onChange={setSearch} />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="sm:flex-1">
+                <FolioChoice
+                  label="Filter by status"
+                  value={statusFilter}
+                  options={STATUS_FILTERS}
+                  onChange={setStatusFilter}
+                />
+              </div>
+              <div className="sm:flex-1">
+                <FolioChoice
+                  label="Filter by level"
+                  value={levelFilter}
+                  options={LEVEL_FILTERS}
+                  onChange={setLevelFilter}
+                />
+              </div>
+            </div>
           </div>
 
           {vocab.isLoading && <FolioSkeleton label="Fetching your notebook" />}
@@ -77,49 +119,23 @@ export function VocabPage() {
           )}
 
           {vocab.isSuccess && vocab.data.length > 0 && items.length === 0 && (
-            <p className="animate-fade-up mt-8 text-ink-soft">No words match this filter.</p>
+            <p className="animate-fade-up mt-8 text-ink-soft">
+              No words match your search or filters.
+            </p>
           )}
 
           {items.length > 0 && (
-            <div
-              className="animate-fade-up mt-6 overflow-x-auto border border-rule"
-              style={{ animationDelay: "120ms" }}
-            >
-              <table className="w-full min-w-[36rem] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-rule">
-                    <th className="px-3 py-2 pr-4 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
-                      Word
-                    </th>
-                    <th className="py-2 pr-4 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
-                      Meaning
-                    </th>
-                    <th className="py-2 pr-4 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
-                      Example
-                    </th>
-                    <th className="py-2 pr-3 font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-rule">
-                  {items.map((entry, index) => (
-                    <tr
-                      key={entry.id}
-                      className="animate-fade-up align-top"
-                      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
-                    >
-                      <td className="px-3 py-3 pr-4 font-display text-lg">{entry.word}</td>
-                      <td className="py-3 pr-4 text-sm text-ink-soft">{entry.meaning}</td>
-                      <td className="py-3 pr-4 text-sm italic text-ink-faint">{entry.example}</td>
-                      <td className="py-3 pr-3">
-                        <UsageBadge usedCount={entry.usedCount} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {items.map((entry, index) => (
+                <li
+                  key={entry.id}
+                  className="animate-fade-up border border-rule bg-paper-deep/40 p-4"
+                  style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+                >
+                  <VocabCard entry={entry} />
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>
@@ -127,16 +143,60 @@ export function VocabPage() {
   );
 }
 
+function SearchField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <label className="group block max-w-sm">
+      <span className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+        Search
+      </span>
+      <div className="relative mt-1">
+        <input
+          type="search"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Word or meaning…"
+          className="w-full bg-transparent px-1 py-2 outline-none placeholder:text-ink-faint"
+        />
+        {/* Gạch chân trồi từ giữa ra khi focus, khớp pattern input ở AuthPage. */}
+        <span className="absolute inset-x-0 bottom-0 h-px bg-rule" />
+        <span className="absolute inset-x-0 bottom-0 h-px origin-center scale-x-0 bg-vermilion transition-transform duration-300 group-focus-within:scale-x-100" />
+      </div>
+    </label>
+  );
+}
+
+function VocabCard({ entry }: { entry: VocabEntry }) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <h2 className="font-display text-xl leading-snug">{entry.word}</h2>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Tag>{entry.level}</Tag>
+          <UsageBadge usedCount={entry.usedCount} />
+        </div>
+      </div>
+      <p className="mt-1.5 text-sm text-ink-soft">{entry.meaning}</p>
+      <p className="mt-2.5 border-l-2 border-rule pl-2.5 text-sm italic leading-relaxed text-ink-faint">
+        {entry.example}
+      </p>
+    </>
+  );
+}
+
+function Tag({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-block border border-rule px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-ink-faint">
+      {children}
+    </span>
+  );
+}
+
 function UsageBadge({ usedCount }: { usedCount: number }) {
   if (usedCount === 0) {
-    return (
-      <span className="inline-block border border-rule px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-ink-faint">
-        unused
-      </span>
-    );
+    return <Tag>unused</Tag>;
   }
   return (
-    <span className="inline-block border border-vermilion/40 px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-[0.12em] text-vermilion">
+    <span className="inline-block border border-vermilion/40 px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.1em] text-vermilion">
       used ×{usedCount}
     </span>
   );
