@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { folioDateline } from "../folio/folio-dateline";
-import { LANDING_LEDE } from "../folio/landing-copy";
+import { LANDING_LEDE, LANDING_PAPER } from "../folio/landing-copy";
 import { Masthead } from "../folio/Masthead";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { LandingDemo } from "../landing/LandingDemo";
@@ -79,10 +79,7 @@ export function LandingPage({ now = new Date() }: { now?: Date }) {
           <div className="landing-book">
             <div className="landing-book-verso" aria-hidden="true" />
             <div className="landing-book-recto landing-script relative flex w-full flex-col py-9 pr-6 pl-[3.75rem] sm:py-12 sm:pr-11 sm:pl-[4.35rem]">
-              <p className="landing-book-kicker">
-                <span>Part 1</span>
-                <span>Writing</span>
-              </p>
+              <p className="landing-book-kicker">{LANDING_PAPER.kicker}</p>
               <LandingDemo />
             </div>
           </div>

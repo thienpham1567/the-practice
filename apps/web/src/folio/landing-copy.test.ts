@@ -26,6 +26,7 @@ describe("landing-copy", () => {
     ].join("\n");
 
     expect(text).not.toMatch(/IELTS/);
+    expect(text).not.toMatch(/Part 1/);
     expect(text).not.toMatch(/Part 2/);
     expect(text).not.toMatch(/Band 5\.5/);
     expect(text).not.toMatch(/long turn/i);

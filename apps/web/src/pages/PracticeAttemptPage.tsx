@@ -194,6 +194,9 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
         >
           Practice
         </Link>
+        <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
+          {spec.label}
+        </span>
         {isRevision ? (
           <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion sm:text-[0.7rem]">
             Revision {attempt.revisionRound}/2
@@ -330,10 +333,7 @@ function PromptPane({
 }) {
   const feedbackPoints = parentFeedback
     ? [
-        parentFeedback.taskResponse,
-        parentFeedback.coherenceCohesion,
-        parentFeedback.lexicalResource,
-        parentFeedback.grammaticalRange,
+        ...criteriaEntries(parentFeedback).map((entry) => entry.comment),
         parentFeedback.overview,
         parentFeedback.nextFocus,
       ].filter(Boolean)

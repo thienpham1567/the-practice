@@ -22,6 +22,10 @@ describe("LandingPage", () => {
     const draft = screen.getByRole("link", { name: "Open a draft" });
     expect(draft.getAttribute("href")).toBe("/write");
     expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe("/login");
+    expect(screen.getByText("Paper · TOEIC email · 10 min")).toBeTruthy();
+    expect(screen.queryByText("Part 1")).toBeNull();
+    expect(screen.queryByText("Part 2")).toBeNull();
+    expect(screen.queryByText(/Band /)).toBeNull();
     expect(document.querySelector(".landing-deckle")).toBeNull();
     expect(document.querySelector("[data-atmosphere='folio']")).toBeTruthy();
   });

@@ -31,6 +31,7 @@ import { recordingSupported, useRecorder } from "../speaking/useRecorder";
 import { encodeWav } from "../speaking/wav-encode";
 
 function speakingTaskLabel(type: string): string {
+  if (type === "express-opinion") return "Q11 · Express an opinion";
   return SPEAKING_TASKS.find((task) => task.type === type)?.label ?? type;
 }
 

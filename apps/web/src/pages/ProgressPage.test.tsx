@@ -86,7 +86,7 @@ describe("ProgressPage", () => {
     expect(screen.getByRole("link", { name: "Start speaking" }).getAttribute("href")).toBe(
       "/speaking",
     );
-    expect(screen.queryByLabelText("Practice score over time by level")).toBeNull();
+    expect(screen.queryByLabelText("Practice score over time")).toBeNull();
     expect(screen.queryByLabelText("Speaking progress")).toBeNull();
   });
 
@@ -113,18 +113,16 @@ describe("ProgressPage", () => {
     );
     renderPage();
 
-    const writingChart = await screen.findByLabelText("Practice score over time by level");
-    expect(writingChart.querySelectorAll('polyline[data-level="B1"]')).toHaveLength(1);
-    expect(writingChart.querySelectorAll('circle[data-level="B1"]')).toHaveLength(2);
-    expect(writingChart.querySelectorAll('circle[data-level="B2"]')).toHaveLength(1);
-    // Speaking point must not appear on the writing chart (would be a 3rd B1 circle)
-    expect(writingChart.querySelectorAll('circle[data-level="B1"]')).not.toHaveLength(3);
+    const writingChart = await screen.findByLabelText("Practice score over time");
+    expect(writingChart.querySelectorAll('circle[data-series="score"]')).toHaveLength(3);
+    expect(writingChart.querySelectorAll('polyline[data-series="score"]')).toHaveLength(1);
+    expect(writingChart.querySelectorAll("[data-level]")).toHaveLength(0);
 
     const speakingSection = screen.getByLabelText("Speaking progress");
     expect(within(speakingSection).getByLabelText("Speaking score over time")).toBeTruthy();
     expect(
       within(speakingSection).getByLabelText("Speaking score over time").querySelectorAll(
-        'circle[data-level="B1"]',
+        'circle[data-series="score"]',
       ),
     ).toHaveLength(1);
   });
@@ -152,38 +150,50 @@ describe("ProgressPage", () => {
     renderPage();
 
     expect(await screen.findByLabelText("Speaking progress")).toBeTruthy();
-    expect(screen.queryByLabelText("Practice score over time by level")).toBeNull();
+    expect(screen.queryByLabelText("Practice score over time")).toBeNull();
     expect(screen.queryByLabelText("Writing progress")).toBeNull();
 
     const band = screen.getByLabelText("Speaking score over time");
-    expect(band.querySelectorAll('circle[data-level="B1"]')).toHaveLength(2);
-    expect(band.querySelectorAll('polyline[data-level="B1"]')).toHaveLength(1);
+    expect(band.querySelectorAll('circle[data-series="score"]')).toHaveLength(2);
+    expect(band.querySelectorAll('polyline[data-series="score"]')).toHaveLength(1);
+    expect(band.querySelectorAll("[data-level]")).toHaveLength(0);
 
     const wpm = screen.getByLabelText("Speaking WPM over time");
     expect(wpm.querySelectorAll('circle[data-series="wpm"]')).toHaveLength(2);
     expect(wpm.querySelectorAll('polyline[data-series="wpm"]')).toHaveLength(1);
   });
 
-  it("renders multiple level paths and a legend", async () => {
+  it("plots one writing series even when level is TOEIC", async () => {
     vi.mocked(getProgress).mockResolvedValue(
       summary([
-        point({ at: "2026-08-20T10:00:00.000Z", level: "B1", band: 5.5 }),
-        point({ at: "2026-08-21T10:00:00.000Z", level: "B2", band: 6 }),
-        point({ at: "2026-08-22T10:00:00.000Z", level: "B1", band: 6.5 }),
+        point({
+          at: "2026-08-20T10:00:00.000Z",
+          level: "TOEIC" as ProgressSeriesPoint["level"],
+          band: 140,
+          estimatedScaled: 140,
+        }),
+        point({
+          at: "2026-08-21T10:00:00.000Z",
+          level: "TOEIC" as ProgressSeriesPoint["level"],
+          band: 160,
+          estimatedScaled: 160,
+        }),
+        point({
+          at: "2026-08-22T10:00:00.000Z",
+          level: "TOEIC" as ProgressSeriesPoint["level"],
+          band: 180,
+          estimatedScaled: 180,
+        }),
       ]),
     );
     renderPage();
 
-    const chart = await screen.findByLabelText("Practice score over time by level");
-    expect(chart.querySelectorAll('polyline[data-level="B1"]')).toHaveLength(1);
-    expect(chart.querySelectorAll('circle[data-level="B1"]')).toHaveLength(2);
-    expect(chart.querySelectorAll('circle[data-level="B2"]')).toHaveLength(1);
-    // Single B2 point → no polyline
-    expect(chart.querySelectorAll('polyline[data-level="B2"]')).toHaveLength(0);
-
-    const legend = screen.getByLabelText("Level legend");
-    expect(within(legend).getByText("B1")).toBeTruthy();
-    expect(within(legend).getByText("B2")).toBeTruthy();
+    const chart = await screen.findByLabelText("Practice score over time");
+    expect(chart.querySelectorAll('circle[data-series="score"]')).toHaveLength(3);
+    expect(chart.querySelectorAll('polyline[data-series="score"]')).toHaveLength(1);
+    expect(screen.queryByLabelText("Level legend")).toBeNull();
+    expect(screen.queryByText("A2")).toBeNull();
+    expect(screen.queryByText("B1")).toBeNull();
   });
 
   it("renders a single scored point as a dot without a polyline", async () => {
@@ -192,29 +202,37 @@ describe("ProgressPage", () => {
     );
     renderPage();
 
-    const chart = await screen.findByLabelText("Practice score over time by level");
-    expect(chart.querySelectorAll("circle")).toHaveLength(1);
-    expect(chart.querySelectorAll("polyline[data-level]")).toHaveLength(0);
+    const chart = await screen.findByLabelText("Practice score over time");
+    expect(chart.querySelectorAll('circle[data-series="score"]')).toHaveLength(1);
+    expect(chart.querySelectorAll("polyline")).toHaveLength(0);
   });
 
-  it("labels the weakest criterion over 30 days", async () => {
+  it("hides IELTS criteria sparklines for TOEIC practice scores", async () => {
     vi.mocked(getProgress).mockResolvedValue(
       summary([
         point({
           at: "2026-08-20T10:00:00.000Z",
-          level: "B1",
-          scores: { task: 7, coherence: 6, lexical: 4, grammar: 7 },
+          level: "TOEIC" as ProgressSeriesPoint["level"],
+          band: 160,
+          estimatedScaled: 160,
+          scores: { task: 0, coherence: 0, lexical: 0, grammar: 0 },
         }),
         point({
           at: "2026-08-25T10:00:00.000Z",
-          level: "B1",
-          scores: { task: 7, coherence: 6, lexical: 5, grammar: 8 },
+          level: "TOEIC" as ProgressSeriesPoint["level"],
+          band: 170,
+          estimatedScaled: 170,
+          scores: { task: 0, coherence: 0, lexical: 0, grammar: 0 },
         }),
       ]),
     );
     renderPage();
 
-    expect(await screen.findByText("weakest over 30 days: Lexical")).toBeTruthy();
+    expect(await screen.findByLabelText("Practice score over time")).toBeTruthy();
+    expect(screen.queryByLabelText("Criteria trends")).toBeNull();
+    expect(screen.queryByText(/weakest over 30 days/)).toBeNull();
+    expect(screen.queryByLabelText("Task sparkline")).toBeNull();
+    expect(screen.queryByLabelText("Coherence sparkline")).toBeNull();
   });
 
   it("plots style series while skipping null per100 points", async () => {
@@ -253,7 +271,7 @@ describe("ProgressPage", () => {
     vi.mocked(getProgress).mockResolvedValue(summary(ieltsReady));
     renderPage();
 
-    expect(await screen.findByLabelText("Practice score over time by level")).toBeTruthy();
+    expect(await screen.findByLabelText("Practice score over time")).toBeTruthy();
     expect(screen.queryByLabelText("Level-up suggestion")).toBeNull();
     expect(screen.queryByText(/Last 5 B1 papers all ≥ 6\.5/)).toBeNull();
   });
@@ -272,7 +290,7 @@ describe("ProgressPage", () => {
     );
     renderPage();
 
-    const chart = await screen.findByLabelText("Practice score over time by level");
+    const chart = await screen.findByLabelText("Practice score over time");
     const circle = chart.querySelector("circle");
     const y = Number(circle?.getAttribute("cy"));
     expect(y).toBeGreaterThan(10);

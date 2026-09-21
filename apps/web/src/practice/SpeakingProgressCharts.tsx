@@ -1,19 +1,8 @@
-import type { Level } from "@writing-helper/practice";
 import type { SpeakingProgressPoint } from "../api/progress";
-import { SCORE_MAX, chartDots, polyline, type BandPoint } from "./band-chart";
-import { bandSeriesByLevel } from "./progress-series";
+import { SCORE_MAX, chartDots, polyline } from "./band-chart";
 
 const WIDTH = 560;
 const HEIGHT = 140;
-
-const LEVEL_ORDER: Level[] = ["A2", "B1", "B2", "C1"];
-
-const LEVEL_COLOR: Record<Level, string> = {
-  A2: "text-level-a2",
-  B1: "text-level-b1",
-  B2: "text-level-b2",
-  C1: "text-level-c1",
-};
 
 interface SpeakingProgressChartsProps {
   series: SpeakingProgressPoint[];
@@ -21,7 +10,7 @@ interface SpeakingProgressChartsProps {
 
 /**
  * Speaking charts stay separate from writing ProgressBandChart.
- * Speaking and writing are different skills — one shared band line would mislead.
+ * One series of practice scaled scores (0–200) — not grouped by CEFR.
  */
 export function SpeakingProgressCharts({ series }: SpeakingProgressChartsProps) {
   if (series.length === 0) return null;
@@ -34,26 +23,26 @@ export function SpeakingProgressCharts({ series }: SpeakingProgressChartsProps) 
           Practice scores and pace, kept apart from writing progress.
         </p>
       </header>
-      <SpeakingBandChart series={series} />
+      <SpeakingScoreChart series={series} />
       <SpeakingWpmChart series={series} />
     </section>
   );
 }
 
-function SpeakingBandChart({ series }: { series: SpeakingProgressPoint[] }) {
-  // Reuse level grouping; chart only needs at/level/band.
-  const byLevel = bandSeriesByLevel(
-    series.map((point) => ({
-      at: point.at,
-      level: point.level,
+function SpeakingScoreChart({ series }: { series: SpeakingProgressPoint[] }) {
+  const points = series
+    .slice()
+    .sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime())
+    .map((point) => ({
+      at: new Date(point.at).getTime(),
       band: point.band,
-      scores: { task: 0, coherence: 0, lexical: 0, grammar: 0 },
-      per100: null,
-    })),
-  );
-  const levels = LEVEL_ORDER.filter((level) => byLevel.has(level));
-  const allTimes = series.map((point) => new Date(point.at).getTime());
-  const scale = { minT: Math.min(...allTimes), maxT: Math.max(...allTimes), valueMax: SCORE_MAX };
+    }));
+  const times = points.map((point) => point.at);
+  const dots = chartDots(points, WIDTH, HEIGHT, {
+    minT: Math.min(...times),
+    maxT: Math.max(...times),
+    valueMax: SCORE_MAX,
+  });
 
   return (
     <section aria-label="Speaking score over time">
@@ -64,48 +53,31 @@ function SpeakingBandChart({ series }: { series: SpeakingProgressPoint[] }) {
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="mt-4 w-full max-w-full text-ink"
         role="img"
-        aria-label={`Speaking scores across ${levels.length} ${levels.length === 1 ? "level" : "levels"}`}
+        aria-label="Speaking practice scores over time"
       >
         <AxisLines />
-        {levels.map((level) => {
-          const points = byLevel.get(level) as BandPoint[];
-          const dots = chartDots(points, WIDTH, HEIGHT, scale);
-          return (
-            <g key={level} className={LEVEL_COLOR[level]}>
-              {dots.length > 1 && (
-                <polyline
-                  data-level={level}
-                  points={polyline(dots)}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                />
-              )}
-              {dots.map((dot, index) => (
-                <circle
-                  key={`${level}-${index}`}
-                  data-level={level}
-                  cx={dot.x}
-                  cy={dot.y}
-                  r="2.4"
-                  fill="currentColor"
-                />
-              ))}
-            </g>
-          );
-        })}
+        <g className="text-vermilion">
+          {dots.length > 1 && (
+            <polyline
+              data-series="score"
+              points={polyline(dots)}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.2"
+            />
+          )}
+          {dots.map((dot, index) => (
+            <circle
+              key={`score-${index}`}
+              data-series="score"
+              cx={dot.x}
+              cy={dot.y}
+              r="2.4"
+              fill="currentColor"
+            />
+          ))}
+        </g>
       </svg>
-      <ul className="mt-3 flex flex-wrap gap-4" aria-label="Speaking level legend">
-        {levels.map((level) => (
-          <li
-            key={level}
-            className={`flex items-center gap-1.5 font-mono text-[0.65rem] uppercase tracking-[0.15em] ${LEVEL_COLOR[level]}`}
-          >
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-            {level}
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }

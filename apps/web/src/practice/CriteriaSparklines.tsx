@@ -17,7 +17,23 @@ interface CriteriaSparklinesProps {
   now?: Date;
 }
 
+function isToeicSeries(series: ProgressSeriesPoint[]): boolean {
+  return series.some((point) => point.estimatedScaled != null);
+}
+
+function hasIeltsCriteria(series: ProgressSeriesPoint[]): boolean {
+  return series.some(
+    (point) =>
+      point.scores.task > 0 ||
+      point.scores.coherence > 0 ||
+      point.scores.lexical > 0 ||
+      point.scores.grammar > 0,
+  );
+}
+
 export function CriteriaSparklines({ series, now }: CriteriaSparklinesProps) {
+  if (isToeicSeries(series) || !hasIeltsCriteria(series)) return null;
+
   const summary = criteriaAverage30d(series, now);
   const weakestLabel =
     CRITERIA.find((item) => item.key === summary?.weakest)?.label ?? summary?.weakest;

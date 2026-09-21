@@ -256,6 +256,42 @@ describe("PracticeAttemptPage ExamRoom revision", () => {
     expect(screen.getByText(gradedAttempt.feedback!.nextFocus)).toBeTruthy();
   });
 
+  it("lists TOEIC previous feedback keys on a revision", async () => {
+    const toeicParent: PracticeAttemptDetail = {
+      ...gradedAttempt,
+      scale: "toeic",
+      band: null,
+      rawRating: 3,
+      estimatedScaled: 150,
+      feedback: {
+        overview: "A usable reply.",
+        nextFocus: "Answer every request.",
+        grammar: "Watch verb forms.",
+        relevance: "Stay on the requests.",
+        sentenceVariety: "Mix long and short sentences.",
+        vocabulary: "Use more precise workplace words.",
+        organization: "Group answers by request.",
+        opinionSupport: "Give one concrete example.",
+      },
+    };
+    vi.mocked(getAttempt).mockImplementation(async (id: string) => {
+      if (id === "rev-1") return { ...revisionAttempt, scale: "toeic" };
+      if (id === "a1") return toeicParent;
+      throw new Error(`unexpected id ${id}`);
+    });
+
+    renderPage("rev-1");
+
+    expect(await screen.findByText("Previous feedback")).toBeTruthy();
+    expect(screen.getByText("Watch verb forms.")).toBeTruthy();
+    expect(screen.getByText("Stay on the requests.")).toBeTruthy();
+    expect(screen.getByText("Mix long and short sentences.")).toBeTruthy();
+    expect(screen.getByText("Use more precise workplace words.")).toBeTruthy();
+    expect(screen.getByText("Group answers by request.")).toBeTruthy();
+    expect(screen.getByText("Give one concrete example.")).toBeTruthy();
+    expect(screen.getByText("A usable reply.")).toBeTruthy();
+  });
+
   it("shows Revision 2/2 on the second revision round", async () => {
     const round2 = { ...revisionAttempt, id: "rev-2", revisionRound: 2, parentAttemptId: "rev-1" };
     vi.mocked(getAttempt).mockImplementation(async (id: string) => {
@@ -864,6 +900,7 @@ describe("PracticeAttemptPage TOEIC exam room", () => {
 
     const clock = await screen.findByLabelText("Time remaining");
     expect(clock.textContent).toMatch(/^1:(29|30)$/);
+    expect(document.querySelector(".editor-chrome")?.textContent).toMatch(/Picture sentence/);
   });
 
   it("opens TOEIC email structure hints, not IELTS Task 2 paragraphing", async () => {

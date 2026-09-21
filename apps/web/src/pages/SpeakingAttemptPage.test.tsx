@@ -576,7 +576,7 @@ describe("SpeakingAttemptPage TOEIC exam room", () => {
         "Do you think companies should allow employees to work from home two days a week?",
       ),
     ).toBeTruthy();
-    expect(screen.getByText("Express an opinion")).toBeTruthy();
+    expect(screen.getByText("Q11 · Express an opinion")).toBeTruthy();
     expect(screen.queryByText(/Part 2/)).toBeNull();
     expect(recorderOpts.maxMs).toBe(60_000);
   });
