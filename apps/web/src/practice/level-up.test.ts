@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Level } from "@writing-helper/practice";
-import { BAND_THRESHOLD, CRITERION_FLOOR, WINDOW_SIZE, levelUpVerdict } from "./level-up";
+import { WINDOW_SIZE, levelUpVerdict } from "./level-up";
 
 type Scores = { task: number; coherence: number; lexical: number; grammar: number };
 
@@ -8,12 +8,16 @@ function point(overrides: {
   at: string;
   level: Level;
   band?: number;
+  estimatedScaled?: number | null;
+  cefrEstimate?: string | null;
   scores?: Partial<Scores>;
 }) {
   return {
     at: overrides.at,
     level: overrides.level,
     band: overrides.band ?? 7,
+    estimatedScaled: overrides.estimatedScaled,
+    cefrEstimate: overrides.cefrEstimate,
     scores: {
       task: 7,
       coherence: 7,
@@ -28,25 +32,19 @@ function point(overrides: {
 const now = new Date("2026-08-27T12:00:00.000Z");
 
 describe("level-up constants", () => {
-  it("exposes the design thresholds", () => {
+  it("keeps a five-paper window and does not export an IELTS 6.5 threshold", async () => {
     expect(WINDOW_SIZE).toBe(5);
-    expect(BAND_THRESHOLD).toBe(6.5);
-    expect(CRITERION_FLOOR).toBe(6.0);
+    const mod = await import("./level-up");
+    expect("BAND_THRESHOLD" in mod).toBe(false);
   });
 });
 
 describe("levelUpVerdict", () => {
-  it("returns null when fewer than 5 attempts at the modal level", () => {
-    const series = [
-      point({ at: "2026-08-20T10:00:00.000Z", level: "B1" }),
-      point({ at: "2026-08-21T10:00:00.000Z", level: "B1" }),
-      point({ at: "2026-08-22T10:00:00.000Z", level: "B1" }),
-      point({ at: "2026-08-23T10:00:00.000Z", level: "B1" }),
-    ];
-    expect(levelUpVerdict(series, now)).toBeNull();
+  it("returns null for an empty series", () => {
+    expect(levelUpVerdict([], now)).toBeNull();
   });
 
-  it("suggests the next level when the last 5 at the modal level clear both thresholds", () => {
+  it("does not promote from IELTS band 6.5", () => {
     const series = [
       point({ at: "2026-08-20T10:00:00.000Z", level: "B1", band: 6.5 }),
       point({ at: "2026-08-21T10:00:00.000Z", level: "B1", band: 7 }),
@@ -54,125 +52,112 @@ describe("levelUpVerdict", () => {
       point({ at: "2026-08-23T10:00:00.000Z", level: "B1", band: 7 }),
       point({ at: "2026-08-24T10:00:00.000Z", level: "B1", band: 6.5 }),
     ];
-
-    expect(levelUpVerdict(series, now)).toEqual({
-      suggest: "B2",
-      reason: "Last 5 B1 papers all ≥ 6.5",
-    });
-  });
-
-  it("returns null when a band sits below the threshold", () => {
-    const series = [
-      point({ at: "2026-08-20T10:00:00.000Z", level: "B1", band: 6.5 }),
-      point({ at: "2026-08-21T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-22T10:00:00.000Z", level: "B1", band: 6.0 }),
-      point({ at: "2026-08-23T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-24T10:00:00.000Z", level: "B1", band: 6.5 }),
-    ];
     expect(levelUpVerdict(series, now)).toBeNull();
   });
 
-  it("returns null when any criterion sits below the floor", () => {
-    const series = [
-      point({ at: "2026-08-20T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-21T10:00:00.000Z", level: "B1", band: 7 }),
-      point({
-        at: "2026-08-22T10:00:00.000Z",
-        level: "B1",
-        band: 7,
-        scores: { grammar: 5.5 },
-      }),
-      point({ at: "2026-08-23T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-24T10:00:00.000Z", level: "B1", band: 7 }),
-    ];
-    expect(levelUpVerdict(series, now)).toBeNull();
-  });
-
-  it("treats criterion exactly at the floor as passing", () => {
+  it("returns null when fewer than 5 TOEIC papers sit at the modal CEFR", () => {
     const series = [
       point({
         at: "2026-08-20T10:00:00.000Z",
-        level: "A2",
-        band: 6.5,
-        scores: { task: 6.0, coherence: 6.0, lexical: 6.0, grammar: 6.0 },
+        level: "B1",
+        estimatedScaled: 160,
+        cefrEstimate: "B2",
       }),
-      point({ at: "2026-08-21T10:00:00.000Z", level: "A2", band: 6.5 }),
-      point({ at: "2026-08-22T10:00:00.000Z", level: "A2", band: 6.5 }),
-      point({ at: "2026-08-23T10:00:00.000Z", level: "A2", band: 6.5 }),
-      point({ at: "2026-08-24T10:00:00.000Z", level: "A2", band: 6.5 }),
-    ];
-
-    expect(levelUpVerdict(series, now)).toEqual({
-      suggest: "B1",
-      reason: "Last 5 A2 papers all ≥ 6.5",
-    });
-  });
-
-  it("returns null when the modal level is already C1", () => {
-    const series = [
-      point({ at: "2026-08-20T10:00:00.000Z", level: "C1", band: 7 }),
-      point({ at: "2026-08-21T10:00:00.000Z", level: "C1", band: 7 }),
-      point({ at: "2026-08-22T10:00:00.000Z", level: "C1", band: 7 }),
-      point({ at: "2026-08-23T10:00:00.000Z", level: "C1", band: 7 }),
-      point({ at: "2026-08-24T10:00:00.000Z", level: "C1", band: 7 }),
+      point({
+        at: "2026-08-21T10:00:00.000Z",
+        level: "B1",
+        estimatedScaled: 160,
+        cefrEstimate: "B2",
+      }),
+      point({
+        at: "2026-08-22T10:00:00.000Z",
+        level: "B1",
+        estimatedScaled: 150,
+        cefrEstimate: "B2",
+      }),
+      point({
+        at: "2026-08-23T10:00:00.000Z",
+        level: "B1",
+        estimatedScaled: 160,
+        cefrEstimate: "B2",
+      }),
     ];
     expect(levelUpVerdict(series, now)).toBeNull();
   });
 
-  it("uses the level practiced most in the last 30 days, not older volume", () => {
+  it("suggests C1 when the last 5 writing papers are all at B2", () => {
     const series = [
-      // Older A2 volume outside / at the edge of influence
-      point({ at: "2026-07-01T10:00:00.000Z", level: "A2", band: 7 }),
-      point({ at: "2026-07-02T10:00:00.000Z", level: "A2", band: 7 }),
-      point({ at: "2026-07-03T10:00:00.000Z", level: "A2", band: 7 }),
-      point({ at: "2026-07-04T10:00:00.000Z", level: "A2", band: 7 }),
-      point({ at: "2026-07-05T10:00:00.000Z", level: "A2", band: 7 }),
-      point({ at: "2026-07-06T10:00:00.000Z", level: "A2", band: 7 }),
-      // Recent B1 modal window
-      point({ at: "2026-08-20T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-21T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-22T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-23T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-24T10:00:00.000Z", level: "B1", band: 7 }),
-    ];
-
-    expect(levelUpVerdict(series, now)).toEqual({
-      suggest: "B2",
-      reason: "Last 5 B1 papers all ≥ 6.5",
-    });
-  });
-
-  it("ignores attempts older than 30 days when choosing the modal level", () => {
-    const series = [
-      point({ at: "2026-07-20T10:00:00.000Z", level: "B2", band: 7 }),
-      point({ at: "2026-07-21T10:00:00.000Z", level: "B2", band: 7 }),
-      point({ at: "2026-07-22T10:00:00.000Z", level: "B2", band: 7 }),
-      point({ at: "2026-08-20T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-21T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-22T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-23T10:00:00.000Z", level: "B1", band: 7 }),
-      point({ at: "2026-08-24T10:00:00.000Z", level: "B1", band: 7 }),
-    ];
-
-    expect(levelUpVerdict(series, now)?.suggest).toBe("B2");
-  });
-
-  it("maps B2 to C1", () => {
-    const series = [
-      point({ at: "2026-08-20T10:00:00.000Z", level: "B2", band: 7 }),
-      point({ at: "2026-08-21T10:00:00.000Z", level: "B2", band: 7 }),
-      point({ at: "2026-08-22T10:00:00.000Z", level: "B2", band: 7 }),
-      point({ at: "2026-08-23T10:00:00.000Z", level: "B2", band: 7 }),
-      point({ at: "2026-08-24T10:00:00.000Z", level: "B2", band: 7 }),
+      point({
+        at: "2026-08-20T10:00:00.000Z",
+        level: "B1",
+        estimatedScaled: 160,
+        cefrEstimate: "B2",
+      }),
+      point({
+        at: "2026-08-21T10:00:00.000Z",
+        level: "B1",
+        estimatedScaled: 150,
+        cefrEstimate: "B2",
+      }),
+      point({
+        at: "2026-08-22T10:00:00.000Z",
+        level: "B1",
+        estimatedScaled: 170,
+        cefrEstimate: "B2",
+      }),
+      point({
+        at: "2026-08-23T10:00:00.000Z",
+        level: "B1",
+        estimatedScaled: 160,
+        cefrEstimate: "B2",
+      }),
+      point({
+        at: "2026-08-24T10:00:00.000Z",
+        level: "B1",
+        estimatedScaled: 150,
+        cefrEstimate: "B2",
+      }),
     ];
 
     expect(levelUpVerdict(series, now)).toEqual({
       suggest: "C1",
-      reason: "Last 5 B2 papers all ≥ 6.5",
+      reason: "Last 5 papers at B2 — writing C1 starts at 180",
     });
   });
 
-  it("returns null for an empty series", () => {
-    expect(levelUpVerdict([], now)).toBeNull();
+  it("returns null when the modal CEFR is already C1", () => {
+    const series = [
+      point({
+        at: "2026-08-20T10:00:00.000Z",
+        level: "C1",
+        estimatedScaled: 180,
+        cefrEstimate: "C1",
+      }),
+      point({
+        at: "2026-08-21T10:00:00.000Z",
+        level: "C1",
+        estimatedScaled: 200,
+        cefrEstimate: "C1",
+      }),
+      point({
+        at: "2026-08-22T10:00:00.000Z",
+        level: "C1",
+        estimatedScaled: 180,
+        cefrEstimate: "C1",
+      }),
+      point({
+        at: "2026-08-23T10:00:00.000Z",
+        level: "C1",
+        estimatedScaled: 190,
+        cefrEstimate: "C1",
+      }),
+      point({
+        at: "2026-08-24T10:00:00.000Z",
+        level: "C1",
+        estimatedScaled: 180,
+        cefrEstimate: "C1",
+      }),
+    ];
+    expect(levelUpVerdict(series, now)).toBeNull();
   });
 });

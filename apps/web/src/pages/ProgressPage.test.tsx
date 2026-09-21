@@ -242,30 +242,19 @@ describe("ProgressPage", () => {
     expect(chart.querySelectorAll('polyline[data-series="adverbs"]')).toHaveLength(1);
   });
 
-  it("shows the level-up stamp only when the verdict is ready", async () => {
-    const ready: ProgressSeriesPoint[] = [
+  it("does not promote from IELTS band 6.5", async () => {
+    const ieltsReady: ProgressSeriesPoint[] = [
       point({ at: "2026-08-20T10:00:00.000Z", level: "B1", band: 6.5, scores: { task: 7, coherence: 7, lexical: 7, grammar: 7 } }),
       point({ at: "2026-08-21T10:00:00.000Z", level: "B1", band: 7, scores: { task: 7, coherence: 7, lexical: 7, grammar: 7 } }),
       point({ at: "2026-08-22T10:00:00.000Z", level: "B1", band: 6.5, scores: { task: 7, coherence: 7, lexical: 7, grammar: 7 } }),
       point({ at: "2026-08-23T10:00:00.000Z", level: "B1", band: 7, scores: { task: 7, coherence: 7, lexical: 7, grammar: 7 } }),
       point({ at: "2026-08-24T10:00:00.000Z", level: "B1", band: 6.5, scores: { task: 7, coherence: 7, lexical: 7, grammar: 7 } }),
     ];
-    vi.mocked(getProgress).mockResolvedValue(summary(ready));
-    renderPage();
-
-    expect(await screen.findByLabelText("Level-up suggestion")).toBeTruthy();
-    expect(screen.getByText("B2")).toBeTruthy();
-    expect(screen.getByText(/Last 5 B1 papers all ≥ 6\.5/)).toBeTruthy();
-
-    cleanup();
-
-    vi.mocked(getProgress).mockResolvedValue(
-      summary([point({ at: "2026-08-20T10:00:00.000Z", level: "B1", band: 6 })]),
-    );
+    vi.mocked(getProgress).mockResolvedValue(summary(ieltsReady));
     renderPage();
 
     expect(await screen.findByLabelText("Band over time by level")).toBeTruthy();
     expect(screen.queryByLabelText("Level-up suggestion")).toBeNull();
-    expect(screen.queryByText(/chưa đủ|not ready/i)).toBeNull();
+    expect(screen.queryByText(/Last 5 B1 papers all ≥ 6\.5/)).toBeNull();
   });
 });

@@ -20,6 +20,9 @@ const PAD_X = 8;
 const PAD_Y = 10;
 const BAND_MAX = 9;
 
+/** TOEIC practice scaled domain for list charts. */
+export const SCORE_MAX = 200;
+
 /** Map scored attempts onto an SVG viewBox. One point sits at the right edge. */
 export function chartDots(
   points: BandPoint[],
@@ -61,25 +64,30 @@ export function polyline(dots: ChartDot[]): string {
 export type ChartRoot = {
   band: number | null;
   submittedAt: string | null;
-  /** Present on list roots; deliberately ignored — chart uses first-draft `band`. */
+  scale?: string | null;
+  estimatedScaled?: number | null;
+  /** Present on list roots; deliberately ignored — chart uses first-draft score. */
   latestBand?: number | null;
 };
 
 /**
  * BandChart input from practice list roots.
- * Uses first-draft `attempt.band`, never `latestBand` from the revision chain.
+ * Uses first-draft `estimatedScaled` on TOEIC rows only — never IELTS `band`,
+ * never `latestBand` from the revision chain.
  * Expects newest-first roots (API order); returns chronological points.
  */
 export function firstDraftChartPoints(roots: ChartRoot[]): BandPoint[] {
   return roots
     .filter(
-      (item): item is ChartRoot & { band: number; submittedAt: string } =>
-        item.submittedAt != null && item.band !== null,
+      (item): item is ChartRoot & { estimatedScaled: number; submittedAt: string } =>
+        item.submittedAt != null &&
+        item.scale === "toeic" &&
+        item.estimatedScaled != null,
     )
     .slice()
     .reverse()
     .map((item) => ({
       at: new Date(item.submittedAt).getTime(),
-      band: item.band,
+      band: item.estimatedScaled,
     }));
 }

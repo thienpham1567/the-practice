@@ -60,6 +60,10 @@ const LIST_FIELDS = {
   id: true,
   level: true,
   taskType: true,
+  scale: true,
+  rawRating: true,
+  estimatedScaled: true,
+  cefrEstimate: true,
   band: true,
   wordCount: true,
   hintsOpened: true,
@@ -70,6 +74,7 @@ const LIST_FIELDS = {
 
 const LIST_REVISION_FIELDS = {
   band: true,
+  estimatedScaled: true,
   revisionRound: true,
 } satisfies Prisma.PracticeAttemptSelect;
 
@@ -86,16 +91,25 @@ const LIST_CHAIN_SELECT = {
 
 type ListRevisionNode = {
   band: number | null;
+  estimatedScaled: number | null;
   revisionRound: number;
   revisions?: ListRevisionNode[];
 };
 
-/** Flatten root→rev1→rev2 into revisionCount + furthest graded band. */
+function chainScore(rev: { estimatedScaled: number | null; band: number | null }): number | null {
+  return rev.estimatedScaled ?? rev.band;
+}
+
+/** Flatten root→rev1→rev2 into revisionCount + furthest graded score. */
 function summarizeRevisionChain(revisions: ListRevisionNode[]): {
   revisionCount: number;
   latestBand: number | null;
 } {
-  const flat: Array<{ band: number | null; revisionRound: number }> = [];
+  const flat: Array<{
+    band: number | null;
+    estimatedScaled: number | null;
+    revisionRound: number;
+  }> = [];
   for (const rev of revisions) {
     flat.push(rev);
     if (rev.revisions) flat.push(...rev.revisions);
@@ -106,8 +120,9 @@ function summarizeRevisionChain(revisions: ListRevisionNode[]): {
   let latestBand: number | null = null;
   let latestRound = -1;
   for (const rev of flat) {
-    if (rev.band != null && rev.revisionRound > latestRound) {
-      latestBand = rev.band;
+    const score = chainScore(rev);
+    if (score != null && rev.revisionRound > latestRound) {
+      latestBand = score;
       latestRound = rev.revisionRound;
     }
   }

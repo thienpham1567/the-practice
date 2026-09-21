@@ -1,4 +1,4 @@
-import { chartDots, polyline, type BandPoint } from "./band-chart";
+import { SCORE_MAX, chartDots, polyline, type BandPoint } from "./band-chart";
 
 const WIDTH = 560;
 const HEIGHT = 140;
@@ -8,12 +8,12 @@ interface BandChartProps {
 }
 
 export function BandChart({ points }: BandChartProps) {
-  const dots = chartDots(points, WIDTH, HEIGHT);
+  const dots = chartDots(points, WIDTH, HEIGHT, { valueMax: SCORE_MAX });
 
   return (
-    <section aria-label="Band scores over time">
+    <section aria-label="Practice scores over time">
       <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
-        Band over time
+        Practice score over time
       </h2>
 
       {dots.length === 0 ? (

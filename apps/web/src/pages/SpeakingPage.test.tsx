@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { SpeakingAttemptSummary } from "../api/speaking";
+import type { SpeakingAttemptDetail, SpeakingAttemptSummary } from "../api/speaking";
 import { SpeakingPage } from "./SpeakingPage";
 
 vi.mock("../api/speaking", async (importOriginal) => {
@@ -19,9 +19,13 @@ vi.mock("../api/auth-store", () => ({
   useAuthStore: () => ({ user: { id: "u1", email: "a@b.c" }, clearSession: vi.fn() }),
 }));
 
-import { deleteSpeakingAttempt, listSpeakingAttempts } from "../api/speaking";
+import {
+  createSpeakingAttempt,
+  deleteSpeakingAttempt,
+  listSpeakingAttempts,
+} from "../api/speaking";
 
-const rootNoRevisions: SpeakingAttemptSummary = {
+const ieltsTalk: SpeakingAttemptSummary = {
   id: "s1",
   level: "B1",
   scale: "ielts",
@@ -36,20 +40,27 @@ const rootNoRevisions: SpeakingAttemptSummary = {
   latestBand: null,
 };
 
-const rootWithRevisions: SpeakingAttemptSummary = {
-  ...rootNoRevisions,
+const ieltsWithRevisions: SpeakingAttemptSummary = {
+  ...ieltsTalk,
   id: "s2",
   revisionCount: 2,
   latestBand: 6.5,
 };
 
-// level differs from the page's level-picker default ("B1", see SpeakingPage.tsx)
-// so this fixture can't pass by accident if the level came from the picker
-// instead of the attempt.
-const rootNoRevisionsC1: SpeakingAttemptSummary = {
-  ...rootNoRevisions,
-  id: "s1-c1",
-  level: "C1",
+const toeicTalk: SpeakingAttemptSummary = {
+  id: "s-toeic",
+  level: "TOEIC",
+  taskType: "express-opinion",
+  scale: "toeic",
+  rawRating: 4,
+  estimatedScaled: 160,
+  cefrEstimate: "B2",
+  band: null,
+  durationMs: 60_000,
+  startedAt: "2026-08-26T10:00:00.000Z",
+  submittedAt: "2026-08-26T10:05:00.000Z",
+  revisionCount: 0,
+  latestBand: null,
 };
 
 function renderPage() {
@@ -68,6 +79,7 @@ function renderPage() {
 describe("SpeakingPage", () => {
   beforeEach(() => {
     vi.mocked(listSpeakingAttempts).mockReset();
+    vi.mocked(createSpeakingAttempt).mockReset();
     vi.mocked(deleteSpeakingAttempt).mockReset();
   });
 
@@ -81,25 +93,55 @@ describe("SpeakingPage", () => {
 
     expect(await screen.findByText(/Nothing here yet/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Start speaking/i })).toBeTruthy();
+    expect(screen.queryByText(/Pick a level/i)).toBeNull();
   });
 
-  it("lists past attempts with band stamps", async () => {
-    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisions]);
+  it("offers speaking task types instead of a CEFR level picker", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([]);
     renderPage();
 
-    expect(await screen.findByText(/Band 5\.5/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: /B1/i })).toBeTruthy();
+    expect(await screen.findByRole("group", { name: "Task" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Express an opinion" })).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Level" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "A2" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "C1" })).toBeNull();
   });
 
-  it("shows which level the talk's band was earned on", async () => {
-    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisionsC1]);
+  it("starts an express-opinion talk with the selected task type", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([]);
+    vi.mocked(createSpeakingAttempt).mockResolvedValue({
+      id: "new-s",
+    } as SpeakingAttemptDetail);
     renderPage();
 
-    expect(await screen.findByText("C1 task")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Express an opinion" }));
+    fireEvent.click(screen.getByRole("button", { name: /Start speaking/i }));
+
+    await waitFor(() =>
+      expect(createSpeakingAttempt).toHaveBeenCalledWith({ taskType: "express-opinion" }),
+    );
+  });
+
+  it("marks IELTS talks as Legacy and keeps the band stamp", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([ieltsTalk]);
+    renderPage();
+
+    expect(await screen.findByText("Legacy")).toBeTruthy();
+    expect(screen.getByText(/Band 5\.5/)).toBeTruthy();
+  });
+
+  it("keeps IELTS rows off the TOEIC practice-score chart", async () => {
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([toeicTalk, ieltsTalk]);
+    renderPage();
+
+    expect(await screen.findByText("160")).toBeTruthy();
+    expect(screen.getByText("Legacy")).toBeTruthy();
+    const chart = screen.getByRole("img", { name: /scored attempt/i });
+    expect(chart.querySelectorAll("circle")).toHaveLength(1);
   });
 
   it("shows a chain summary when revisions exist", async () => {
-    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootWithRevisions]);
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([ieltsWithRevisions]);
     renderPage();
 
     expect(await screen.findByText("5.5 → 6.5 · 2 revisions")).toBeTruthy();
@@ -131,7 +173,7 @@ describe("SpeakingPage", () => {
   });
 
   it("asks before deleting a talk and cancels without calling the API", async () => {
-    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisions]);
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([ieltsTalk]);
     renderPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Delete this talk" }));
@@ -144,7 +186,7 @@ describe("SpeakingPage", () => {
   });
 
   it("deletes a talk after confirming", async () => {
-    vi.mocked(listSpeakingAttempts).mockResolvedValue([rootNoRevisions]);
+    vi.mocked(listSpeakingAttempts).mockResolvedValue([ieltsTalk]);
     vi.mocked(deleteSpeakingAttempt).mockResolvedValue(undefined);
     renderPage();
 

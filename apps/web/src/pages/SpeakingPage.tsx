@@ -1,8 +1,16 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { computeStreak, type Level } from "@writing-helper/practice";
+import {
+  computeStreak,
+  SPEAKING_TASKS,
+  type SpeakingTaskType,
+} from "@writing-helper/practice";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createSpeakingAttempt, listSpeakingAttempts } from "../api/speaking";
+import {
+  createSpeakingAttempt,
+  listSpeakingAttempts,
+  type SpeakingAttemptSummary,
+} from "../api/speaking";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
 import { FolioChoice } from "../folio/FolioChoice";
 import { FolioEmpty } from "../folio/FolioEmpty";
@@ -14,14 +22,24 @@ import { BandChart } from "../practice/BandChart";
 import { BandStamp } from "../practice/BandStamp";
 import { firstDraftChartPoints } from "../practice/band-chart";
 import { formatChainSummary } from "../practice/revise-availability";
+import { ScoreStamp } from "../practice/ScoreStamp";
 import { StreakStrip } from "../practice/StreakStrip";
 
-const LEVELS: Level[] = ["A2", "B1", "B2", "C1"];
-const LEVEL_OPTIONS = LEVELS.map((id) => ({ id, label: id }));
+const TASK_OPTIONS = SPEAKING_TASKS.map((task) => ({ id: task.type, label: task.label }));
+const DUAL_SPEAK: SpeakingTaskType[] = ["respond-question", "respond-with-info"];
+const SPEAK_OPTIONS = [
+  { id: "15" as const, label: "15s" },
+  { id: "30" as const, label: "30s" },
+];
+
+function defaultSpeakSeconds(type: SpeakingTaskType): 15 | 30 {
+  return type === "respond-with-info" ? 30 : 15;
+}
 
 export function SpeakingPage() {
   const navigate = useNavigate();
-  const [level, setLevel] = useState<Level>("B1");
+  const [taskType, setTaskType] = useState<SpeakingTaskType>(SPEAKING_TASKS[0]!.type);
+  const [speakSeconds, setSpeakSeconds] = useState<15 | 30>(defaultSpeakSeconds(taskType));
 
   const attempts = useQuery({
     queryKey: ["speaking-attempts"],
@@ -29,7 +47,10 @@ export function SpeakingPage() {
   });
 
   const start = useMutation({
-    mutationFn: () => createSpeakingAttempt({ taskType: "express-opinion" }),
+    mutationFn: () =>
+      DUAL_SPEAK.includes(taskType)
+        ? createSpeakingAttempt({ taskType, speakSeconds })
+        : createSpeakingAttempt({ taskType }),
     onSuccess: (attempt) => void navigate(`/speaking/${attempt.id}`),
   });
 
@@ -38,6 +59,12 @@ export function SpeakingPage() {
   const streak = computeStreak(submittedDates);
   const chartPoints = firstDraftChartPoints(attempts.data ?? []);
   const showLedger = submitted.length > 0;
+  const showSpeakChoice = DUAL_SPEAK.includes(taskType);
+
+  const pickTask = (next: SpeakingTaskType) => {
+    setTaskType(next);
+    if (DUAL_SPEAK.includes(next)) setSpeakSeconds(defaultSpeakSeconds(next));
+  };
 
   return (
     <main className="speaking-desk relative flex min-h-dvh min-w-0 flex-col overflow-x-hidden">
@@ -53,21 +80,31 @@ export function SpeakingPage() {
         <div className="speaking-sheet relative">
           <h1 className="animate-fade-up font-display text-3xl font-semibold">Speaking</h1>
           <p className="animate-fade-up mt-2 max-w-xl text-ink-soft">
-            IELTS Part 2 long turn. One cue card, two minutes to talk.
+            Sit a timed TOEIC speaking task. The examiner marks it when you submit.
           </p>
 
           <section className="animate-fade-up mt-10" style={{ animationDelay: "40ms" }}>
             <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
-              Level
+              Task
             </h2>
             <div className="mt-3">
               <FolioChoice
-                label="Level"
-                value={level}
-                options={LEVEL_OPTIONS}
-                onChange={setLevel}
+                label="Task"
+                value={taskType}
+                options={TASK_OPTIONS}
+                onChange={pickTask}
               />
             </div>
+            {showSpeakChoice && (
+              <div className="mt-3">
+                <FolioChoice
+                  label="Speak time"
+                  value={String(speakSeconds) as "15" | "30"}
+                  options={SPEAK_OPTIONS}
+                  onChange={(id) => setSpeakSeconds(Number(id) as 15 | 30)}
+                />
+              </div>
+            )}
             <button
               type="button"
               onClick={() => start.mutate()}
@@ -84,7 +121,7 @@ export function SpeakingPage() {
           {showLedger && (
             <div className="animate-fade-up mt-12 space-y-10" style={{ animationDelay: "80ms" }}>
               <StreakStrip submittedDates={submittedDates} current={streak.current} />
-              <BandChart points={chartPoints} />
+              {chartPoints.length > 0 && <BandChart points={chartPoints} />}
             </div>
           )}
 
@@ -99,11 +136,15 @@ export function SpeakingPage() {
               </p>
             )}
             {attempts.data?.length === 0 && (
-              <FolioEmpty message="Nothing here yet. Pick a level and start." />
+              <FolioEmpty message="Nothing here yet. Pick a task and start." />
             )}
             <ul className="mt-2 divide-y divide-rule">
               {attempts.data?.map((attempt, index) => {
+                const spec = SPEAKING_TASKS.find((task) => task.type === attempt.taskType);
                 const when = new Date(attempt.submittedAt ?? attempt.startedAt);
+                const title =
+                  spec?.label ??
+                  (attempt.scale === "ielts" ? `Talk · ${attempt.level}` : (attempt.taskType ?? "Talk"));
                 return (
                   <li
                     key={attempt.id}
@@ -117,7 +158,7 @@ export function SpeakingPage() {
                       >
                         <span className="min-w-0 flex-1">
                           <span className="font-display text-lg transition-colors group-hover:text-vermilion">
-                            Part 2 · {attempt.level}
+                            {title}
                           </span>
                           <span className="ml-3 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
                             {when.toLocaleDateString(undefined, {
@@ -132,12 +173,7 @@ export function SpeakingPage() {
                             </span>
                           )}
                         </span>
-                        <TalkBandMeta
-                          band={attempt.band}
-                          level={attempt.level}
-                          latestBand={attempt.latestBand}
-                          revisionCount={attempt.revisionCount}
-                        />
+                        <TalkScoreMeta attempt={attempt} maxRaw={spec?.maxRaw ?? null} />
                       </Link>
                       <AttemptDeleteControl kind="talk" attemptId={attempt.id} />
                     </div>
@@ -152,25 +188,55 @@ export function SpeakingPage() {
   );
 }
 
-function TalkBandMeta({
-  band,
-  level,
-  latestBand,
-  revisionCount,
+function TalkScoreMeta({
+  attempt,
+  maxRaw,
 }: {
-  band: number | null;
-  level: string;
-  latestBand: number | null;
-  revisionCount: number;
+  attempt: SpeakingAttemptSummary;
+  maxRaw: number | null;
 }) {
-  const summary = formatChainSummary(band, latestBand, revisionCount);
+  const isIelts = attempt.scale === "ielts";
+  const rootScore = isIelts ? attempt.band : attempt.estimatedScaled;
+  const summary = formatChainSummary(rootScore, attempt.latestBand, attempt.revisionCount);
   if (summary) {
     return (
-      <span className="shrink-0 font-mono text-[0.75rem] tracking-wide text-ink-soft">
-        {summary}
+      <span className="flex shrink-0 items-center gap-2">
+        {isIelts && <LegacyBadge />}
+        <span className="font-mono text-[0.75rem] tracking-wide text-ink-soft">{summary}</span>
       </span>
     );
   }
-  if (band !== null) return <BandStamp band={band} level={level} size="sm" />;
+  if (isIelts && attempt.band !== null) {
+    return (
+      <span className="flex shrink-0 items-center gap-2">
+        <LegacyBadge />
+        <BandStamp band={attempt.band} level={attempt.level} size="sm" />
+      </span>
+    );
+  }
+  if (
+    !isIelts &&
+    attempt.estimatedScaled != null &&
+    attempt.rawRating != null &&
+    maxRaw != null
+  ) {
+    return (
+      <ScoreStamp
+        estimatedScaled={attempt.estimatedScaled}
+        rawRating={attempt.rawRating}
+        maxRaw={maxRaw}
+        cefrEstimate={attempt.cefrEstimate}
+        size="sm"
+      />
+    );
+  }
   return null;
+}
+
+function LegacyBadge() {
+  return (
+    <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
+      Legacy
+    </span>
+  );
 }

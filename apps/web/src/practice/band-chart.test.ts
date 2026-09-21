@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chartDots, firstDraftChartPoints, polyline } from "./band-chart";
+import { SCORE_MAX, chartDots, firstDraftChartPoints, polyline } from "./band-chart";
 
 describe("chartDots", () => {
   it("returns nothing when there are no scores", () => {
@@ -35,6 +35,16 @@ describe("chartDots", () => {
     expect(dots).toHaveLength(1);
     expect(dots[0]!.x).toBe(100);
   });
+
+  it("maps TOEIC scaled scores onto a 0–200 domain", () => {
+    expect(SCORE_MAX).toBe(200);
+    const top = chartDots([{ at: 1, band: 200 }], 200, 80, { valueMax: SCORE_MAX });
+    const mid = chartDots([{ at: 1, band: 100 }], 200, 80, { valueMax: SCORE_MAX });
+    const bottom = chartDots([{ at: 1, band: 0 }], 200, 80, { valueMax: SCORE_MAX });
+    expect(top[0]!.y).toBe(10);
+    expect(mid[0]!.y).toBe(40);
+    expect(bottom[0]!.y).toBe(70);
+  });
 });
 
 describe("polyline", () => {
@@ -44,31 +54,54 @@ describe("polyline", () => {
 });
 
 describe("firstDraftChartPoints", () => {
-  it("uses root first-draft band, not latestBand from the revision chain", () => {
+  it("plots estimatedScaled for toeic roots and ignores ielts rows", () => {
     const roots = [
       {
-        band: 5.5,
-        latestBand: 6.5,
+        band: null,
+        estimatedScaled: 180,
+        scale: "toeic" as const,
+        latestBand: 200,
         submittedAt: "2026-08-26T10:00:00.000Z",
       },
       {
-        band: 6.0,
-        latestBand: 7.0,
+        band: 5.5,
+        estimatedScaled: null,
+        scale: "ielts" as const,
+        latestBand: 6.5,
+        submittedAt: "2026-08-25T12:00:00.000Z",
+      },
+      {
+        band: null,
+        estimatedScaled: 160,
+        scale: "toeic" as const,
+        latestBand: null,
         submittedAt: "2026-08-25T10:00:00.000Z",
       },
     ];
 
     const points = firstDraftChartPoints(roots);
 
-    expect(points.map((point) => point.band)).toEqual([6.0, 5.5]);
-    expect(points.every((point) => point.band !== 6.5 && point.band !== 7.0)).toBe(true);
+    expect(points.map((point) => point.band)).toEqual([160, 180]);
+    expect(points.every((point) => point.band !== 5.5 && point.band !== 6.5)).toBe(true);
   });
 
-  it("skips unsubmitted or ungraded roots", () => {
+  it("skips unsubmitted or ungraded toeic roots", () => {
     expect(
       firstDraftChartPoints([
-        { band: null, latestBand: null, submittedAt: "2026-08-25T10:00:00.000Z" },
-        { band: 5.5, latestBand: null, submittedAt: null },
+        {
+          band: null,
+          estimatedScaled: null,
+          scale: "toeic",
+          latestBand: null,
+          submittedAt: "2026-08-25T10:00:00.000Z",
+        },
+        {
+          band: null,
+          estimatedScaled: 160,
+          scale: "toeic",
+          latestBand: null,
+          submittedAt: null,
+        },
       ]),
     ).toEqual([]);
   });

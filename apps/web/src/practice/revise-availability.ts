@@ -48,9 +48,13 @@ export function canRevise(attempt: ReviseAttempt): boolean {
   return reviseAction(attempt).kind === "revise";
 }
 
-/** Band change label, e.g. `5.5 → 6.5`. */
+function formatScore(n: number): string {
+  return n >= 10 ? String(n) : n.toFixed(1);
+}
+
+/** Band or scaled-score change label, e.g. `5.5 → 6.5` or `160 → 180`. */
 export function formatBandDelta(from: number, to: number): string {
-  return `${from.toFixed(1)} → ${to.toFixed(1)}`;
+  return `${formatScore(from)} → ${formatScore(to)}`;
 }
 
 /** Papers-list chain label, e.g. `5.5 → 6.5 · 2 revisions`. */

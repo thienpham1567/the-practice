@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { computeStreak, TASK_CATALOG, type Level } from "@writing-helper/practice";
+import { computeStreak, TASK_CATALOG, type WritingTaskType } from "@writing-helper/practice";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createAttempt, listAttempts } from "../api/practice";
+import { createAttempt, listAttempts, type PracticeAttemptSummary } from "../api/practice";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
 import { FolioChoice } from "../folio/FolioChoice";
 import { FolioEmpty } from "../folio/FolioEmpty";
@@ -14,19 +14,19 @@ import { BandChart } from "../practice/BandChart";
 import { BandStamp } from "../practice/BandStamp";
 import { firstDraftChartPoints } from "../practice/band-chart";
 import { formatChainSummary } from "../practice/revise-availability";
+import { ScoreStamp } from "../practice/ScoreStamp";
 import { StreakStrip } from "../practice/StreakStrip";
 
-const LEVELS: Level[] = ["A2", "B1", "B2", "C1"];
-const LEVEL_OPTIONS = LEVELS.map((id) => ({ id, label: id }));
+const TASK_OPTIONS = TASK_CATALOG.map((task) => ({ id: task.type, label: task.label }));
 
 export function PracticePage() {
   const navigate = useNavigate();
-  const [level, setLevel] = useState<Level>("B1");
+  const [taskType, setTaskType] = useState<WritingTaskType>(TASK_CATALOG[0]!.type);
 
   const attempts = useQuery({ queryKey: ["practice-attempts"], queryFn: listAttempts });
 
   const start = useMutation({
-    mutationFn: () => createAttempt({ taskType: "email-request" }),
+    mutationFn: () => createAttempt({ taskType }),
     onSuccess: (attempt) => void navigate(`/writing/${attempt.id}`),
   });
 
@@ -55,14 +55,14 @@ export function PracticePage() {
 
           <section className="animate-fade-up mt-10" style={{ animationDelay: "40ms" }}>
             <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
-              Level
+              Task
             </h2>
             <div className="mt-3">
               <FolioChoice
-                label="Level"
-                value={level}
-                options={LEVEL_OPTIONS}
-                onChange={setLevel}
+                label="Task"
+                value={taskType}
+                options={TASK_OPTIONS}
+                onChange={setTaskType}
               />
             </div>
             <button
@@ -83,7 +83,7 @@ export function PracticePage() {
           {showLedger && (
             <div className="animate-fade-up mt-12 space-y-10" style={{ animationDelay: "80ms" }}>
               <StreakStrip submittedDates={submittedDates} current={streak.current} />
-              <BandChart points={chartPoints} />
+              {chartPoints.length > 0 && <BandChart points={chartPoints} />}
             </div>
           )}
 
@@ -98,12 +98,16 @@ export function PracticePage() {
               </p>
             )}
             {attempts.data?.length === 0 && (
-              <FolioEmpty message="Nothing here yet. Pick a level and start." />
+              <FolioEmpty message="Nothing here yet. Pick a task and start." />
             )}
             <ul className="mt-2 divide-y divide-rule">
               {attempts.data?.map((attempt, index) => {
                 const spec = TASK_CATALOG.find((task) => task.type === attempt.taskType);
                 const when = new Date(attempt.submittedAt ?? attempt.startedAt);
+                const title =
+                  spec?.label ?? attempt.taskType;
+                const heading =
+                  attempt.scale === "ielts" ? `${title} · ${attempt.level}` : title;
                 return (
                   <li
                     key={attempt.id}
@@ -117,7 +121,7 @@ export function PracticePage() {
                       >
                         <span className="min-w-0 flex-1">
                           <span className="font-display text-lg transition-colors group-hover:text-vermilion">
-                            {spec?.label ?? attempt.taskType} · {attempt.level}
+                            {heading}
                           </span>
                           <span className="ml-3 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
                             {when.toLocaleDateString(undefined, {
@@ -132,12 +136,7 @@ export function PracticePage() {
                             </span>
                           )}
                         </span>
-                        <PaperBandMeta
-                          band={attempt.band}
-                          level={attempt.level}
-                          latestBand={attempt.latestBand}
-                          revisionCount={attempt.revisionCount}
-                        />
+                        <PaperScoreMeta attempt={attempt} maxRaw={spec?.maxRaw ?? null} />
                       </Link>
                       <AttemptDeleteControl kind="paper" attemptId={attempt.id} />
                     </div>
@@ -152,25 +151,55 @@ export function PracticePage() {
   );
 }
 
-function PaperBandMeta({
-  band,
-  level,
-  latestBand,
-  revisionCount,
+function PaperScoreMeta({
+  attempt,
+  maxRaw,
 }: {
-  band: number | null;
-  level: string;
-  latestBand: number | null;
-  revisionCount: number;
+  attempt: PracticeAttemptSummary;
+  maxRaw: number | null;
 }) {
-  const summary = formatChainSummary(band, latestBand, revisionCount);
+  const isIelts = attempt.scale === "ielts";
+  const rootScore = isIelts ? attempt.band : attempt.estimatedScaled;
+  const summary = formatChainSummary(rootScore, attempt.latestBand, attempt.revisionCount);
   if (summary) {
     return (
-      <span className="shrink-0 font-mono text-[0.75rem] tracking-wide text-ink-soft">
-        {summary}
+      <span className="flex shrink-0 items-center gap-2">
+        {isIelts && <LegacyBadge />}
+        <span className="font-mono text-[0.75rem] tracking-wide text-ink-soft">{summary}</span>
       </span>
     );
   }
-  if (band !== null) return <BandStamp band={band} level={level} size="sm" />;
+  if (isIelts && attempt.band !== null) {
+    return (
+      <span className="flex shrink-0 items-center gap-2">
+        <LegacyBadge />
+        <BandStamp band={attempt.band} level={attempt.level} size="sm" />
+      </span>
+    );
+  }
+  if (
+    !isIelts &&
+    attempt.estimatedScaled != null &&
+    attempt.rawRating != null &&
+    maxRaw != null
+  ) {
+    return (
+      <ScoreStamp
+        estimatedScaled={attempt.estimatedScaled}
+        rawRating={attempt.rawRating}
+        maxRaw={maxRaw}
+        cefrEstimate={attempt.cefrEstimate}
+        size="sm"
+      />
+    );
+  }
   return null;
+}
+
+function LegacyBadge() {
+  return (
+    <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
+      Legacy
+    </span>
+  );
 }

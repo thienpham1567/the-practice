@@ -18,7 +18,7 @@ export function FolioChoice<T extends string>({
   onChange,
 }: FolioChoiceProps<T>) {
   return (
-    <div className="flex border border-rule" role="group" aria-label={label}>
+    <div className="flex flex-wrap border border-rule" role="group" aria-label={label}>
       {options.map((option) => {
         const selected = option.id === value;
         return (
@@ -27,7 +27,7 @@ export function FolioChoice<T extends string>({
             type="button"
             aria-pressed={selected}
             onClick={() => onChange(option.id)}
-            className={`flex-1 py-2 font-mono text-[0.75rem] uppercase tracking-[0.15em] transition-colors ${
+            className={`min-w-[7rem] flex-1 px-2 py-2 font-mono text-[0.75rem] uppercase tracking-[0.15em] transition-colors ${
               selected ? "bg-ink text-paper" : "text-ink-soft hover:text-vermilion"
             }`}
           >

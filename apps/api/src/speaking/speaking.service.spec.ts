@@ -864,5 +864,74 @@ describe("SpeakingService", () => {
       });
       expect(page.items[0]).not.toHaveProperty("revisions");
     });
+
+    it("returns scale, taskType, rawRating, and estimatedScaled on list rows", async () => {
+      const { service } = serviceWith({
+        listRows: [
+          {
+            id: "root-toeic",
+            level: "TOEIC",
+            taskType: "express-opinion",
+            scale: "toeic",
+            rawRating: 4,
+            estimatedScaled: 160,
+            cefrEstimate: "B2",
+            band: null,
+            durationMs: 60_000,
+            startedAt: new Date(),
+            submittedAt: new Date(),
+            revisions: [],
+          },
+        ],
+      });
+
+      const page = await service.list("user-1");
+
+      expect(page.items[0]).toMatchObject({
+        id: "root-toeic",
+        taskType: "express-opinion",
+        scale: "toeic",
+        rawRating: 4,
+        estimatedScaled: 160,
+        cefrEstimate: "B2",
+        latestBand: null,
+      });
+    });
+
+    it("prefers estimatedScaled for latestBand on TOEIC revision chains", async () => {
+      const { service } = serviceWith({
+        listRows: [
+          {
+            id: "root-toeic",
+            level: "TOEIC",
+            taskType: "express-opinion",
+            scale: "toeic",
+            rawRating: 4,
+            estimatedScaled: 160,
+            cefrEstimate: "B2",
+            band: null,
+            durationMs: 60_000,
+            startedAt: new Date(),
+            submittedAt: new Date(),
+            revisions: [
+              {
+                band: null,
+                estimatedScaled: 180,
+                revisionRound: 1,
+                revisions: [{ band: null, estimatedScaled: 200, revisionRound: 2 }],
+              },
+            ],
+          },
+        ],
+      });
+
+      const page = await service.list("user-1");
+
+      expect(page.items[0]).toMatchObject({
+        estimatedScaled: 160,
+        revisionCount: 2,
+        latestBand: 200,
+      });
+    });
   });
 });

@@ -1170,6 +1170,10 @@ describe("PracticeService", () => {
       id: "root-1",
       level: "B1",
       taskType: "email-request",
+      scale: "ielts",
+      rawRating: null,
+      estimatedScaled: null,
+      cefrEstimate: null,
       band: 5.5,
       wordCount: 100,
       hintsOpened: false,
@@ -1190,13 +1194,18 @@ describe("PracticeService", () => {
           select: expect.objectContaining({
             id: true,
             band: true,
+            scale: true,
+            rawRating: true,
+            estimatedScaled: true,
             revisions: {
               select: {
                 band: true,
+                estimatedScaled: true,
                 revisionRound: true,
                 revisions: {
                   select: {
                     band: true,
+                    estimatedScaled: true,
                     revisionRound: true,
                   },
                 },
@@ -1234,6 +1243,63 @@ describe("PracticeService", () => {
         latestBand: 6.5,
       });
       expect(page.items[0]).not.toHaveProperty("revisions");
+    });
+
+    it("returns scale, rawRating, and estimatedScaled on list rows", async () => {
+      const { service, prisma } = serviceWith({});
+      prisma.practiceAttempt.findMany.mockResolvedValueOnce([
+        {
+          ...rootRow,
+          level: "TOEIC",
+          scale: "toeic",
+          rawRating: 4,
+          estimatedScaled: 160,
+          cefrEstimate: "B2",
+          band: null,
+          revisions: [],
+        },
+      ]);
+
+      const page = await service.list("user-1");
+
+      expect(page.items[0]).toMatchObject({
+        id: "root-1",
+        scale: "toeic",
+        rawRating: 4,
+        estimatedScaled: 160,
+        cefrEstimate: "B2",
+        band: null,
+      });
+    });
+
+    it("prefers estimatedScaled for latestBand on TOEIC revision chains", async () => {
+      const { service, prisma } = serviceWith({});
+      prisma.practiceAttempt.findMany.mockResolvedValueOnce([
+        {
+          ...rootRow,
+          level: "TOEIC",
+          scale: "toeic",
+          rawRating: 4,
+          estimatedScaled: 160,
+          band: null,
+          revisions: [
+            {
+              band: null,
+              estimatedScaled: 180,
+              revisionRound: 1,
+              revisions: [{ band: null, estimatedScaled: 200, revisionRound: 2 }],
+            },
+          ],
+        },
+      ]);
+
+      const page = await service.list("user-1");
+
+      expect(page.items[0]).toMatchObject({
+        estimatedScaled: 160,
+        revisionCount: 2,
+        latestBand: 200,
+      });
     });
 
     it("uses the furthest graded revision for latestBand", async () => {

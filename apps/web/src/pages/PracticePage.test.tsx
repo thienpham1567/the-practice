@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { PracticeAttemptSummary } from "../api/practice";
+import type { PracticeAttemptDetail, PracticeAttemptSummary } from "../api/practice";
 import { PracticePage } from "./PracticePage";
 
 vi.mock("../api/practice", async (importOriginal) => {
@@ -19,9 +19,9 @@ vi.mock("../api/auth-store", () => ({
   useAuthStore: () => ({ user: { id: "u1", email: "a@b.c" }, clearSession: vi.fn() }),
 }));
 
-import { deleteAttempt, listAttempts } from "../api/practice";
+import { createAttempt, deleteAttempt, listAttempts } from "../api/practice";
 
-const rootNoRevisions: PracticeAttemptSummary = {
+const ieltsPaper: PracticeAttemptSummary = {
   id: "root-1",
   level: "B1",
   taskType: "email-request",
@@ -39,27 +39,29 @@ const rootNoRevisions: PracticeAttemptSummary = {
   latestBand: null,
 };
 
-const rootWithRevisions: PracticeAttemptSummary = {
-  ...rootNoRevisions,
+const ieltsWithRevisions: PracticeAttemptSummary = {
+  ...ieltsPaper,
   id: "root-2",
-  band: 5.5,
   revisionCount: 2,
   latestBand: 6.5,
 };
 
-// level differs from the page's level-picker default ("B1", see PracticePage.tsx)
-// so these fixtures can't pass by accident if the level came from the picker
-// instead of the attempt.
-const rootNoRevisionsC1: PracticeAttemptSummary = {
-  ...rootNoRevisions,
-  id: "root-1-c1",
-  level: "C1",
-};
-
-const rootWithRevisionsC1: PracticeAttemptSummary = {
-  ...rootWithRevisions,
-  id: "root-2-c1",
-  level: "C1",
+const toeicPaper: PracticeAttemptSummary = {
+  id: "toeic-1",
+  level: "TOEIC",
+  taskType: "email-request",
+  scale: "toeic",
+  rawRating: 4,
+  estimatedScaled: 160,
+  cefrEstimate: "B2",
+  band: null,
+  wordCount: 120,
+  hintsOpened: false,
+  startedAt: "2026-08-26T10:00:00.000Z",
+  submittedAt: "2026-08-26T10:20:00.000Z",
+  elapsedSeconds: 600,
+  revisionCount: 0,
+  latestBand: null,
 };
 
 function renderPage() {
@@ -78,6 +80,7 @@ function renderPage() {
 describe("PracticePage papers list", () => {
   beforeEach(() => {
     vi.mocked(listAttempts).mockReset();
+    vi.mocked(createAttempt).mockReset();
     vi.mocked(deleteAttempt).mockReset();
   });
 
@@ -85,29 +88,48 @@ describe("PracticePage papers list", () => {
     cleanup();
   });
 
-  it("shows BandStamp when a paper has no revisions", async () => {
-    vi.mocked(listAttempts).mockResolvedValue([rootNoRevisions]);
+  it("offers writing task types instead of a CEFR level picker", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([]);
     renderPage();
 
-    expect(await screen.findByText(/Band 5\.5/)).toBeTruthy();
-    expect(screen.queryByText(/revision/)).toBeNull();
+    expect(await screen.findByRole("group", { name: "Task" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Email response" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Opinion essay" })).toBeTruthy();
+    expect(screen.queryByRole("group", { name: "Level" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "A2" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "B1" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "C1" })).toBeNull();
   });
 
-  it("shows which level the paper's band was earned on", async () => {
-    vi.mocked(listAttempts).mockResolvedValue([rootNoRevisionsC1]);
+  it("starts an email-request paper with the selected task type", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([]);
+    vi.mocked(createAttempt).mockResolvedValue({ id: "new-1" } as PracticeAttemptDetail);
     renderPage();
 
-    expect(await screen.findByText("C1 task")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Email response" }));
+    fireEvent.click(screen.getByRole("button", { name: /Start writing/i }));
+
+    await waitFor(() =>
+      expect(createAttempt).toHaveBeenCalledWith({ taskType: "email-request" }),
+    );
   });
 
-  it("shows the level even when a paper has revisions", async () => {
-    vi.mocked(listAttempts).mockResolvedValue([rootWithRevisionsC1]);
+  it("marks IELTS papers as Legacy and keeps the band stamp", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([ieltsPaper]);
     renderPage();
 
-    // The revisions branch returns early with only the chain summary, so the
-    // level has to come from the row title (matching SpeakingPage's pattern).
-    expect(await screen.findByText("5.5 → 6.5 · 2 revisions")).toBeTruthy();
-    expect(await screen.findByText("Email response · C1")).toBeTruthy();
+    expect(await screen.findByText("Legacy")).toBeTruthy();
+    expect(screen.getByText(/Band 5\.5/)).toBeTruthy();
+  });
+
+  it("keeps IELTS rows off the TOEIC practice-score chart", async () => {
+    vi.mocked(listAttempts).mockResolvedValue([toeicPaper, ieltsPaper]);
+    renderPage();
+
+    expect(await screen.findByText("160")).toBeTruthy();
+    expect(screen.getByText("Legacy")).toBeTruthy();
+    const chart = screen.getByRole("img", { name: /scored attempt/i });
+    expect(chart.querySelectorAll("circle")).toHaveLength(1);
   });
 
   it("links to the progress page", async () => {
@@ -139,14 +161,14 @@ describe("PracticePage papers list", () => {
   });
 
   it("shows chain summary when a paper has revisions", async () => {
-    vi.mocked(listAttempts).mockResolvedValue([rootWithRevisions]);
+    vi.mocked(listAttempts).mockResolvedValue([ieltsWithRevisions]);
     renderPage();
 
     expect(await screen.findByText("5.5 → 6.5 · 2 revisions")).toBeTruthy();
   });
 
   it("asks before deleting a paper and cancels without calling the API", async () => {
-    vi.mocked(listAttempts).mockResolvedValue([rootNoRevisions]);
+    vi.mocked(listAttempts).mockResolvedValue([ieltsPaper]);
     renderPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Delete this paper" }));
@@ -159,7 +181,7 @@ describe("PracticePage papers list", () => {
   });
 
   it("deletes a paper after confirming", async () => {
-    vi.mocked(listAttempts).mockResolvedValue([rootNoRevisions]);
+    vi.mocked(listAttempts).mockResolvedValue([ieltsPaper]);
     vi.mocked(deleteAttempt).mockResolvedValue(undefined);
     renderPage();
 
