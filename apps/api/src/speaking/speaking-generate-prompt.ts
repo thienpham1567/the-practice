@@ -1,4 +1,4 @@
-import type { Level, SpeakingCueCard } from "@writing-helper/practice";
+import type { Level, SpeakingSeed } from "@writing-helper/practice";
 import type { JsonSchemaSpec } from "../ai/ai.service";
 import type { VocabSuggestItem } from "../practice/vocab.service";
 
@@ -48,27 +48,34 @@ export interface GeneratedCueCard {
 
 export type ReviewWord = VocabSuggestItem;
 
+function seedLines(seed: SpeakingSeed): string {
+  const lines = [`Type: ${seed.type}`, `Key: ${seed.key}`];
+  if (seed.passage) lines.push(`Passage: ${seed.passage}`);
+  if (seed.question) lines.push(`Question: ${seed.question}`);
+  if (seed.info) lines.push(`Information:\n${seed.info}`);
+  if (seed.sceneId) lines.push(`Picture scene: ${seed.sceneId}`);
+  return lines.join("\n");
+}
+
 /**
- * Catalog card is a seed only. The model invents a fresh Part 2 cue card at
- * the same level — topic + three bullets + prep notes. Never a sample talk.
+ * Catalog seed is inspiration only. The model invents a fresh TOEIC speaking
+ * prompt of the same type. Never a sample talk.
  */
 export function buildSpeakingGeneratePrompt(
-  seed: SpeakingCueCard,
+  seed: SpeakingSeed,
   level: Level,
   reviewWords?: ReviewWord[],
 ): string {
   const base =
-    `You write IELTS Speaking Part 2 cue cards for CEFR level ${level}.\n\n` +
-    `Seed (inspiration only — invent a different original topic):\n` +
-    `Topic: ${seed.topic}\n` +
-    `Bullets:\n` +
-    seed.bullets.map((b) => `- ${b}`).join("\n") +
+    `You write TOEIC Speaking prompts for workplace and daily English at CEFR level ${level}.\n\n` +
+    `Seed (inspiration only — invent a different original prompt of the same type):\n` +
+    seedLines(seed) +
     `\n\n` +
-    `Invent a specific, original Part 2 topic suitable for ${level}. ` +
-    `Give exactly three short bullet prompts the candidate should cover ` +
-    `(who/what/where/when/why style), ending so the speaker can talk for up to 2 minutes.\n` +
+    `Invent a specific, original ${seed.type} prompt suitable for workplace or daily English. ` +
+    `Put a short title in the topic field. ` +
+    `Give exactly three short bullet prompts the candidate should cover. ` +
     `Give exactly 5 short talking beats the candidate can glance at during prep: ` +
-    `(1) a one-line opening, (2–4) one beat per cue bullet, (5) a one-line close. ` +
+    `(1) a one-line opening, (2–4) one beat per cue, (5) a one-line close. ` +
     `Each beat is a phrase, not a full sentence to read aloud.\n` +
     `Give 6–8 useful spoken chunks (collocations or short phrases a candidate would actually say) ` +
     `with meaning and a short example sentence they could speak.\n` +

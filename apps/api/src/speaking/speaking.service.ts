@@ -11,6 +11,7 @@ import {
   pickSpeakingTask,
   speakingFluency,
   type Level,
+  type SpeakingTaskType,
 } from "@writing-helper/practice";
 import { AiService, PRACTICE_DEADLINE_MS, PRACTICE_TIMEOUT_MS } from "../ai/ai.service";
 import { DEFAULT_PAGE_SIZE, toCursorPage } from "../common/cursor-page";
@@ -97,6 +98,27 @@ const GRADING_LOCK_STALE_MS = 2 * 60 * 1000;
 
 type CueCardJson = { topic: string; bullets: string[] };
 
+const SPEAKING_TASK_TYPES: SpeakingTaskType[] = [
+  "read-aloud",
+  "describe-picture",
+  "respond-question",
+  "respond-with-info",
+  "express-opinion",
+];
+
+function speakingTypeFromDto(dto: CreateSpeakingAttemptDto): SpeakingTaskType {
+  const type = dto.taskType;
+  if (type && SPEAKING_TASK_TYPES.includes(type)) return type;
+  return "express-opinion";
+}
+
+function recentSpeakingKey(value: unknown): string | null {
+  const card = value as { key?: unknown; topic?: unknown } | null;
+  if (typeof card?.key === "string" && card.key.length > 0) return card.key;
+  if (typeof card?.topic === "string" && card.topic.length > 0) return card.topic;
+  return null;
+}
+
 function asCueCard(value: unknown): CueCardJson {
   const card = value as CueCardJson | null;
   if (!card || typeof card.topic !== "string" || !Array.isArray(card.bullets)) {
@@ -122,14 +144,12 @@ export class SpeakingService {
       take: 10,
       select: { cueCard: true },
     });
-    const recentTopics = recent
-      .map((row) => {
-        const card = row.cueCard as CueCardJson | null;
-        return typeof card?.topic === "string" ? card.topic : null;
-      })
-      .filter((topic): topic is string => Boolean(topic));
+    const recentKeys = recent
+      .map((row) => recentSpeakingKey(row.cueCard))
+      .filter((key): key is string => Boolean(key));
 
-    const seed = pickSpeakingTask(dto.level as Level, recentTopics);
+    const type = speakingTypeFromDto(dto);
+    const seed = pickSpeakingTask(type, recentKeys);
 
     let reviewCandidates: VocabSuggestItem[] = [];
     try {

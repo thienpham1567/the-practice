@@ -1,30 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { pickSpeakingTask } from "./pick-speaking-task";
-import { speakingTasksForLevel } from "./speaking-catalog";
+import { SPEAKING_SEEDS } from "./speaking-catalog";
 
 describe("pickSpeakingTask", () => {
-  it("returns a cue card for the requested level", () => {
-    const picked = pickSpeakingTask("B1");
-    expect(picked.level).toBe("B1");
-    expect(picked.bullets).toHaveLength(3);
+  it("returns a seed of the requested type", () => {
+    const picked = pickSpeakingTask("express-opinion");
+    expect(picked.type).toBe("express-opinion");
+    expect(picked.key.trim().length).toBeGreaterThan(0);
+    expect(picked.question?.trim().length).toBeGreaterThan(0);
   });
 
-  it("skips recently used topics when another card is available", () => {
-    const available = speakingTasksForLevel("A2");
+  it("skips recently used keys when another seed is available", () => {
+    const available = SPEAKING_SEEDS.filter((seed) => seed.type === "read-aloud");
     expect(available.length).toBeGreaterThan(1);
 
-    const recent = available.slice(0, -1).map((card) => card.topic);
-    const picked = pickSpeakingTask("A2", recent);
+    const recent = available.slice(0, -1).map((seed) => seed.key);
+    const picked = pickSpeakingTask("read-aloud", recent);
 
-    expect(recent).not.toContain(picked.topic);
-    expect(picked.level).toBe("A2");
+    expect(picked.type).toBe("read-aloud");
+    expect(recent).not.toContain(picked.key);
   });
 
-  it("still returns a card when every topic for the level was used recently", () => {
-    const recent = speakingTasksForLevel("C1").map((card) => card.topic);
-    const picked = pickSpeakingTask("C1", recent);
+  it("still returns a seed when every key for the type was used recently", () => {
+    const recent = SPEAKING_SEEDS.filter((seed) => seed.type === "respond-question").map(
+      (seed) => seed.key,
+    );
+    const picked = pickSpeakingTask("respond-question", recent);
 
-    expect(picked.level).toBe("C1");
-    expect(recent).toContain(picked.topic);
+    expect(picked.type).toBe("respond-question");
+    expect(recent).toContain(picked.key);
   });
 });

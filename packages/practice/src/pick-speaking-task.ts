@@ -1,21 +1,21 @@
-import { speakingTasksForLevel } from "./speaking-catalog";
-import type { SpeakingCueCard } from "./speaking-catalog";
-import type { Level } from "./types";
+import { SPEAKING_SEEDS } from "./speaking-catalog";
+import type { SpeakingSeed } from "./speaking-catalog";
+import type { SpeakingTaskType } from "./types";
 
 /**
- * Pick a Part 2 cue card for the level, skipping recently used topics when
- * another card is available. Always returns a card so practice can start.
+ * Pick a TOEIC speaking seed of the given type, skipping recently used keys
+ * when another seed is available. Always returns a seed so practice can start.
  */
 export function pickSpeakingTask(
-  level: Level,
-  recentTopics: string[] = [],
-): SpeakingCueCard {
-  const available = speakingTasksForLevel(level);
-  const unused = available.filter((card) => !recentTopics.includes(card.topic));
+  type: SpeakingTaskType,
+  recentKeys: string[] = [],
+): SpeakingSeed {
+  const available = SPEAKING_SEEDS.filter((seed) => seed.type === type);
+  const unused = available.filter((seed) => !recentKeys.includes(seed.key));
   const pool = unused.length > 0 ? unused : available;
   const picked = pool[0];
   if (!picked) {
-    throw new Error(`No speaking cue cards defined for level ${level}`);
+    throw new Error(`No speaking seeds defined for type ${type}`);
   }
   return picked;
 }

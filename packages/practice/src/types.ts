@@ -7,6 +7,22 @@ export type WritingTaskType =
 
 export type TaskType = WritingTaskType; // new catalog; old ielts strings may still exist on DB rows
 
+export type SpeakingTaskType =
+  | "read-aloud"
+  | "describe-picture"
+  | "respond-question"
+  | "respond-with-info"
+  | "express-opinion";
+
+export interface SpeakingTaskSpec {
+  type: SpeakingTaskType;
+  label: string;
+  prepSeconds: number;
+  speakSeconds: number;
+  infoSeconds?: number; // 45s read info before Q8–10
+  maxRaw: 3 | 5;
+}
+
 export interface TaskSpec {
   type: TaskType;
   minWords: number;

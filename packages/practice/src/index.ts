@@ -8,6 +8,8 @@ export type {
   MarkSeverity,
   MarkTally,
   MistakeProfile,
+  SpeakingTaskSpec,
+  SpeakingTaskType,
   TaskSpec,
   TaskType,
   VocabularyItem,
@@ -15,11 +17,13 @@ export type {
   WritingTaskType,
 } from "./types";
 
-export type { SpeakingCueCard } from "./speaking-catalog";
+export type { SpeakingSeed } from "./speaking-catalog";
 export type { SpeakingFluency } from "./speaking-fluency";
+export type { ToeicScene } from "./toeic-scenes";
 
 export { TASK_CATALOG } from "./task-catalog";
-export { SPEAKING_CATALOG, speakingTasksForLevel } from "./speaking-catalog";
+export { SPEAKING_TASKS, pickSpeakingSpec } from "./speaking-catalog";
+export { TOEIC_SCENES } from "./toeic-scenes";
 export { pickTask } from "./pick-task";
 export { pickSpeakingTask } from "./pick-speaking-task";
 export { overallBand } from "./overall-band";

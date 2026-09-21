@@ -1,7 +1,10 @@
-import { TASK_CATALOG } from "@writing-helper/practice";
+import { SPEAKING_TASKS, TASK_CATALOG } from "@writing-helper/practice";
 
 const email = TASK_CATALOG.find((task) => task.type === "email-request");
 if (!email) throw new Error("TASK_CATALOG is missing email-request");
+
+const opinion = SPEAKING_TASKS.find((task) => task.type === "express-opinion");
+if (!opinion) throw new Error("SPEAKING_TASKS is missing express-opinion");
 
 export const LANDING_HEADLINE = "Sit the paper. Take the turn.";
 export const LANDING_LEDE =
@@ -15,10 +18,10 @@ export const LANDING_PAPER = {
 } as const;
 
 export const LANDING_TALK = {
-  kicker: "Talk · B1 · Part 2 · 1 min prep · 2 min",
-  instruction: "One minute to prepare. Then speak for up to two minutes.",
+  kicker: `Talk · ${opinion.label} · ${opinion.prepSeconds}s prep · ${opinion.speakSeconds}s speak`,
+  instruction: "Forty-five seconds to prepare. Then speak for up to sixty seconds.",
   prompt:
-    "Describe a place you like to go in your free time. You should say where it is, what you do there, and why you enjoy it.",
+    "Do you think companies should allow employees to work from home two days a week? Give reasons for your opinion.",
 } as const;
 
 /**

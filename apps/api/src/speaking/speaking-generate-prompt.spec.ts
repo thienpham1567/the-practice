@@ -1,22 +1,40 @@
 import { buildSpeakingGeneratePrompt, SPEAKING_GENERATE_SCHEMA } from "./speaking-generate-prompt";
-import type { SpeakingCueCard } from "@writing-helper/practice";
+import type { SpeakingSeed } from "@writing-helper/practice";
 
-const seed: SpeakingCueCard = {
-  level: "B1",
-  topic: "Describe a trip you took",
-  bullets: ["where you went", "who you went with", "what you did and how you felt"],
+const seed: SpeakingSeed = {
+  type: "express-opinion",
+  key: "wfh-two-days",
+  question:
+    "Do you think companies should allow employees to work from home two days a week? Give reasons for your opinion.",
 };
 
 describe("buildSpeakingGeneratePrompt", () => {
-  it("embeds the seed topic and level, asks for an original Part 2 card", () => {
+  it("embeds the seed type, question, and level", () => {
     const prompt = buildSpeakingGeneratePrompt(seed, "B1");
 
     expect(prompt).toContain("B1");
-    expect(prompt).toContain(seed.topic);
-    expect(prompt).toContain(seed.bullets[0]);
-    expect(prompt.toLowerCase()).toMatch(/part 2|cue card/);
+    expect(prompt).toContain(seed.type);
+    expect(prompt).toContain(seed.question);
+    expect(prompt.toLowerCase()).toMatch(/toeic/);
     expect(prompt.toLowerCase()).toMatch(/invent|original|different/);
-    expect(prompt.toLowerCase()).toMatch(/three|3/);
+    expect(prompt.toLowerCase()).not.toMatch(/part 2/);
+  });
+
+  it("puts passage, info, and scene into the prompt when present", () => {
+    const mixed: SpeakingSeed = {
+      type: "respond-with-info",
+      key: "conference-keynote",
+      passage: "Please arrive five minutes early.",
+      info: "9:15 Keynote: Ms. Elena Park, Hall A",
+      question: "What time does the keynote speech begin?",
+      sceneId: "office-desk",
+    };
+    const prompt = buildSpeakingGeneratePrompt(mixed, "A2");
+
+    expect(prompt).toContain(mixed.passage);
+    expect(prompt).toContain(mixed.info);
+    expect(prompt).toContain(mixed.question);
+    expect(prompt).toContain(mixed.sceneId);
   });
 
   it("tells the model not to write a sample answer", () => {
