@@ -151,7 +151,11 @@ describe("SpeakingService", () => {
           data: expect.objectContaining({
             userId: "user-1",
             level: "A2",
-            cueCard: generatedCue,
+            cueCard: {
+              ...generatedCue,
+              key: "wfh-two-days",
+              type: "express-opinion",
+            },
             structure: generatedStructure,
             vocabulary: generatedVocabulary,
           }),

@@ -82,6 +82,11 @@ describe("speaking seeds", () => {
     }
   });
 
+  it("gives every seed a unique key", () => {
+    const keys = SPEAKING_SEEDS.map((seed) => seed.key);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
   it("gives read-aloud passages of 40–60 words", () => {
     const passages = SPEAKING_SEEDS.filter((seed) => seed.type === "read-aloud");
     expect(passages.length).toBeGreaterThanOrEqual(3);
@@ -131,6 +136,61 @@ describe("TOEIC_SCENES", () => {
       expect(scene.alt.trim().length).toBeGreaterThan(0);
       expect(scene.id.trim().length).toBeGreaterThan(0);
     }
+  });
+
+  it("labels each photo with objects that are actually in the frame", () => {
+    expect(
+      TOEIC_SCENES.map((scene) => [scene.id, scene.wordA, scene.wordB, scene.alt]),
+    ).toEqual([
+      [
+        "office-desk",
+        "notebook",
+        "glass",
+        "A wooden desk with a closed notebook, a glass of water, and a stack of books.",
+      ],
+      [
+        "night-office",
+        "candle",
+        "lamp",
+        "A desk at night with a notebook, a glass of water, a lit candle, and a lamp.",
+      ],
+      [
+        "meeting-table",
+        "note",
+        "pen",
+        "A desk by a window with a notebook, a handwritten note, a pen, and stacked books.",
+      ],
+      [
+        "conference-room",
+        "coffee",
+        "notebook",
+        "A desk with a coffee cup, an open notebook, stacked books, and a lamp.",
+      ],
+      [
+        "reception-desk",
+        "tea",
+        "pens",
+        "A desk with a cup of tea, an open notebook, a small vase, and a pen holder.",
+      ],
+      [
+        "writing-station",
+        "coffee",
+        "vase",
+        "A desk by a window with stacked books, a coffee cup, a notebook, and a vase of flowers.",
+      ],
+      [
+        "study-corner",
+        "cup",
+        "scissors",
+        "A windowsill with a cup of tea, a notebook, scissors, and old books overlooking a forest.",
+      ],
+      [
+        "planning-board",
+        "glass",
+        "note",
+        "A night desk with a notebook, a glass of water, a handwritten note, and stacked books.",
+      ],
+    ]);
   });
 });
 

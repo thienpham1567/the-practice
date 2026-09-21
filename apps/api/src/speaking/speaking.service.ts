@@ -172,6 +172,8 @@ export class SpeakingService {
     const cueCard = {
       topic: generated.topic.trim(),
       bullets: generated.bullets.map((b) => b.trim()).slice(0, 3),
+      key: seed.key,
+      type,
     };
     const structure = generated.structure.map((beat) => beat.trim()).slice(0, 5);
     const vocabulary = tagReviewVocabulary(generated.vocabulary, reviewCandidates);
