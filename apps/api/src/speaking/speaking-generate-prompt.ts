@@ -1,4 +1,4 @@
-import type { Level, SpeakingSeed } from "@writing-helper/practice";
+import type { SpeakingSeed, SpeakingTaskSpec } from "@writing-helper/practice";
 import type { JsonSchemaSpec } from "../ai/ai.service";
 import type { VocabSuggestItem } from "../practice/vocab.service";
 
@@ -7,15 +7,11 @@ export const SPEAKING_GENERATE_SCHEMA: JsonSchemaSpec = {
   schema: {
     type: "object",
     additionalProperties: false,
-    required: ["topic", "bullets", "structure", "vocabulary"],
+    required: ["passage", "question", "info", "structure", "vocabulary"],
     properties: {
-      topic: { type: "string" },
-      bullets: {
-        type: "array",
-        items: { type: "string" },
-        minItems: 3,
-        maxItems: 3,
-      },
+      passage: { type: "string" },
+      question: { type: "string" },
+      info: { type: "string" },
       structure: {
         type: "array",
         items: { type: "string" },
@@ -40,8 +36,9 @@ export const SPEAKING_GENERATE_SCHEMA: JsonSchemaSpec = {
 };
 
 export interface GeneratedCueCard {
-  topic: string;
-  bullets: [string, string, string] | string[];
+  passage: string;
+  question: string;
+  info: string;
   structure: string[];
   vocabulary: { word: string; meaning: string; example: string }[];
 }
@@ -57,29 +54,60 @@ function seedLines(seed: SpeakingSeed): string {
   return lines.join("\n");
 }
 
+function payloadInstructions(seed: SpeakingSeed): string {
+  switch (seed.type) {
+    case "read-aloud":
+      return (
+        `Invent an original workplace announcement or notice of about 40–60 words. ` +
+        `Put it in the passage field. Leave question and info empty.`
+      );
+    case "describe-picture":
+      return (
+        `Do not invent an image — the server already selected a photograph. ` +
+        `Leave passage, question, and info empty. Invent 5 short talking beats for describing ` +
+        `a workplace or daily picture.`
+      );
+    case "respond-question":
+      return (
+        `Invent a specific, original workplace or daily-life question. ` +
+        `Put it in the question field. Leave passage and info empty.`
+      );
+    case "respond-with-info":
+      return (
+        `Invent a short information block (a schedule, notice, or table as text) and a question ` +
+        `that uses that information. Put them in the info and question fields. Leave passage empty.`
+      );
+    case "express-opinion":
+      return (
+        `Invent a specific, original workplace or daily-life opinion question. ` +
+        `Put it in the question field. Leave passage and info empty.`
+      );
+  }
+}
+
 /**
  * Catalog seed is inspiration only. The model invents a fresh TOEIC speaking
  * prompt of the same type. Never a sample talk.
  */
 export function buildSpeakingGeneratePrompt(
   seed: SpeakingSeed,
-  level: Level,
+  spec: SpeakingTaskSpec,
   reviewWords?: ReviewWord[],
 ): string {
   const base =
-    `You write TOEIC Speaking prompts for workplace and daily English at CEFR level ${level}.\n\n` +
+    `You write TOEIC Speaking prompts for workplace and daily English.\n\n` +
     `Seed (inspiration only — invent a different original prompt of the same type):\n` +
     seedLines(seed) +
     `\n\n` +
-    `Invent a specific, original ${seed.type} prompt suitable for workplace or daily English. ` +
-    `Put a short title in the topic field. ` +
-    `Give exactly three short bullet prompts the candidate should cover. ` +
+    `Task type: ${spec.label} (${spec.type})\n` +
+    `Prep: ${spec.prepSeconds} seconds. Speak: ${spec.speakSeconds} seconds.\n\n` +
+    `${payloadInstructions(seed)} ` +
     `Give exactly 5 short talking beats the candidate can glance at during prep: ` +
     `(1) a one-line opening, (2–4) one beat per cue, (5) a one-line close. ` +
     `Each beat is a phrase, not a full sentence to read aloud.\n` +
     `Give 6–8 useful spoken chunks (collocations or short phrases a candidate would actually say) ` +
     `with meaning and a short example sentence they could speak.\n` +
-    `Write everything in English. Do not write a sample answer.`;
+    `Write everything in English. Do not write a sample answer or transcript.`;
 
   if (!reviewWords || reviewWords.length === 0) {
     return base;

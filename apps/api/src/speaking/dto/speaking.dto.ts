@@ -1,7 +1,6 @@
 import { Type } from "class-transformer";
 import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
 
-const LEVELS = ["A2", "B1", "B2", "C1"] as const;
 const SPEAKING_TASK_TYPES = [
   "read-aloud",
   "describe-picture",
@@ -10,15 +9,18 @@ const SPEAKING_TASK_TYPES = [
   "express-opinion",
 ] as const;
 const AUDIO_FORMATS = ["wav", "mp3"] as const;
+const SPEAK_SECONDS = [15, 30] as const;
 
 export class CreateSpeakingAttemptDto {
-  @IsIn(LEVELS)
-  level!: (typeof LEVELS)[number];
-
-  /** Optional until Task 8 makes taskType required and drops level. */
-  @IsOptional()
   @IsIn(SPEAKING_TASK_TYPES)
-  taskType?: (typeof SPEAKING_TASK_TYPES)[number];
+  taskType!: (typeof SPEAKING_TASK_TYPES)[number];
+
+  /** Only applied for respond-question / respond-with-info. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(SPEAK_SECONDS)
+  speakSeconds?: (typeof SPEAK_SECONDS)[number];
 }
 
 export class UpdateSpeakingAttemptDto {
@@ -36,7 +38,7 @@ export class SubmitSpeakingAttemptDto {
 
   @Type(() => Number)
   @IsInt()
-  @Min(10_000)
-  @Max(180_000)
+  @Min(3_000)
+  @Max(75_000)
   durationMs!: number;
 }

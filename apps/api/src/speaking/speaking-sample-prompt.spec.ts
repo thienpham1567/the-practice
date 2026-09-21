@@ -1,26 +1,26 @@
 import { SPEAKING_SAMPLE_SCHEMA, buildSpeakingSamplePrompt } from "./speaking-sample-prompt";
 
 const cue = {
-  topic: "Describe a festival you enjoyed",
-  bullets: ["what the festival was", "who you went with", "why you enjoyed it"],
+  type: "express-opinion" as const,
+  speakSeconds: 60,
+  question: "Do you think companies should allow employees to work from home two days a week?",
 };
 
 describe("buildSpeakingSamplePrompt", () => {
-  it("includes level, topic, and all cue bullets", () => {
-    const prompt = buildSpeakingSamplePrompt(cue, "B1");
-    expect(prompt).toContain("B1");
-    expect(prompt).toContain(cue.topic);
-    expect(prompt).toContain(cue.bullets[0]);
-    expect(prompt).toContain(cue.bullets[2]);
+  it("includes the task type, speak time, and question without IELTS or Part 2", () => {
+    const prompt = buildSpeakingSamplePrompt(cue);
+    expect(prompt).toContain(cue.type);
+    expect(prompt).toContain(cue.question);
+    expect(prompt).toContain("60");
+    expect(prompt).not.toMatch(/IELTS/i);
+    expect(prompt).not.toMatch(/Part 2/i);
   });
 
-  it("asks for two spoken transcripts at the learner's level, not essays", () => {
-    const prompt = buildSpeakingSamplePrompt(cue, "A2");
+  it("asks for two spoken transcripts, not essays", () => {
+    const prompt = buildSpeakingSamplePrompt(cue);
     expect(prompt).toMatch(/two|2/);
-    expect(prompt).toMatch(/150-250|150–250/);
     expect(prompt.toLowerCase()).toMatch(/transcript|spoken|speak/);
     expect(prompt.toLowerCase()).toMatch(/not .+ essay|not an essay|not essay/);
-    expect(prompt).toContain("within level A2");
     expect(prompt.toLowerCase()).toMatch(/different approaches/);
     expect(prompt.toLowerCase()).toMatch(/no stage directions/);
   });

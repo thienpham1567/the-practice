@@ -7,10 +7,12 @@ import {
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import {
-  overallBand,
+  cefrFromScaled,
+  pickSpeakingSpec,
   pickSpeakingTask,
+  practiceScaled,
   speakingFluency,
-  type Level,
+  TOEIC_SCENES,
   type SpeakingTaskType,
 } from "@writing-helper/practice";
 import { AiService, PRACTICE_DEADLINE_MS, PRACTICE_TIMEOUT_MS } from "../ai/ai.service";
@@ -96,7 +98,7 @@ function summarizeRevisionChain(revisions: ListRevisionNode[]): {
 /** Khoá chấm quá 2 phút coi là chết — cho phép chiếm lại. */
 const GRADING_LOCK_STALE_MS = 2 * 60 * 1000;
 
-type CueCardJson = { topic: string; bullets: string[] };
+const REVIEW_LEVEL = "TOEIC";
 
 const SPEAKING_TASK_TYPES: SpeakingTaskType[] = [
   "read-aloud",
@@ -106,10 +108,35 @@ const SPEAKING_TASK_TYPES: SpeakingTaskType[] = [
   "express-opinion",
 ];
 
-function speakingTypeFromDto(dto: CreateSpeakingAttemptDto): SpeakingTaskType {
-  const type = dto.taskType;
-  if (type && SPEAKING_TASK_TYPES.includes(type)) return type;
-  return "express-opinion";
+type CueCardJson = {
+  type: SpeakingTaskType;
+  key: string;
+  prepSeconds: number;
+  speakSeconds: number;
+  maxRaw: number;
+  passage?: string;
+  imageUrl?: string;
+  question?: string;
+  info?: string;
+  infoSeconds?: number;
+  topic?: string;
+  bullets?: string[];
+};
+
+function isGraded(attempt: {
+  submittedAt: Date | null;
+  rawRating: number | null;
+  scale: string;
+  band: number | null;
+}): boolean {
+  if (!attempt.submittedAt) return false;
+  return attempt.rawRating != null || (attempt.scale === "ielts" && attempt.band != null);
+}
+
+function clampRawRating(raw: unknown, maxRaw: number): number {
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(maxRaw, Math.max(0, Math.round(n)));
 }
 
 function recentSpeakingKey(value: unknown): string | null {
@@ -119,11 +146,86 @@ function recentSpeakingKey(value: unknown): string | null {
   return null;
 }
 
+function hasText(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
 function asCueCard(value: unknown): CueCardJson {
-  const card = value as CueCardJson | null;
-  if (!card || typeof card.topic !== "string" || !Array.isArray(card.bullets)) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new BadRequestException("Speaking attempt has an invalid cue card");
   }
+  const card = value as Record<string, unknown>;
+  const type = card.type;
+  if (
+    typeof type !== "string" ||
+    !SPEAKING_TASK_TYPES.includes(type as SpeakingTaskType) ||
+    typeof card.speakSeconds !== "number"
+  ) {
+    throw new BadRequestException("Speaking attempt has an invalid cue card");
+  }
+  const typed = type as SpeakingTaskType;
+  const enough =
+    (typed === "read-aloud" && hasText(card.passage)) ||
+    (typed === "describe-picture" && hasText(card.imageUrl)) ||
+    (typed === "respond-question" && hasText(card.question)) ||
+    (typed === "respond-with-info" && hasText(card.info) && hasText(card.question)) ||
+    (typed === "express-opinion" && hasText(card.question));
+  if (!enough) {
+    throw new BadRequestException("Speaking attempt has an invalid cue card");
+  }
+  return card as CueCardJson;
+}
+
+function speakSecondsFor(
+  type: SpeakingTaskType,
+  specSpeakSeconds: number,
+  dtoSeconds?: 15 | 30,
+): number {
+  if (
+    dtoSeconds != null &&
+    (type === "respond-question" || type === "respond-with-info")
+  ) {
+    return dtoSeconds;
+  }
+  return specSpeakSeconds;
+}
+
+function trimmed(value: string | undefined): string | undefined {
+  const text = value?.trim();
+  return text ? text : undefined;
+}
+
+function buildCueCard(
+  type: SpeakingTaskType,
+  seed: ReturnType<typeof pickSpeakingTask>,
+  spec: ReturnType<typeof pickSpeakingSpec>,
+  speakSeconds: number,
+  generated: GeneratedCueCard,
+): CueCardJson {
+  const card: CueCardJson = {
+    type,
+    key: seed.key,
+    prepSeconds: spec.prepSeconds,
+    speakSeconds,
+    maxRaw: spec.maxRaw,
+  };
+
+  if (type === "read-aloud") {
+    card.passage = trimmed(generated.passage) ?? seed.passage;
+  } else if (type === "describe-picture") {
+    const scene = TOEIC_SCENES.find((item) => item.id === seed.sceneId) ?? TOEIC_SCENES[0];
+    if (!scene) throw new Error("No TOEIC scenes defined");
+    card.imageUrl = scene.imageUrl;
+  } else if (type === "respond-question") {
+    card.question = trimmed(generated.question) ?? seed.question;
+  } else if (type === "respond-with-info") {
+    card.info = trimmed(generated.info) ?? seed.info;
+    card.question = trimmed(generated.question) ?? seed.question;
+    card.infoSeconds = spec.infoSeconds ?? 45;
+  } else {
+    card.question = trimmed(generated.question) ?? seed.question;
+  }
+
   return card;
 }
 
@@ -139,7 +241,7 @@ export class SpeakingService {
 
   async create(userId: string, dto: CreateSpeakingAttemptDto) {
     const recent = await this.prisma.speakingAttempt.findMany({
-      where: { userId, level: dto.level, parentAttemptId: null },
+      where: { userId, parentAttemptId: null },
       orderBy: { startedAt: "desc" },
       take: 10,
       select: { cueCard: true },
@@ -148,12 +250,15 @@ export class SpeakingService {
       .map((row) => recentSpeakingKey(row.cueCard))
       .filter((key): key is string => Boolean(key));
 
-    const type = speakingTypeFromDto(dto);
+    const type = dto.taskType;
     const seed = pickSpeakingTask(type, recentKeys);
+    const spec = pickSpeakingSpec(type);
+    const speakSeconds = speakSecondsFor(type, spec.speakSeconds, dto.speakSeconds);
+    const generateSpec = { ...spec, speakSeconds };
 
     let reviewCandidates: VocabSuggestItem[] = [];
     try {
-      reviewCandidates = await this.vocab.reviewCandidates(userId, dto.level);
+      reviewCandidates = await this.vocab.reviewCandidates(userId);
     } catch (error: unknown) {
       this.logger.warn(
         `event=vocab_review_candidates_failed userId=${userId} ${error instanceof Error ? error.message : "unknown"}`,
@@ -161,7 +266,7 @@ export class SpeakingService {
     }
 
     const generated = await this.ai.complete<GeneratedCueCard>({
-      prompt: buildSpeakingGeneratePrompt(seed, dto.level as Level, reviewCandidates),
+      prompt: buildSpeakingGeneratePrompt(seed, generateSpec, reviewCandidates),
       schema: SPEAKING_GENERATE_SCHEMA,
       maxTokens: 1500,
       timeoutMs: PRACTICE_TIMEOUT_MS,
@@ -169,19 +274,14 @@ export class SpeakingService {
       usage: { userId, endpoint: "speaking.generate" },
     });
 
-    const cueCard = {
-      topic: generated.topic.trim(),
-      bullets: generated.bullets.map((b) => b.trim()).slice(0, 3),
-      key: seed.key,
-      type,
-    };
+    const cueCard = buildCueCard(type, seed, spec, speakSeconds, generated);
     const structure = generated.structure.map((beat) => beat.trim()).slice(0, 5);
     const vocabulary = tagReviewVocabulary(generated.vocabulary, reviewCandidates);
 
     const attempt = await this.prisma.speakingAttempt.create({
       data: {
         userId,
-        level: dto.level,
+        level: REVIEW_LEVEL,
         scale: "toeic",
         taskType: type,
         cueCard: cueCard as Prisma.InputJsonValue,
@@ -191,7 +291,7 @@ export class SpeakingService {
     });
 
     try {
-      await this.vocab.recordSuggested(userId, dto.level, generated.vocabulary);
+      await this.vocab.recordSuggested(userId, REVIEW_LEVEL, generated.vocabulary);
     } catch (error: unknown) {
       this.logger.warn(
         `event=vocab_record_suggested_failed userId=${userId} ${error instanceof Error ? error.message : "unknown"}`,
@@ -249,7 +349,7 @@ export class SpeakingService {
     return this.prisma.$transaction(async (tx) => {
       const parent = await tx.speakingAttempt.findFirst({ where: { id, userId } });
       if (!parent) throw new NotFoundException("Speaking attempt not found");
-      if (!parent.submittedAt || parent.band == null) {
+      if (!isGraded(parent)) {
         throw new ConflictException("Speaking attempt has not been graded yet");
       }
       if (parent.revisionRound >= 2) {
@@ -295,7 +395,7 @@ export class SpeakingService {
 
   async generateSamples(userId: string, id: string) {
     const attempt = await this.findOne(userId, id);
-    if (!attempt.submittedAt || attempt.band == null) {
+    if (!isGraded(attempt)) {
       throw new ConflictException("Speaking attempt has not been graded yet");
     }
     if (attempt.sampleTalks != null) {
@@ -304,7 +404,7 @@ export class SpeakingService {
 
     const cueCard = asCueCard(attempt.cueCard);
     const generated = await this.ai.complete<SpeakingSampleResult>({
-      prompt: buildSpeakingSamplePrompt(cueCard, attempt.level as Level),
+      prompt: buildSpeakingSamplePrompt(cueCard),
       schema: SPEAKING_SAMPLE_SCHEMA,
       maxTokens: 2500,
       timeoutMs: PRACTICE_TIMEOUT_MS,
@@ -324,8 +424,8 @@ export class SpeakingService {
     if (!dto.audioBase64?.trim()) {
       throw new BadRequestException("Audio is required");
     }
-    if (dto.durationMs < 10_000) {
-      throw new BadRequestException("Recording must be at least 10 seconds");
+    if (dto.durationMs < 3_000) {
+      throw new BadRequestException("Recording must be at least 3 seconds");
     }
 
     const attempt = await this.findOne(userId, id);
@@ -350,13 +450,21 @@ export class SpeakingService {
     }
 
     const cueCard = asCueCard(attempt.cueCard);
+    const spec = pickSpeakingSpec(cueCard.type);
+    const maxRaw = cueCard.maxRaw ?? spec.maxRaw;
 
     try {
       const graded = await this.ai.complete<SpeakingGradeResult>({
         prompt: buildSpeakingGradePrompt({
+          type: cueCard.type,
+          speakSeconds: cueCard.speakSeconds,
+          maxRaw,
+          passage: cueCard.passage,
+          question: cueCard.question,
+          info: cueCard.info,
+          imageUrl: cueCard.imageUrl,
           topic: cueCard.topic,
           bullets: cueCard.bullets,
-          level: attempt.level,
         }),
         schema: SPEAKING_GRADE_SCHEMA,
         maxTokens: 4000,
@@ -368,12 +476,9 @@ export class SpeakingService {
 
       const transcript = typeof graded.transcript === "string" ? graded.transcript : "";
       const fluency = speakingFluency(transcript, dto.durationMs);
-      const band = overallBand([
-        graded.scores.fluencyCoherence,
-        graded.scores.lexicalResource,
-        graded.scores.grammaticalRange,
-        graded.scores.pronunciation,
-      ]);
+      const rawRating = clampRawRating(graded.rawRating, maxRaw);
+      const estimatedScaled = practiceScaled(rawRating, maxRaw);
+      const cefrEstimate = cefrFromScaled(estimatedScaled, "speaking");
 
       let marks: Prisma.InputJsonValue | null = null;
       try {
@@ -397,8 +502,12 @@ export class SpeakingService {
           fluency: fluency as unknown as Prisma.InputJsonValue,
           submittedAt: new Date(),
           gradingStartedAt: null,
-          band,
-          scores: graded.scores as unknown as Prisma.InputJsonValue,
+          band: null,
+          rawRating,
+          estimatedScaled,
+          cefrEstimate,
+          scale: "toeic",
+          scores: Prisma.DbNull,
           feedback: graded.feedback as unknown as Prisma.InputJsonValue,
         },
       });

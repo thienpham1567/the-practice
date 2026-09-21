@@ -1298,18 +1298,18 @@ describe("API (e2e)", () => {
   });
 
   describe("speaking", () => {
-    const generatedCue = {
-      topic: "Describe a festival you enjoyed",
-      bullets: ["what the festival was", "who you went with", "why you enjoyed it"],
-    };
+    const generatedQuestion =
+      "Do you think companies should allow employees to work from home two days a week?";
     const generatedPrep = {
-      ...generatedCue,
+      passage: "",
+      question: generatedQuestion,
+      info: "",
       structure: [
-        "Name the festival in one breath",
-        "What it was and when",
-        "Who you went with",
-        "Why you enjoyed it",
-        "Close with how you feel now",
+        "State your view in one breath",
+        "Give a workplace reason",
+        "Give a daily-life reason",
+        "Answer a likely objection",
+        "Close with a clear recommendation",
       ],
       vocabulary: [
         { word: "packed", meaning: "very crowded", example: "The square was packed." },
@@ -1317,20 +1317,16 @@ describe("API (e2e)", () => {
     };
 
     const graded = {
+      rawRating: 5,
       transcript: "Um, I went to a festival last year with my friends and we danced.",
       marks: [{ quote: "Um,", kind: "filler", note: "Filler word." }],
-      scores: {
-        fluencyCoherence: 6,
-        lexicalResource: 6,
-        grammaticalRange: 6,
-        pronunciation: 5,
-      },
       feedback: {
-        fluencyCoherence: "Mostly steady.",
-        lexicalResource: "Adequate words.",
-        grammaticalRange: "Simple sentences.",
-        pronunciation: "Clear enough.",
-        overview: "A fair B1 talk.",
+        pronunciation: "",
+        intonationStress: "",
+        taskAppropriateness: "You answered the question.",
+        delivery: "Mostly steady.",
+        languageUse: "Adequate words.",
+        overview: "A fair opinion talk.",
         nextFocus: "Cut fillers at the start.",
       },
     };
@@ -1367,7 +1363,7 @@ describe("API (e2e)", () => {
 
     it("chặn khi chưa đăng nhập", async () => {
       await server().get("/speaking/attempts").expect(401);
-      await server().post("/speaking/attempts").send({ level: "A2" }).expect(401);
+      await server().post("/speaking/attempts").send({ taskType: "express-opinion" }).expect(401);
     });
 
     it("tạo attempt với cueCard đúng cấu trúc", async () => {
@@ -1378,11 +1374,20 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/speaking/attempts")
         .set(auth)
-        .send({ level: "B1" })
+        .send({ taskType: "express-opinion" })
         .expect(201);
 
-      expect(created.body.level).toBe("B1");
-      expect(created.body.cueCard).toEqual(generatedCue);
+      expect(created.body.level).toBe("TOEIC");
+      expect(created.body.scale).toBe("toeic");
+      expect(created.body.taskType).toBe("express-opinion");
+      expect(created.body.cueCard).toEqual(
+        expect.objectContaining({
+          type: "express-opinion",
+          speakSeconds: 60,
+          maxRaw: 5,
+          question: generatedQuestion,
+        }),
+      );
       expect(created.body.structure).toHaveLength(5);
       expect(created.body.vocabulary[0].word).toBe("packed");
       expect(created.body.hintsOpened).toBe(false);
@@ -1391,7 +1396,7 @@ describe("API (e2e)", () => {
       expect(created.body.startedAt).toEqual(expect.any(String));
     });
 
-    it("audio dưới 10 giây → 400 và không gọi AI chấm", async () => {
+    it("audio dưới 3 giây → 400 và không gọi AI chấm", async () => {
       const fetchSpy = mockSpeakingAi();
       const { accessToken } = await registerUser("speaking-short@example.com");
       const auth = { Authorization: `Bearer ${accessToken}` };
@@ -1399,20 +1404,20 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/speaking/attempts")
         .set(auth)
-        .send({ level: "A2" })
+        .send({ taskType: "express-opinion" })
         .expect(201);
       const generateCalls = fetchSpy.mock.calls.length;
 
       await server()
         .post(`/speaking/attempts/${created.body.id}/submit`)
         .set(auth)
-        .send({ audioBase64: "AAAA", format: "wav", durationMs: 5_000 })
+        .send({ audioBase64: "AAAA", format: "wav", durationMs: 2_999 })
         .expect(400);
 
       expect(fetchSpy.mock.calls.length).toBe(generateCalls);
     });
 
-    it("nộp đủ dài → transcript, marks, band; revise → 201 rồi 409", async () => {
+    it("nộp đủ dài → transcript, marks, practice score; revise → 201 rồi 409", async () => {
       mockSpeakingAi();
       const { accessToken } = await registerUser("speaking-flow@example.com");
       const auth = { Authorization: `Bearer ${accessToken}` };
@@ -1420,7 +1425,7 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/speaking/attempts")
         .set(auth)
-        .send({ level: "B1" })
+        .send({ taskType: "express-opinion" })
         .expect(201);
       const id = created.body.id as string;
 
@@ -1430,7 +1435,9 @@ describe("API (e2e)", () => {
         .send({ audioBase64: "QUFBQUFB", format: "wav", durationMs: 15_000 })
         .expect(201);
 
-      expect(submitted.body.band).toBe(6);
+      expect(submitted.body.band).toBeNull();
+      expect(submitted.body.rawRating).toBe(5);
+      expect(submitted.body.estimatedScaled).toBe(200);
       expect(submitted.body.transcript).toContain("festival");
       expect(submitted.body.marks).toEqual([
         { start: 0, end: 3, kind: "filler", note: "Filler word." },
@@ -1445,7 +1452,7 @@ describe("API (e2e)", () => {
       const listed = await server().get("/speaking/attempts").set(auth).expect(200);
       expect(listed.body.items).toHaveLength(1);
       expect(listed.body.items[0].cueCard).toBeUndefined();
-      expect(listed.body.items[0].band).toBe(6);
+      expect(listed.body.items[0].band).toBeNull();
 
       const revised = await server()
         .post(`/speaking/attempts/${id}/revise`)
@@ -1453,7 +1460,13 @@ describe("API (e2e)", () => {
         .expect(201);
       expect(revised.body.parentAttemptId).toBe(id);
       expect(revised.body.revisionRound).toBe(1);
-      expect(revised.body.cueCard).toEqual(generatedCue);
+      expect(revised.body.cueCard).toEqual(
+        expect.objectContaining({
+          type: "express-opinion",
+          speakSeconds: 60,
+          question: generatedQuestion,
+        }),
+      );
       expect(revised.body.structure).toHaveLength(5);
       expect(revised.body.submittedAt).toBeNull();
 
@@ -1476,7 +1489,7 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/speaking/attempts")
         .set(auth)
-        .send({ level: "B1" })
+        .send({ taskType: "express-opinion" })
         .expect(201);
       const id = created.body.id as string;
       const afterGenerate = fetchSpy.mock.calls.length;

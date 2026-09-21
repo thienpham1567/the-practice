@@ -4,7 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { overallBand } from "@writing-helper/practice";
+import { Prisma } from "@prisma/client";
+import { TOEIC_SCENES } from "@writing-helper/practice";
 import type { AiService } from "../ai/ai.service";
 import type { PrismaService } from "../prisma/prisma.service";
 import { SPEAKING_GRADE_SCHEMA } from "./speaking-grade-prompt";
@@ -12,54 +13,59 @@ import { SPEAKING_GENERATE_SCHEMA } from "./speaking-generate-prompt";
 import { SPEAKING_SAMPLE_SCHEMA } from "./speaking-sample-prompt";
 import { SpeakingService } from "./speaking.service";
 
-const generatedCue = {
-  topic: "Describe a festival you enjoyed",
-  bullets: ["what the festival was", "who you went with", "why you enjoyed it"],
-};
-
 const generatedStructure = [
-  "Name the festival in one breath",
-  "What it was and when",
-  "Who you went with",
-  "Why you enjoyed it",
-  "Close with how you feel now",
+  "State your view in one breath",
+  "Give a workplace reason",
+  "Give a daily-life reason",
+  "Answer a likely objection",
+  "Close with a clear recommendation",
 ];
 
 const generatedVocabulary = [
   { word: "packed", meaning: "very crowded", example: "The square was packed." },
 ];
 
+const generatedQuestion =
+  "Do you think companies should allow employees to work from home two days a week?";
+
 const generatedFull = {
-  ...generatedCue,
+  passage: "",
+  question: generatedQuestion,
+  info: "",
   structure: generatedStructure,
   vocabulary: generatedVocabulary,
 };
 
+const opinionCue = {
+  type: "express-opinion",
+  key: "wfh-two-days",
+  prepSeconds: 45,
+  speakSeconds: 60,
+  maxRaw: 5,
+  question: generatedQuestion,
+};
+
 const graded = {
+  rawRating: 5,
   transcript: "Um, I went to a festival last year with my friends.",
   marks: [
     { quote: "Um,", kind: "filler" as const, note: "Filler at the start." },
     { quote: "missing quote", kind: "grammar" as const, note: "Will be dropped." },
   ],
-  scores: {
-    fluencyCoherence: 6,
-    lexicalResource: 6,
-    grammaticalRange: 6,
-    pronunciation: 5,
-  },
   feedback: {
-    fluencyCoherence: "Mostly steady.",
-    lexicalResource: "Adequate words.",
-    grammaticalRange: "Simple sentences.",
-    pronunciation: "Clear enough.",
-    overview: "A fair B1 talk.",
+    pronunciation: "",
+    intonationStress: "",
+    taskAppropriateness: "You answered the question.",
+    delivery: "Mostly steady.",
+    languageUse: "Adequate words.",
+    overview: "A fair opinion talk.",
     nextFocus: "Cut fillers at the start.",
   },
 };
 
 function serviceWith(
   overrides: {
-    recentTopics?: string[];
+    recentKeys?: string[];
     attempt?: Record<string, unknown> | null;
     findFirstResults?: Array<Record<string, unknown> | null>;
     created?: Record<string, unknown>;
@@ -80,8 +86,8 @@ function serviceWith(
     findMany: jest.fn().mockImplementation(async (args: { select?: { cueCard?: boolean } }) => {
       if (overrides.listRows) return overrides.listRows;
       if (args?.select?.cueCard) {
-        return (overrides.recentTopics ?? []).map((topic) => ({
-          cueCard: { topic, bullets: ["a", "b", "c"] },
+        return (overrides.recentKeys ?? []).map((key) => ({
+          cueCard: { key, type: "express-opinion", speakSeconds: 60 },
         }));
       }
       return [];
@@ -91,7 +97,7 @@ function serviceWith(
           findFirstResults.length > 0 ? findFirstResults.shift()! : null,
         )
       : jest.fn().mockResolvedValue(overrides.attempt ?? null),
-    create: jest.fn().mockResolvedValue(overrides.created ?? { id: "s1", ...generatedCue }),
+    create: jest.fn().mockResolvedValue(overrides.created ?? { id: "s1", ...opinionCue }),
     delete: jest.fn().mockResolvedValue({ id: "s1" }),
     update: jest.fn().mockResolvedValue(overrides.updated ?? { id: "s1" }),
     updateMany: jest.fn().mockImplementation(async () => {
@@ -130,36 +136,108 @@ function serviceWith(
 
 describe("SpeakingService", () => {
   describe("create", () => {
-    it("picks a seed, calls speaking.generate, and stores cue card plus prep notes", async () => {
-      const { service, prisma, complete } = serviceWith({
-        recentTopics: ["Describe a place you like to visit"],
-        created: { id: "s1", level: "A2", cueCard: generatedCue },
+    it("picks a seed, calls speaking.generate, and stores a TOEIC cue card plus prep notes", async () => {
+      const { service, prisma, complete, vocab } = serviceWith({
+        created: { id: "s1", level: "TOEIC", cueCard: opinionCue },
       });
 
-      await service.create("user-1", { level: "A2" });
+      await service.create("user-1", { taskType: "express-opinion" });
 
       expect(complete).toHaveBeenCalledWith(
         expect.objectContaining({
           schema: SPEAKING_GENERATE_SCHEMA,
           maxTokens: 1500,
           usage: { userId: "user-1", endpoint: "speaking.generate" },
-          prompt: expect.stringContaining("A2"),
+          prompt: expect.stringContaining("express-opinion"),
         }),
       );
+      expect(complete.mock.calls[0]![0].prompt).not.toMatch(/IELTS/i);
+      expect(vocab.reviewCandidates).toHaveBeenCalledWith("user-1");
       expect(prisma.speakingAttempt.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             userId: "user-1",
-            level: "A2",
+            level: "TOEIC",
             scale: "toeic",
             taskType: "express-opinion",
-            cueCard: {
-              ...generatedCue,
-              key: "wfh-two-days",
-              type: "express-opinion",
-            },
+            cueCard: opinionCue,
             structure: generatedStructure,
             vocabulary: generatedVocabulary,
+          }),
+        }),
+      );
+      expect(vocab.recordSuggested).toHaveBeenCalledWith(
+        "user-1",
+        "TOEIC",
+        generatedVocabulary,
+      );
+    });
+
+    it("overrides speakSeconds only for respond-question", async () => {
+      const { service, prisma, complete } = serviceWith();
+      complete.mockResolvedValueOnce({
+        ...generatedFull,
+        question: "What time do you usually start work?",
+      });
+
+      await service.create("user-1", { taskType: "respond-question", speakSeconds: 30 });
+
+      expect(prisma.speakingAttempt.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            taskType: "respond-question",
+            cueCard: expect.objectContaining({
+              type: "respond-question",
+              speakSeconds: 30,
+              maxRaw: 3,
+              question: "What time do you usually start work?",
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("defaults respond-with-info to 30s speak and stores infoSeconds 45", async () => {
+      const { service, prisma, complete } = serviceWith();
+      complete.mockResolvedValueOnce({
+        ...generatedFull,
+        info: "Lunch 11:30–14:00. Today's special: grilled fish.",
+        question: "Until what time is lunch served?",
+      });
+
+      await service.create("user-1", { taskType: "respond-with-info" });
+
+      expect(prisma.speakingAttempt.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            cueCard: expect.objectContaining({
+              type: "respond-with-info",
+              speakSeconds: 30,
+              infoSeconds: 45,
+              info: "Lunch 11:30–14:00. Today's special: grilled fish.",
+              question: "Until what time is lunch served?",
+            }),
+          }),
+        }),
+      );
+    });
+
+    it("stores a catalog imageUrl for describe-picture and does not invent an image", async () => {
+      const { service, prisma, complete } = serviceWith();
+
+      await service.create("user-1", { taskType: "describe-picture" });
+
+      expect(complete.mock.calls[0]![0].prompt).toMatch(/do not invent/i);
+      expect(prisma.speakingAttempt.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            taskType: "describe-picture",
+            cueCard: expect.objectContaining({
+              type: "describe-picture",
+              speakSeconds: 30,
+              maxRaw: 3,
+              imageUrl: TOEIC_SCENES[0]!.imageUrl,
+            }),
           }),
         }),
       );
@@ -176,7 +254,7 @@ describe("SpeakingService", () => {
       });
       vocab.reviewCandidates.mockResolvedValueOnce(candidates);
 
-      await service.create("user-1", { level: "A2" });
+      await service.create("user-1", { taskType: "express-opinion" });
 
       expect(prisma.speakingAttempt.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -187,7 +265,7 @@ describe("SpeakingService", () => {
       );
       expect(vocab.recordSuggested).toHaveBeenCalledWith(
         "user-1",
-        "A2",
+        "TOEIC",
         generatedVocabulary,
       );
     });
@@ -198,9 +276,9 @@ describe("SpeakingService", () => {
         recordSuggestedError: new Error("upsert failed"),
       });
 
-      await expect(service.create("user-1", { level: "A2" })).resolves.toEqual(
-        expect.objectContaining({ id: "s1" }),
-      );
+      await expect(
+        service.create("user-1", { taskType: "express-opinion" }),
+      ).resolves.toEqual(expect.objectContaining({ id: "s1" }));
       expect(prisma.speakingAttempt.create).toHaveBeenCalled();
       expect(Logger.prototype.warn).toHaveBeenCalled();
       jest.restoreAllMocks();
@@ -213,7 +291,7 @@ describe("SpeakingService", () => {
         attempt: {
           id: "s1",
           userId: "user-1",
-          cueCard: generatedCue,
+          cueCard: opinionCue,
           parent: { band: 6 },
           revisions: [{ id: "rev-1", submittedAt: null }],
         },
@@ -262,8 +340,10 @@ describe("SpeakingService", () => {
     const draft = {
       id: "s1",
       userId: "user-1",
-      level: "B1",
-      cueCard: generatedCue,
+      level: "TOEIC",
+      scale: "toeic",
+      taskType: "express-opinion",
+      cueCard: opinionCue,
       startedAt: new Date("2026-08-28T10:00:00Z"),
       submittedAt: null,
       gradingStartedAt: null,
@@ -272,14 +352,14 @@ describe("SpeakingService", () => {
       revisions: [] as { id: string; submittedAt: Date | null }[],
     };
 
-    it("rejects short audio before calling AI", async () => {
+    it("rejects audio under 3 seconds before calling AI", async () => {
       const { service, complete } = serviceWith({ attempt: draft });
 
       await expect(
         service.submit("user-1", "s1", {
           audioBase64: "AAAA",
           format: "wav",
-          durationMs: 9_999,
+          durationMs: 2_999,
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(complete).not.toHaveBeenCalled();
@@ -298,10 +378,10 @@ describe("SpeakingService", () => {
       expect(complete).not.toHaveBeenCalled();
     });
 
-    it("computes band server-side, locates marks, and stores fluency", async () => {
+    it("stores TOEIC rawRating and practice scaled score, not an IELTS band", async () => {
       const { service, prisma, complete } = serviceWith({
         attempt: draft,
-        updated: { id: "s1", band: 6 },
+        updated: { id: "s1", rawRating: 5, estimatedScaled: 200, band: null },
       });
       complete.mockResolvedValueOnce(graded);
 
@@ -318,12 +398,17 @@ describe("SpeakingService", () => {
           usage: { userId: "user-1", endpoint: "speaking.grade" },
         }),
       );
-      const expectedBand = overallBand([6, 6, 6, 5]);
+      expect(complete.mock.calls[0]![0].prompt).not.toMatch(/IELTS/i);
+      expect(complete.mock.calls[0]![0].prompt).not.toMatch(/Part 2/i);
       expect(prisma.speakingAttempt.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            band: expectedBand,
-            scores: graded.scores,
+            band: null,
+            rawRating: 5,
+            estimatedScaled: 200,
+            cefrEstimate: "C1",
+            scale: "toeic",
+            scores: Prisma.DbNull,
             feedback: graded.feedback,
             transcript: graded.transcript,
             durationMs: 30_000,
@@ -343,14 +428,13 @@ describe("SpeakingService", () => {
           }),
         }),
       );
-      expect(expectedBand).toBe(6);
     });
 
-    it("saves scores and transcript with marks null when locateMarks throws", async () => {
+    it("saves transcript with marks null when locateMarks throws", async () => {
       jest.spyOn(Logger.prototype, "warn").mockImplementation();
       const { service, prisma, complete } = serviceWith({
         attempt: draft,
-        updated: { id: "s1", band: 6 },
+        updated: { id: "s1", rawRating: 5, estimatedScaled: 200, band: null },
       });
       complete.mockResolvedValueOnce({
         ...graded,
@@ -367,16 +451,16 @@ describe("SpeakingService", () => {
         expect.objectContaining({
           data: expect.objectContaining({
             transcript: graded.transcript,
-            scores: graded.scores,
+            rawRating: 5,
+            estimatedScaled: 200,
+            band: null,
             marks: expect.anything(),
-            band: 6,
           }),
         }),
       );
       const updateData = prisma.speakingAttempt.update.mock.calls[0]![0].data as {
         marks: unknown;
       };
-      // Prisma.DbNull serializes JSON null in the DB
       expect(updateData.marks).toBeTruthy();
       expect(Logger.prototype.warn).toHaveBeenCalled();
       jest.restoreAllMocks();
@@ -435,16 +519,17 @@ describe("SpeakingService", () => {
       const parent = {
         id: "s1",
         userId: "user-1",
-        level: "B1",
-        cueCard: generatedCue,
+        level: "TOEIC",
+        cueCard: opinionCue,
         structure: generatedStructure,
         vocabulary: generatedVocabulary,
         hintsOpened: true,
         submittedAt: new Date(),
-        band: 6,
-        revisionRound: 0,
+        band: null,
+        rawRating: 5,
         scale: "toeic",
         taskType: "express-opinion",
+        revisionRound: 0,
       };
       const { service, prisma, complete } = serviceWith({
         findFirstResults: [parent, null],
@@ -459,7 +544,7 @@ describe("SpeakingService", () => {
           data: expect.objectContaining({
             scale: "toeic",
             taskType: "express-opinion",
-            cueCard: generatedCue,
+            cueCard: opinionCue,
             structure: generatedStructure,
             vocabulary: generatedVocabulary,
             hintsOpened: true,
@@ -488,10 +573,12 @@ describe("SpeakingService", () => {
           {
             id: "s1",
             userId: "user-1",
-            submittedAt: null,
+            submittedAt: new Date(),
             band: null,
+            rawRating: null,
+            scale: "toeic",
             revisionRound: 0,
-            cueCard: generatedCue,
+            cueCard: opinionCue,
           },
         ],
       });
@@ -505,9 +592,11 @@ describe("SpeakingService", () => {
             id: "s1",
             userId: "user-1",
             submittedAt: new Date(),
-            band: 6,
+            band: null,
+            rawRating: 5,
+            scale: "toeic",
             revisionRound: 0,
-            cueCard: generatedCue,
+            cueCard: opinionCue,
           },
           { id: "rev-1" },
         ],
@@ -522,9 +611,11 @@ describe("SpeakingService", () => {
             id: "s1",
             userId: "user-1",
             submittedAt: new Date(),
-            band: 6,
+            band: null,
+            rawRating: 5,
+            scale: "toeic",
             revisionRound: 2,
-            cueCard: generatedCue,
+            cueCard: opinionCue,
           },
         ],
       });
@@ -570,10 +661,13 @@ describe("SpeakingService", () => {
     const gradedAttempt = {
       id: "s1",
       userId: "user-1",
-      level: "B1",
-      cueCard: generatedCue,
+      level: "TOEIC",
+      scale: "toeic",
+      taskType: "express-opinion",
+      cueCard: opinionCue,
       submittedAt: new Date("2026-08-28T10:05:00Z"),
-      band: 6,
+      band: null,
+      rawRating: 5,
       sampleTalks: null,
       parent: null,
       revisions: [] as { id: string; submittedAt: Date | null }[],
@@ -581,7 +675,7 @@ describe("SpeakingService", () => {
 
     it("returns 409 when the attempt has not been graded", async () => {
       const { service, complete } = serviceWith({
-        attempt: { ...gradedAttempt, submittedAt: null, band: null },
+        attempt: { ...gradedAttempt, submittedAt: new Date(), band: null, rawRating: null },
       });
 
       await expect(service.generateSamples("user-1", "s1")).rejects.toBeInstanceOf(
@@ -623,12 +717,12 @@ describe("SpeakingService", () => {
 
       expect(complete).toHaveBeenCalledWith(
         expect.objectContaining({
-          prompt: expect.stringContaining(generatedCue.topic),
+          prompt: expect.stringContaining(generatedQuestion),
           schema: SPEAKING_SAMPLE_SCHEMA,
           usage: { userId: "user-1", endpoint: "speaking.samples" },
         }),
       );
-      expect(complete.mock.calls[0]![0].prompt).toContain("B1");
+      expect(complete.mock.calls[0]![0].prompt).not.toMatch(/IELTS/i);
       expect(prisma.speakingAttempt.update).toHaveBeenCalledWith({
         where: { id: "s1" },
         data: { sampleTalks: ["Talk one.", "Talk two."] },
@@ -643,9 +737,9 @@ describe("SpeakingService", () => {
         listRows: [
           {
             id: "root-1",
-            level: "B1",
-            band: 5.5,
-            durationMs: 90_000,
+            level: "TOEIC",
+            band: null,
+            durationMs: 60_000,
             startedAt: new Date(),
             submittedAt: new Date(),
             revisions: [
