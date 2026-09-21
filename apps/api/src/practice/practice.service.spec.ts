@@ -1174,6 +1174,8 @@ describe("PracticeService", () => {
       band: 6,
       revisionRound: 0,
       parentAttemptId: null,
+      scale: "toeic",
+      taskPayload: { sceneKey: "desk-day" },
     };
 
     it("returns 404 when the attempt is missing or belongs to someone else", async () => {
@@ -1235,7 +1237,9 @@ describe("PracticeService", () => {
         data: {
           userId: "user-1",
           level: "A2",
+          scale: "toeic",
           taskType: "email",
+          taskPayload: gradedParent.taskPayload,
           prompt: "Write to your teacher.",
           ideas: gradedParent.ideas,
           vocabulary: gradedParent.vocabulary,

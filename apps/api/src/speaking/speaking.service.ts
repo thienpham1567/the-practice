@@ -266,6 +266,8 @@ export class SpeakingService {
         data: {
           userId,
           level: parent.level,
+          scale: parent.scale,
+          taskType: parent.taskType,
           cueCard: parent.cueCard as Prisma.InputJsonValue,
           structure: parent.structure as Prisma.InputJsonValue,
           vocabulary: parent.vocabulary as Prisma.InputJsonValue,

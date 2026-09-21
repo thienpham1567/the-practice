@@ -239,7 +239,9 @@ export class PracticeService {
         data: {
           userId,
           level: parent.level,
+          scale: parent.scale,
           taskType: parent.taskType,
+          taskPayload: parent.taskPayload as Prisma.InputJsonValue | undefined,
           prompt: parent.prompt,
           ideas: parent.ideas as Prisma.InputJsonValue,
           vocabulary: parent.vocabulary as Prisma.InputJsonValue,

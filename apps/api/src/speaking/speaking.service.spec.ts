@@ -443,6 +443,8 @@ describe("SpeakingService", () => {
         submittedAt: new Date(),
         band: 6,
         revisionRound: 0,
+        scale: "toeic",
+        taskType: "express-opinion",
       };
       const { service, prisma, complete } = serviceWith({
         findFirstResults: [parent, null],
@@ -455,6 +457,8 @@ describe("SpeakingService", () => {
       expect(prisma.speakingAttempt.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
+            scale: "toeic",
+            taskType: "express-opinion",
             cueCard: generatedCue,
             structure: generatedStructure,
             vocabulary: generatedVocabulary,
