@@ -22,9 +22,10 @@ import {
 } from "../api/practice";
 import { Editor, type EditorChange } from "../editor/Editor";
 import { BandStamp } from "../practice/BandStamp";
+import { ScoreStamp } from "../practice/ScoreStamp";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
-import { CriteriaBars } from "../practice/CriteriaBars";
+import { CriteriaBars, IeltsCriteriaBars, criteriaEntries } from "../practice/CriteriaBars";
 import {
   countWords,
   formatClock,
@@ -529,7 +530,7 @@ function ResultView({
           className="w-[30rem] bg-transparent"
         >
           <div className="px-6 py-8">
-            {attempt.band !== null && (
+            {attempt.scale === "ielts" && attempt.band !== null ? (
               <div className="mb-8">
                 <BandStamp band={attempt.band} level={attempt.level} />
                 {attempt.parentBand != null && (
@@ -538,7 +539,16 @@ function ResultView({
                   </p>
                 )}
               </div>
-            )}
+            ) : attempt.estimatedScaled != null && attempt.rawRating != null ? (
+              <div className="mb-8">
+                <ScoreStamp
+                  estimatedScaled={attempt.estimatedScaled}
+                  rawRating={attempt.rawRating}
+                  maxRaw={spec?.maxRaw ?? 5}
+                  cefrEstimate={attempt.cefrEstimate}
+                />
+              </div>
+            ) : null}
 
             {attempt.feedbackAudit &&
               (attempt.feedbackAudit.criteria.length > 0 ||
@@ -551,9 +561,11 @@ function ResultView({
                 </section>
               )}
 
-            {attempt.scores && attempt.feedback && (
-              <CriteriaBars scores={attempt.scores} feedback={attempt.feedback} />
-            )}
+            {attempt.scale === "ielts" && attempt.scores && attempt.feedback ? (
+              <IeltsCriteriaBars scores={attempt.scores} feedback={attempt.feedback} />
+            ) : attempt.feedback ? (
+              <CriteriaBars entries={criteriaEntries(attempt.feedback)} />
+            ) : null}
 
             {attempt.feedback && (
               <section className="mt-8 border-t border-rule pt-6">

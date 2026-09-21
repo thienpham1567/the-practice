@@ -26,7 +26,7 @@ export function PracticePage() {
   const attempts = useQuery({ queryKey: ["practice-attempts"], queryFn: listAttempts });
 
   const start = useMutation({
-    mutationFn: () => createAttempt({ level }),
+    mutationFn: () => createAttempt({ taskType: "email-request" }),
     onSuccess: (attempt) => void navigate(`/writing/${attempt.id}`),
   });
 
@@ -159,7 +159,7 @@ function PaperBandMeta({
   revisionCount,
 }: {
   band: number | null;
-  level: Level;
+  level: string;
   latestBand: number | null;
   revisionCount: number;
 }) {

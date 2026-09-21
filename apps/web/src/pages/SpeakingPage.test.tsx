@@ -24,6 +24,10 @@ import { deleteSpeakingAttempt, listSpeakingAttempts } from "../api/speaking";
 const rootNoRevisions: SpeakingAttemptSummary = {
   id: "s1",
   level: "B1",
+  scale: "ielts",
+  rawRating: null,
+  estimatedScaled: null,
+  cefrEstimate: null,
   band: 5.5,
   durationMs: 90_000,
   startedAt: "2026-08-25T10:00:00.000Z",

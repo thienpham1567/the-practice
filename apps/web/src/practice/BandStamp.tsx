@@ -1,5 +1,3 @@
-import type { Level } from "@writing-helper/practice";
-
 interface BandStampProps {
   band: number;
   /**
@@ -7,7 +5,7 @@ interface BandStampProps {
    * kèm mức chính là thứ bản này sửa — đề B1 được 7 nghĩa là làm rất tốt một
    * việc dễ, không phải người viết đã lên C1.
    */
-  level: Level;
+  level: string;
   size?: "sm" | "lg";
 }
 

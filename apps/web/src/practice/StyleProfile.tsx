@@ -1,10 +1,9 @@
 import type { AnalysisResult } from "@writing-helper/analysis";
-import type { Level } from "@writing-helper/practice";
 import { readStyleSnapshot } from "./style-snapshot";
 
 interface StyleProfileProps {
   snapshot: AnalysisResult;
-  level: Level;
+  level: string;
 }
 
 /**
@@ -41,14 +40,16 @@ export function StyleProfile({ snapshot, level }: StyleProfileProps) {
   );
 }
 
-function sentenceFit(average: number, level: Level): string {
-  const typical: Record<Level, [number, number]> = {
+function sentenceFit(average: number, level: string): string {
+  const typical: Record<string, [number, number]> = {
     A2: [8, 14],
     B1: [12, 18],
     B2: [15, 22],
     C1: [16, 24],
   };
-  const [low, high] = typical[level];
+  const range = typical[level];
+  if (!range) return `around this length for the task`;
+  const [low, high] = range;
   if (average < low) return `on the short side for ${level}`;
   if (average > high) return `longer than most ${level} scripts`;
   return `a fit for ${level}`;

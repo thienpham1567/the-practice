@@ -70,6 +70,10 @@ const gradedAttempt: PracticeAttemptDetail = {
   id: "a1",
   level: "A2",
   taskType: "email-request",
+  scale: "ielts",
+  rawRating: null,
+  estimatedScaled: null,
+  cefrEstimate: null,
   band: 5.5,
   wordCount: 100,
   hintsOpened: false,
@@ -244,10 +248,10 @@ describe("PracticeAttemptPage ExamRoom revision", () => {
     expect(screen.queryByText(/Time is up/)).toBeNull();
 
     expect(await screen.findByText("Previous feedback")).toBeTruthy();
-    expect(screen.getByText(gradedAttempt.feedback!.taskResponse)).toBeTruthy();
-    expect(screen.getByText(gradedAttempt.feedback!.coherenceCohesion)).toBeTruthy();
-    expect(screen.getByText(gradedAttempt.feedback!.lexicalResource)).toBeTruthy();
-    expect(screen.getByText(gradedAttempt.feedback!.grammaticalRange)).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.taskResponse!)).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.coherenceCohesion!)).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.lexicalResource!)).toBeTruthy();
+    expect(screen.getByText(gradedAttempt.feedback!.grammaticalRange!)).toBeTruthy();
     expect(screen.getByText(gradedAttempt.feedback!.overview)).toBeTruthy();
     expect(screen.getByText(gradedAttempt.feedback!.nextFocus)).toBeTruthy();
   });

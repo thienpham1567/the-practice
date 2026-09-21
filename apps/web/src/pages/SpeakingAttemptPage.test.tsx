@@ -94,7 +94,15 @@ vi.mock("react-router-dom", async (importOriginal) => {
 const openAttempt: SpeakingAttemptDetail = {
   id: "s1",
   level: "B1",
+  scale: "ielts",
+  rawRating: null,
+  estimatedScaled: null,
+  cefrEstimate: null,
   cueCard: {
+    type: "express-opinion",
+    prepSeconds: 60,
+    speakSeconds: 120,
+    maxRaw: 9,
     topic: "Describe a memorable journey",
     bullets: ["where you went", "who you went with", "why it was memorable"],
   },

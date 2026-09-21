@@ -25,6 +25,10 @@ const rootNoRevisions: PracticeAttemptSummary = {
   id: "root-1",
   level: "B1",
   taskType: "email-request",
+  scale: "ielts",
+  rawRating: null,
+  estimatedScaled: null,
+  cefrEstimate: null,
   band: 5.5,
   wordCount: 100,
   hintsOpened: false,
@@ -103,7 +107,7 @@ describe("PracticePage papers list", () => {
     // The revisions branch returns early with only the chain summary, so the
     // level has to come from the row title (matching SpeakingPage's pattern).
     expect(await screen.findByText("5.5 → 6.5 · 2 revisions")).toBeTruthy();
-    expect(await screen.findByText("Email · C1")).toBeTruthy();
+    expect(await screen.findByText("Email response · C1")).toBeTruthy();
   });
 
   it("links to the progress page", async () => {

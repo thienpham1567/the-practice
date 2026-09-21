@@ -10,11 +10,11 @@ import {
   submitSpeakingAttempt,
   updateSpeakingAttempt,
   type SpeakingAttemptDetail,
-  type SpeakingFeedback,
   type SpeakingMark,
-  type SpeakingScores,
 } from "../api/speaking";
 import { BandStamp } from "../practice/BandStamp";
+import { ScoreStamp } from "../practice/ScoreStamp";
+import { CriteriaBars, criteriaEntries } from "../practice/CriteriaBars";
 import { SampleEssays } from "../practice/SampleEssays";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
@@ -295,7 +295,7 @@ function PrepPhase({
       <h1 className="mt-4 font-display text-3xl font-semibold leading-snug">{cue.topic}</h1>
       <p className="mt-3 text-ink-soft">You should say:</p>
       <ul className="mt-3 list-disc space-y-2 pl-5 text-ink">
-        {cue.bullets.map((bullet) => (
+        {(cue.bullets ?? []).map((bullet) => (
           <li key={bullet}>{bullet}</li>
         ))}
       </ul>
@@ -370,7 +370,7 @@ function RecordPhase({
   errorMessage,
   onStop,
 }: {
-  cue: { topic: string; bullets: string[] };
+  cue: SpeakingAttemptDetail["cueCard"];
   durationMs: number;
   level: number;
   errorMessage: string | null;
@@ -558,7 +558,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
           className="w-[22rem] bg-transparent"
         >
           <div className="px-6 py-8">
-            {attempt.band !== null && (
+            {attempt.scale === "ielts" && attempt.band !== null ? (
               <div className="mb-8">
                 <BandStamp band={attempt.band} level={attempt.level} />
                 {attempt.parentBand != null && (
@@ -567,14 +567,25 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
                   </p>
                 )}
               </div>
-            )}
+            ) : attempt.estimatedScaled != null && attempt.rawRating != null ? (
+              <div className="mb-8">
+                <ScoreStamp
+                  estimatedScaled={attempt.estimatedScaled}
+                  rawRating={attempt.rawRating}
+                  maxRaw={attempt.cueCard.maxRaw}
+                  cefrEstimate={attempt.cefrEstimate}
+                />
+              </div>
+            ) : null}
 
-            {attempt.scores && attempt.feedback && (
+            {attempt.scale === "ielts" && attempt.scores && attempt.feedback ? (
               <SpeakingCriteriaBars
-                scores={attempt.scores as SpeakingScores}
-                feedback={attempt.feedback as SpeakingFeedback}
+                scores={attempt.scores}
+                feedback={attempt.feedback}
               />
-            )}
+            ) : attempt.feedback ? (
+              <CriteriaBars entries={criteriaEntries(attempt.feedback)} />
+            ) : null}
 
             {attempt.fluency && (
               <section className="mt-8 border-t border-rule pt-6">

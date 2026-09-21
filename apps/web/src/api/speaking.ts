@@ -1,9 +1,20 @@
-import type { Level } from "@writing-helper/practice";
+import type { SpeakingTaskType } from "@writing-helper/practice";
 import { apiFetch, apiJson } from "./client";
+import type { PracticeScale } from "./practice";
 
 export type SpeakingCueCard = {
-  topic: string;
-  bullets: string[];
+  type: string;
+  prepSeconds: number;
+  speakSeconds: number;
+  maxRaw: number;
+  passage?: string;
+  imageUrl?: string;
+  question?: string;
+  info?: string;
+  infoSeconds?: number;
+  /** Legacy IELTS Part 2 fields. */
+  topic?: string;
+  bullets?: string[];
 };
 
 export type SpeakingScores = {
@@ -14,12 +25,16 @@ export type SpeakingScores = {
 };
 
 export type SpeakingFeedback = {
-  fluencyCoherence: string;
-  lexicalResource: string;
-  grammaticalRange: string;
-  pronunciation: string;
   overview: string;
   nextFocus: string;
+  pronunciation?: string;
+  intonationStress?: string;
+  taskAppropriateness?: string;
+  delivery?: string;
+  languageUse?: string;
+  fluencyCoherence?: string;
+  lexicalResource?: string;
+  grammaticalRange?: string;
 };
 
 export type SpeakingMarkKind = "pronunciation" | "hesitation" | "grammar" | "filler";
@@ -38,7 +53,12 @@ export type SpeakingFluency = {
 
 export interface SpeakingAttemptSummary {
   id: string;
-  level: Level;
+  level: string;
+  taskType?: string;
+  scale: PracticeScale;
+  rawRating: number | null;
+  estimatedScaled: number | null;
+  cefrEstimate: string | null;
   band: number | null;
   durationMs: number | null;
   startedAt: string;
@@ -49,7 +69,12 @@ export interface SpeakingAttemptSummary {
 
 export interface SpeakingAttemptDetail {
   id: string;
-  level: Level;
+  level: string;
+  taskType?: string;
+  scale: PracticeScale;
+  rawRating: number | null;
+  estimatedScaled: number | null;
+  cefrEstimate: string | null;
   cueCard: SpeakingCueCard;
   band: number | null;
   durationMs: number | null;
@@ -71,6 +96,11 @@ export interface SpeakingAttemptDetail {
   sampleTalks: string[] | null;
 }
 
+export interface CreateSpeakingAttemptInput {
+  taskType: SpeakingTaskType;
+  speakSeconds?: 15 | 30;
+}
+
 export interface SubmitSpeakingInput {
   audioBase64: string;
   format: "wav" | "mp3";
@@ -87,7 +117,7 @@ export const listSpeakingAttempts = async () => {
 export const getSpeakingAttempt = (id: string) =>
   apiFetch<SpeakingAttemptDetail>(`/speaking/attempts/${id}`);
 
-export const createSpeakingAttempt = (input: { level: Level }) =>
+export const createSpeakingAttempt = (input: CreateSpeakingAttemptInput) =>
   apiJson<SpeakingAttemptDetail>("/speaking/attempts", "POST", input);
 
 export const submitSpeakingAttempt = (id: string, input: SubmitSpeakingInput) =>

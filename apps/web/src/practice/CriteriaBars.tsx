@@ -1,21 +1,75 @@
-import type { CriterionScores, Feedback } from "@writing-helper/practice";
+import type { CriterionScores } from "@writing-helper/practice";
 
-const CRITERIA: { key: keyof CriterionScores; label: string }[] = [
+export type CriteriaEntry = { label: string; comment: string };
+
+const IELTS_CRITERIA: { key: keyof CriterionScores; label: string }[] = [
   { key: "taskResponse", label: "Task response" },
   { key: "coherenceCohesion", label: "Coherence & cohesion" },
   { key: "lexicalResource", label: "Lexical resource" },
   { key: "grammaticalRange", label: "Grammatical range" },
 ];
 
-interface CriteriaBarsProps {
-  scores: CriterionScores;
-  feedback: Feedback;
+const META_KEYS = new Set(["overview", "nextFocus", "improvements"]);
+
+const ENTRY_LABELS: Record<string, string> = {
+  grammar: "Grammar",
+  relevance: "Relevance",
+  sentenceVariety: "Sentence variety",
+  vocabulary: "Vocabulary",
+  organization: "Organization",
+  opinionSupport: "Opinion support",
+  pronunciation: "Pronunciation",
+  intonationStress: "Intonation & stress",
+  taskAppropriateness: "Task appropriateness",
+  delivery: "Delivery",
+  languageUse: "Language use",
+  taskResponse: "Task response",
+  coherenceCohesion: "Coherence & cohesion",
+  lexicalResource: "Lexical resource",
+  grammaticalRange: "Grammatical range",
+  fluencyCoherence: "Fluency & coherence",
+};
+
+/** Turn a feedback object into comment-only rows, skipping overview/nextFocus. */
+export function criteriaEntries(feedback: object): CriteriaEntry[] {
+  const entries: CriteriaEntry[] = [];
+  for (const [key, value] of Object.entries(feedback)) {
+    if (META_KEYS.has(key) || typeof value !== "string" || !value.trim()) continue;
+    entries.push({ label: ENTRY_LABELS[key] ?? key, comment: value });
+  }
+  return entries;
 }
 
-export function CriteriaBars({ scores, feedback }: CriteriaBarsProps) {
+interface CriteriaBarsProps {
+  entries: CriteriaEntry[];
+}
+
+/** TOEIC criteria: labels + comments only — no 0–9 bars. */
+export function CriteriaBars({ entries }: CriteriaBarsProps) {
   return (
     <ul className="space-y-5">
-      {CRITERIA.map((criterion) => {
+      {entries.map((entry) => (
+        <li key={entry.label}>
+          <h3 className="font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-soft">
+            {entry.label}
+          </h3>
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">{entry.comment}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+interface IeltsCriteriaBarsProps {
+  scores: CriterionScores;
+  feedback: Partial<Record<keyof CriterionScores, string>>;
+}
+
+/** Legacy IELTS 0–9 bars. Only for `scale === "ielts"` attempts. */
+export function IeltsCriteriaBars({ scores, feedback }: IeltsCriteriaBarsProps) {
+  return (
+    <ul className="space-y-5">
+      {IELTS_CRITERIA.map((criterion) => {
         const score = scores[criterion.key];
         return (
           <li key={criterion.key}>

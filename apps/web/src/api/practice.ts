@@ -2,16 +2,40 @@ import type { AnalysisResult } from "@writing-helper/analysis";
 import type {
   CriterionScores,
   Enhancement,
-  Feedback,
-  Level,
   MarkCategory,
   MistakeProfile,
-  TaskType,
   VocabularyItem,
   WritingMark,
+  WritingTaskType,
 } from "@writing-helper/practice";
 import type { SerializedEditorState } from "lexical";
 import { apiFetch, apiJson } from "./client";
+
+export type PracticeScale = "toeic" | "ielts";
+
+export type PracticeTaskPayload = {
+  imageUrl?: string;
+  wordA?: string;
+  wordB?: string;
+  alt?: string;
+} | null;
+
+/** TOEIC comment keys plus leftover IELTS keys on legacy rows. */
+export interface PracticeFeedback {
+  overview: string;
+  nextFocus: string;
+  improvements?: string[];
+  grammar?: string;
+  relevance?: string;
+  sentenceVariety?: string;
+  vocabulary?: string;
+  organization?: string;
+  opinionSupport?: string;
+  taskResponse?: string;
+  coherenceCohesion?: string;
+  lexicalResource?: string;
+  grammaticalRange?: string;
+}
 
 export type FeedbackAuditStatus = "resolved" | "partial" | "unresolved";
 
@@ -35,8 +59,12 @@ export interface RevisionAudit {
 
 export interface PracticeAttemptSummary {
   id: string;
-  level: Level;
-  taskType: TaskType;
+  level: string;
+  taskType: WritingTaskType | string;
+  scale: PracticeScale;
+  rawRating: number | null;
+  estimatedScaled: number | null;
+  cefrEstimate: string | null;
   band: number | null;
   wordCount: number;
   hintsOpened: boolean;
@@ -57,7 +85,8 @@ export interface PracticeAttemptDetail
   content: SerializedEditorState | null;
   plainText: string;
   scores: CriterionScores | null;
-  feedback: Feedback | null;
+  feedback: PracticeFeedback | null;
+  taskPayload?: PracticeTaskPayload;
   styleSnapshot: AnalysisResult | null;
   parentAttemptId: string | null;
   revisionRound: number;
@@ -78,8 +107,7 @@ export interface PracticeAttemptDetail
 }
 
 export interface CreateAttemptInput {
-  level: Level;
-  taskType?: TaskType;
+  taskType: WritingTaskType;
 }
 
 export interface UpdateAttemptInput {

@@ -29,7 +29,7 @@ export function SpeakingPage() {
   });
 
   const start = useMutation({
-    mutationFn: () => createSpeakingAttempt({ level }),
+    mutationFn: () => createSpeakingAttempt({ taskType: "express-opinion" }),
     onSuccess: (attempt) => void navigate(`/speaking/${attempt.id}`),
   });
 
@@ -159,7 +159,7 @@ function TalkBandMeta({
   revisionCount,
 }: {
   band: number | null;
-  level: Level;
+  level: string;
   latestBand: number | null;
   revisionCount: number;
 }) {
