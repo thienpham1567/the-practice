@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { AnalysisResult } from "@writing-helper/analysis";
-import type { WritingMark } from "@writing-helper/practice";
+import { writingDescriptor, type WritingMark } from "@writing-helper/practice";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PracticeAttemptDetail } from "../api/practice";
@@ -805,5 +805,104 @@ describe("PracticeAttemptPage PromptPane watch-for line", () => {
 
     await screen.findByLabelText("Time remaining");
     expect(screen.queryByText(/Watch for:/)).toBeNull();
+  });
+});
+
+const pictureOpen: PracticeAttemptDetail = {
+  ...openAttemptWithReview,
+  id: "pic-1",
+  taskType: "picture-sentence",
+  startedAt: new Date().toISOString(),
+  taskPayload: {
+    imageUrl: "/toeic/office-desk.jpg",
+    wordA: "notebook",
+    wordB: "glass",
+    alt: "A wooden desk with a closed notebook and a glass of water.",
+  },
+};
+
+const toeicGraded: PracticeAttemptDetail = {
+  ...gradedAttempt,
+  scale: "toeic",
+  band: null,
+  rawRating: 4,
+  estimatedScaled: 160,
+  cefrEstimate: "B2",
+  taskType: "opinion-essay",
+};
+
+describe("PracticeAttemptPage TOEIC exam room", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+    vi.mocked(getMistakeProfile).mockResolvedValue({ tallies: [], attemptsConsidered: 0 });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("shows the picture and the two required words, not a 300-word essay target", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(pictureOpen);
+    renderPage("pic-1");
+
+    const image = await screen.findByRole("img", {
+      name: "A wooden desk with a closed notebook and a glass of water.",
+    });
+    expect(image.getAttribute("src")).toBe("/toeic/office-desk.jpg");
+    expect(screen.getByText("notebook")).toBeTruthy();
+    expect(screen.getByText("glass")).toBeTruthy();
+    expect(screen.queryByText(/300/)).toBeNull();
+  });
+
+  it("starts the picture-sentence clock at 90 seconds", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...pictureOpen,
+      startedAt: new Date().toISOString(),
+    });
+    renderPage("pic-1");
+
+    const clock = await screen.findByLabelText("Time remaining");
+    expect(clock.textContent).toMatch(/^1:(29|30)$/);
+  });
+
+  it("opens TOEIC email structure hints, not IELTS Task 2 paragraphing", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(openAttemptWithReview);
+    renderPage("open-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Show hints" }));
+
+    expect(await screen.findByText("Greeting")).toBeTruthy();
+    expect(screen.getByText("Answer each request")).toBeTruthy();
+    expect(screen.getByText("Close")).toBeTruthy();
+    expect(screen.queryByText(/Task 2/)).toBeNull();
+    expect(screen.queryByText(/IELTS/)).toBeNull();
+  });
+
+  it("opens TOEIC essay structure hints", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...openAttemptWithReview,
+      taskType: "opinion-essay",
+    });
+    renderPage("open-1");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Show hints" }));
+
+    expect(await screen.findByText("Position")).toBeTruthy();
+    expect(screen.getByText("Reasons")).toBeTruthy();
+    expect(screen.getByText("Example")).toBeTruthy();
+    expect(screen.getByText("Close")).toBeTruthy();
+    expect(screen.queryByText(/paragraphing/i)).toBeNull();
+  });
+
+  it("shows the writing descriptor next to the practice score stamp", async () => {
+    vi.mocked(getAttempt).mockResolvedValue(toeicGraded);
+    renderPage("a1");
+
+    expect(await screen.findByText("160")).toBeTruthy();
+    expect(screen.getByText(writingDescriptor(160))).toBeTruthy();
+    expect(screen.getByText("Practice score, not an official TOEIC score")).toBeTruthy();
+    expect(screen.queryByText(/Band 5\.5/)).toBeNull();
+    expect(screen.queryByText(/Part 2/)).toBeNull();
   });
 });

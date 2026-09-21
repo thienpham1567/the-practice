@@ -8,7 +8,7 @@ if (!opinion) throw new Error("SPEAKING_TASKS is missing express-opinion");
 
 export const LANDING_HEADLINE = "Sit the paper. Take the turn.";
 export const LANDING_LEDE =
-  "Daily writing and a timed long turn, marked like an examiner.";
+  "Daily TOEIC writing and speaking, marked like an examiner.";
 
 export const LANDING_PAPER = {
   kicker: "Paper · TOEIC email · 10 min",
@@ -52,9 +52,9 @@ export const LANDING_MISTAKES = {
   ],
 } as const;
 
-/** Minh hoạ biểu đồ band. Cũng là hằng, cùng lý do. */
+/** Minh hoạ biểu đồ practice score 0–200. Cũng là hằng, cùng lý do. */
 export const LANDING_TREND = {
   kicker: "Eight weeks",
-  lines: ["A band is one paper.", "A line is a habit."],
-  bands: [5, 5.5, 5.5, 6, 6, 6.5, 6.5, 7],
+  lines: ["A score is one paper.", "A line is a habit."],
+  scores: [120, 130, 140, 150, 160, 160, 170, 180],
 } as const;

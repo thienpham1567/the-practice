@@ -9,7 +9,8 @@ const LOOKBACK_DAYS = 90;
 const SUMMARY_FIELDS = {
   submittedAt: true,
   level: true,
-  band: true,
+  estimatedScaled: true,
+  cefrEstimate: true,
   scores: true,
   styleSnapshot: true,
 } satisfies Prisma.PracticeAttemptSelect;
@@ -17,7 +18,7 @@ const SUMMARY_FIELDS = {
 const SPEAKING_SUMMARY_FIELDS = {
   submittedAt: true,
   level: true,
-  band: true,
+  estimatedScaled: true,
   fluency: true,
 } satisfies Prisma.SpeakingAttemptSelect;
 
@@ -39,6 +40,8 @@ export type ProgressSeriesPoint = {
   band: number;
   scores: ProgressScores;
   per100: ProgressPer100 | null;
+  estimatedScaled?: number | null;
+  cefrEstimate?: string | null;
 };
 
 /** Graded speaking roots only — never mixed into writing `series`. */
@@ -74,7 +77,8 @@ export class ProgressService {
           userId,
           parentAttemptId: null,
           submittedAt: { gte: since },
-          band: { not: null },
+          scale: "toeic",
+          estimatedScaled: { not: null },
         },
         select: SUMMARY_FIELDS,
         orderBy: { submittedAt: "asc" },
@@ -84,7 +88,8 @@ export class ProgressService {
           userId,
           parentAttemptId: null,
           submittedAt: { gte: since },
-          band: { not: null },
+          scale: "toeic",
+          estimatedScaled: { not: null },
         },
         select: SPEAKING_SUMMARY_FIELDS,
         orderBy: { submittedAt: "asc" },
@@ -96,7 +101,9 @@ export class ProgressService {
       return {
         at: submittedAt.toISOString(),
         level: row.level as Level,
-        band: row.band!,
+        band: row.estimatedScaled!,
+        estimatedScaled: row.estimatedScaled,
+        cefrEstimate: row.cefrEstimate,
         scores: mapScores(row.scores),
         per100: per100FromSnapshot(row.styleSnapshot),
       };
@@ -107,7 +114,7 @@ export class ProgressService {
       return {
         at: submittedAt.toISOString(),
         level: row.level as Level,
-        band: row.band!,
+        band: row.estimatedScaled!,
         wordsPerMinute: wordsPerMinuteFromFluency(row.fluency),
       };
     });

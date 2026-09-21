@@ -39,7 +39,8 @@ describe("ProgressService", () => {
         userId: "user-1",
         parentAttemptId: null,
         submittedAt: { gte: expect.any(Date) },
-        band: { not: null },
+        scale: "toeic",
+        estimatedScaled: { not: null },
       });
       expect(writingArg.orderBy).toEqual({ submittedAt: "asc" });
 
@@ -48,7 +49,8 @@ describe("ProgressService", () => {
         userId: "user-1",
         parentAttemptId: null,
         submittedAt: { gte: expect.any(Date) },
-        band: { not: null },
+        scale: "toeic",
+        estimatedScaled: { not: null },
       });
       expect(speakingArg.orderBy).toEqual({ submittedAt: "asc" });
 
@@ -80,7 +82,8 @@ describe("ProgressService", () => {
         {
           submittedAt,
           level: "B1",
-          band: 6.5,
+          estimatedScaled: 160,
+          cefrEstimate: "B2",
           scores,
           styleSnapshot: {
             counts: { passives: 2, adverbs: 5 },
@@ -96,7 +99,9 @@ describe("ProgressService", () => {
         {
           at: submittedAt.toISOString(),
           level: "B1",
-          band: 6.5,
+          band: 160,
+          estimatedScaled: 160,
+          cefrEstimate: "B2",
           scores: { task: 6.5, coherence: 6, lexical: 7, grammar: 5.5 },
           per100: { passives: 0.8, adverbs: 2 },
         },
@@ -110,13 +115,13 @@ describe("ProgressService", () => {
         {
           submittedAt,
           level: "B1",
-          band: 6,
+          estimatedScaled: 160,
           fluency: { wordsPerMinute: 120, fillerCount: 3 },
         },
         {
           submittedAt: new Date("2026-08-21T11:00:00.000Z"),
           level: "B2",
-          band: 6.5,
+          estimatedScaled: 180,
           fluency: null,
         },
       ]);
@@ -128,13 +133,13 @@ describe("ProgressService", () => {
         {
           at: submittedAt.toISOString(),
           level: "B1",
-          band: 6,
+          band: 160,
           wordsPerMinute: 120,
         },
         {
           at: "2026-08-21T11:00:00.000Z",
           level: "B2",
-          band: 6.5,
+          band: 180,
           wordsPerMinute: null,
         },
       ]);
@@ -149,28 +154,32 @@ describe("ProgressService", () => {
         {
           submittedAt,
           level: "A2",
-          band: 5,
+          estimatedScaled: 120,
+          cefrEstimate: "A2",
           scores,
           styleSnapshot: null,
         },
         {
           submittedAt: new Date("2026-08-22T12:00:00.000Z"),
           level: "A2",
-          band: 5.5,
+          estimatedScaled: 130,
+          cefrEstimate: "A2",
           scores,
           styleSnapshot: { counts: { passives: 1 }, stats: { words: 0 } },
         },
         {
           submittedAt: new Date("2026-08-23T12:00:00.000Z"),
           level: "A2",
-          band: 6,
+          estimatedScaled: 140,
+          cefrEstimate: "B1",
           scores,
           styleSnapshot: "not-json-object",
         },
         {
           submittedAt: new Date("2026-08-24T12:00:00.000Z"),
           level: "A2",
-          band: 6,
+          estimatedScaled: 140,
+          cefrEstimate: "B1",
           scores,
           styleSnapshot: { counts: { passives: 1, adverbs: 2 } },
         },
@@ -190,14 +199,16 @@ describe("ProgressService", () => {
         {
           submittedAt: yesterday,
           level: "B1",
-          band: 6,
+          estimatedScaled: 150,
+          cefrEstimate: "B2",
           scores,
           styleSnapshot: null,
         },
         {
           submittedAt: today,
           level: "B1",
-          band: 6.5,
+          estimatedScaled: 160,
+          cefrEstimate: "B2",
           scores,
           styleSnapshot: null,
         },

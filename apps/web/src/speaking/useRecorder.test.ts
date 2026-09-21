@@ -2,6 +2,12 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MAX_RECORDING_MS, recordingSupported, useRecorder } from "./useRecorder";
 
+describe("MAX_RECORDING_MS", () => {
+  it("defaults to a 60-second TOEIC opinion", () => {
+    expect(MAX_RECORDING_MS).toBe(60_000);
+  });
+});
+
 type ProcessorHandler = ((event: { inputBuffer: { getChannelData: (ch: number) => Float32Array } }) => void) | null;
 
 function makeAudioMocks() {
@@ -136,6 +142,28 @@ describe("useRecorder", () => {
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(MAX_RECORDING_MS);
+    });
+
+    await waitFor(() => {
+      expect(result.current.state).toBe("done");
+    });
+  });
+
+  it("auto-stops at a custom maxMs for a 60-second opinion", async () => {
+    const { result } = renderHook(() => useRecorder({ maxMs: 60_000 }));
+
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(result.current.state).toBe("recording");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(59_000);
+    });
+    expect(result.current.state).toBe("recording");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
     });
 
     await waitFor(() => {

@@ -1,6 +1,6 @@
 import type { Level } from "@writing-helper/practice";
 import type { SpeakingProgressPoint } from "../api/progress";
-import { chartDots, polyline, type BandPoint } from "./band-chart";
+import { SCORE_MAX, chartDots, polyline, type BandPoint } from "./band-chart";
 import { bandSeriesByLevel } from "./progress-series";
 
 const WIDTH = 560;
@@ -31,7 +31,7 @@ export function SpeakingProgressCharts({ series }: SpeakingProgressChartsProps) 
       <header>
         <h2 className="font-display text-2xl font-semibold">Speaking</h2>
         <p className="mt-1 text-sm text-ink-soft">
-          Part 2 band and pace, kept apart from writing progress.
+          Practice scores and pace, kept apart from writing progress.
         </p>
       </header>
       <SpeakingBandChart series={series} />
@@ -53,18 +53,18 @@ function SpeakingBandChart({ series }: { series: SpeakingProgressPoint[] }) {
   );
   const levels = LEVEL_ORDER.filter((level) => byLevel.has(level));
   const allTimes = series.map((point) => new Date(point.at).getTime());
-  const scale = { minT: Math.min(...allTimes), maxT: Math.max(...allTimes) };
+  const scale = { minT: Math.min(...allTimes), maxT: Math.max(...allTimes), valueMax: SCORE_MAX };
 
   return (
-    <section aria-label="Speaking band over time">
+    <section aria-label="Speaking score over time">
       <h3 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
-        Band over time
+        Practice score over time
       </h3>
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="mt-4 w-full max-w-full text-ink"
         role="img"
-        aria-label={`Speaking band across ${levels.length} ${levels.length === 1 ? "level" : "levels"}`}
+        aria-label={`Speaking scores across ${levels.length} ${levels.length === 1 ? "level" : "levels"}`}
       >
         <AxisLines />
         {levels.map((level) => {

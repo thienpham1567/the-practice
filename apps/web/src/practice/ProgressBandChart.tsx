@@ -1,5 +1,5 @@
 import type { Level } from "@writing-helper/practice";
-import { chartDots, polyline, type BandPoint } from "./band-chart";
+import { SCORE_MAX, chartDots, polyline, type BandPoint } from "./band-chart";
 import { bandSeriesByLevel } from "./progress-series";
 import type { ProgressSeriesPoint } from "./level-up";
 
@@ -27,19 +27,19 @@ export function ProgressBandChart({ series }: ProgressBandChartProps) {
   const allTimes = series.map((point) => new Date(point.at).getTime());
   const minT = Math.min(...allTimes);
   const maxT = Math.max(...allTimes);
-  const scale = { minT, maxT };
+  const scale = { minT, maxT, valueMax: SCORE_MAX };
 
   return (
-    <section aria-label="Band over time by level">
+    <section aria-label="Practice score over time by level">
       <h2 className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
-        Band over time
+        Practice score over time
       </h2>
 
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="mt-4 w-full text-ink"
         role="img"
-        aria-label={`Band scores across ${levels.length} ${levels.length === 1 ? "level" : "levels"}`}
+        aria-label={`Practice scores across ${levels.length} ${levels.length === 1 ? "level" : "levels"}`}
       >
         <line
           x1="8"

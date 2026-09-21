@@ -3,6 +3,7 @@ import { analyze } from "@writing-helper/analysis";
 import {
   MARK_LABELS,
   TASK_CATALOG,
+  writingDescriptor,
   type MarkCategory,
   type TaskSpec,
   type WritingMark,
@@ -29,9 +30,10 @@ import { CriteriaBars, IeltsCriteriaBars, criteriaEntries } from "../practice/Cr
 import {
   countWords,
   formatClock,
-  remainingSeconds,
+  remainingSecondsFromDuration,
   wordCountTone,
 } from "../practice/exam-math";
+import { isPictureSentence, writingStructure } from "../practice/writing-structure";
 import { FeedbackAuditList } from "../practice/FeedbackAuditList";
 import { FixTheseFirst } from "../practice/FixTheseFirst";
 import { SampleEssays } from "../practice/SampleEssays";
@@ -79,7 +81,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   const [hintsOpen, setHintsOpen] = useState(attempt.hintsOpened);
   const [wordCount, setWordCount] = useState(attempt.wordCount);
   const [remaining, setRemaining] = useState(() =>
-    isRevision ? 0 : remainingSeconds(new Date(attempt.startedAt), spec.timeMinutes),
+    isRevision ? 0 : remainingSecondsFromDuration(new Date(attempt.startedAt), spec.timeSeconds),
   );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(false);
@@ -105,11 +107,11 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
   useEffect(() => {
     if (isRevision) return;
     const tick = () =>
-      setRemaining(remainingSeconds(new Date(attempt.startedAt), spec.timeMinutes));
+      setRemaining(remainingSecondsFromDuration(new Date(attempt.startedAt), spec.timeSeconds));
     tick();
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [attempt.startedAt, isRevision, spec.timeMinutes]);
+  }, [attempt.startedAt, isRevision, spec.timeSeconds]);
 
   useEffect(() => () => clearTimeout(autosaveTimer.current), []);
 
@@ -209,8 +211,17 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
             tone === "under" ? "text-vermilion" : "text-ink-soft"
           }`}
         >
-          {wordCount}/{spec.minWords}–{spec.maxWords}
-          <span className="hidden sm:inline"> words</span>
+          {isPictureSentence(spec.type) ? (
+            <>
+              {wordCount}
+              <span className="hidden sm:inline"> words</span>
+            </>
+          ) : (
+            <>
+              {wordCount}/{spec.minWords}–{spec.maxWords}
+              <span className="hidden sm:inline"> words</span>
+            </>
+          )}
         </span>
 
         <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2 sm:gap-x-4">
@@ -331,10 +342,27 @@ function PromptPane({
   return (
     <div className="prompt-scroll px-6 py-8">
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">{spec.label}</p>
+      {attempt.taskPayload?.imageUrl && (
+        <figure className="mt-4">
+          <img
+            src={attempt.taskPayload.imageUrl}
+            alt={attempt.taskPayload.alt ?? "Practice picture"}
+            className="w-full"
+          />
+          {(attempt.taskPayload.wordA || attempt.taskPayload.wordB) && (
+            <figcaption className="mt-3 flex flex-wrap gap-3 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-soft">
+              {attempt.taskPayload.wordA ? <span>{attempt.taskPayload.wordA}</span> : null}
+              {attempt.taskPayload.wordB ? <span>{attempt.taskPayload.wordB}</span> : null}
+            </figcaption>
+          )}
+        </figure>
+      )}
       <p className="mt-3 text-sm leading-relaxed">{promptBody(attempt.prompt, spec.instruction)}</p>
       <p className="mt-3 text-sm italic leading-relaxed text-ink-soft">{spec.instruction}</p>
       <p className="mt-4 font-mono text-[0.7rem] uppercase tracking-[0.15em] text-ink-faint">
-        {spec.minWords}–{spec.maxWords} words · {spec.timeMinutes} min
+        {isPictureSentence(spec.type)
+          ? `${spec.timeSeconds} seconds`
+          : `${spec.minWords}–${spec.maxWords} words · ${spec.timeMinutes} min`}
       </p>
 
       {parentMarks && (
@@ -370,6 +398,18 @@ function PromptPane({
         </button>
         {hintsOpen && (
           <div className="mt-4 space-y-5 text-sm">
+            {writingStructure(spec.type).length > 0 && (
+              <div>
+                <h3 className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
+                  Structure
+                </h3>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-ink-soft">
+                  {writingStructure(spec.type).map((beat) => (
+                    <li key={beat}>{beat}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div>
               <h3 className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
                 Ideas
@@ -550,6 +590,9 @@ function ResultView({
                   maxRaw={spec?.maxRaw ?? 5}
                   cefrEstimate={attempt.cefrEstimate}
                 />
+                <p className="mt-4 text-sm leading-relaxed text-ink-soft">
+                  {writingDescriptor(attempt.estimatedScaled)}
+                </p>
               </div>
             ) : null}
 

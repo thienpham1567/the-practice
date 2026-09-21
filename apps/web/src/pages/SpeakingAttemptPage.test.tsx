@@ -1,3 +1,4 @@
+import { speakingDescriptor } from "@writing-helper/practice";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useCallback, useState } from "react";
@@ -8,6 +9,7 @@ import { SpeakingAttemptPage } from "./SpeakingAttemptPage";
 
 type RecState = "idle" | "recording" | "done" | "error";
 
+const recorderOpts = vi.hoisted(() => ({ maxMs: undefined as number | undefined }));
 const startSpy = vi.fn();
 const stopSpy = vi.fn();
 const resetSpy = vi.fn();
@@ -19,9 +21,10 @@ const finishConfig = {
 };
 
 vi.mock("../speaking/useRecorder", () => ({
-  MAX_RECORDING_MS: 120_000,
+  MAX_RECORDING_MS: 60_000,
   recordingSupported: () => true,
-  useRecorder: () => {
+  useRecorder: (opts?: { maxMs?: number }) => {
+    recorderOpts.maxMs = opts?.maxMs;
     const [state, setState] = useState<RecState>("idle");
     const [pcm, setPcm] = useState(() => new Float32Array(0));
     const [sampleRate, setSampleRate] = useState(0);
@@ -524,6 +527,154 @@ describe("SpeakingAttemptPage result aids", () => {
     await screen.findByText(/I went to Paris um yesterday/);
     expect(screen.queryByText("Structure")).toBeNull();
     expect(screen.getByRole("button", { name: "See model answers" })).toBeTruthy();
+  });
+});
+
+const toeicOpinion: SpeakingAttemptDetail = {
+  ...openAttempt,
+  scale: "toeic",
+  cueCard: {
+    type: "express-opinion",
+    prepSeconds: 45,
+    speakSeconds: 60,
+    maxRaw: 5,
+    question:
+      "Do you think companies should allow employees to work from home two days a week?",
+  },
+};
+
+describe("SpeakingAttemptPage TOEIC exam room", () => {
+  beforeEach(() => {
+    startSpy.mockClear();
+    stopSpy.mockClear();
+    resetSpy.mockClear();
+    recorderOpts.maxMs = undefined;
+    navigate.mockReset();
+    finishConfig.durationMs = 12_000;
+    finishConfig.silent = false;
+    vi.mocked(getSpeakingAttempt).mockReset();
+    vi.mocked(submitSpeakingAttempt).mockReset();
+    vi.mocked(updateSpeakingAttempt).mockReset();
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:mock-audio"),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("caps express-opinion recording at 60 seconds", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue(toeicOpinion);
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        "Do you think companies should allow employees to work from home two days a week?",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Express an opinion")).toBeTruthy();
+    expect(screen.queryByText(/Part 2/)).toBeNull();
+    expect(recorderOpts.maxMs).toBe(60_000);
+  });
+
+  it("shows a read-aloud passage during prep and record", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      scale: "toeic",
+      cueCard: {
+        type: "read-aloud",
+        prepSeconds: 45,
+        speakSeconds: 45,
+        maxRaw: 3,
+        passage: "Good morning. The staff cafeteria on the second floor will open at seven thirty.",
+      },
+    });
+    renderPage();
+
+    expect(await screen.findByText(/staff cafeteria on the second floor/)).toBeTruthy();
+    expect(screen.getByText("Read a text aloud")).toBeTruthy();
+    expect(screen.queryByText("You should say:")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Skip prep/i }));
+
+    expect(await screen.findByRole("button", { name: /Stop recording/i })).toBeTruthy();
+    expect(screen.getByText(/staff cafeteria on the second floor/)).toBeTruthy();
+    expect(recorderOpts.maxMs).toBe(45_000);
+  });
+
+  it("shows a large describe-picture image and no IELTS bullets", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      scale: "toeic",
+      cueCard: {
+        type: "describe-picture",
+        prepSeconds: 45,
+        speakSeconds: 30,
+        maxRaw: 3,
+        imageUrl: "/toeic/office-desk.jpg",
+      },
+    });
+    renderPage();
+
+    const image = await screen.findByRole("img");
+    expect(image.getAttribute("src")).toBe("/toeic/office-desk.jpg");
+    expect(screen.getByText("Describe a picture")).toBeTruthy();
+    expect(screen.queryByText("You should say:")).toBeNull();
+    expect(screen.queryByText("where you went")).toBeNull();
+    expect(screen.queryByText(/Part 2/)).toBeNull();
+  });
+
+  it("shows the info block before record on respond-with-info", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      scale: "toeic",
+      cueCard: {
+        type: "respond-with-info",
+        prepSeconds: 3,
+        speakSeconds: 30,
+        infoSeconds: 45,
+        maxRaw: 3,
+        info: "City Business Forum — Friday schedule:\n9:15 Keynote: Ms. Elena Park, Hall A",
+        question: "What time does the keynote speech begin, and where is it held?",
+      },
+    });
+    renderPage();
+
+    expect(await screen.findByText(/City Business Forum/)).toBeTruthy();
+    expect(screen.getByText(/9:15 Keynote/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Stop recording/i })).toBeNull();
+    expect(screen.queryByText(/Part 2/)).toBeNull();
+  });
+
+  it("shows the speaking descriptor next to the practice score stamp", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...toeicOpinion,
+      submittedAt: "2026-08-28T10:05:00.000Z",
+      band: null,
+      rawRating: 4,
+      estimatedScaled: 160,
+      cefrEstimate: "B2",
+      transcript: "I think people should work from home two days a week.",
+      feedback: {
+        overview: "A clear opinion.",
+        nextFocus: "Add one workplace example.",
+        taskAppropriateness: "On topic.",
+        delivery: "Steady.",
+        languageUse: "Clear enough.",
+      },
+    });
+    renderPage();
+
+    expect(await screen.findByText("160")).toBeTruthy();
+    expect(screen.getByText(speakingDescriptor(160))).toBeTruthy();
+    expect(screen.getByText("Practice score, not an official TOEIC score")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "See model answers" })).toBeTruthy();
+    expect(screen.queryByText(/Band 5\.5/)).toBeNull();
+    expect(screen.queryByText(/Part 2/)).toBeNull();
   });
 });
 

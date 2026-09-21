@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/** Hard stop for IELTS Part 2 long turn. */
-export const MAX_RECORDING_MS = 120_000;
+/** Default hard stop. Pages pass `maxMs` from the attempt's speakSeconds. */
+export const MAX_RECORDING_MS = 60_000;
 
 export type RecorderState = "idle" | "recording" | "done" | "error";
 
@@ -40,9 +40,11 @@ export function recordingSupported(): boolean {
 
 /**
  * Capture mic audio as Float32 PCM via ScriptProcessorNode.
- * Auto-stops at {@link MAX_RECORDING_MS}. Does not encode — callers use wav-encode.
+ * Auto-stops at `maxMs` (defaults to {@link MAX_RECORDING_MS}).
+ * Does not encode — callers use wav-encode.
  */
-export function useRecorder(): UseRecorderResult {
+export function useRecorder(options?: { maxMs?: number }): UseRecorderResult {
+  const maxMs = options?.maxMs ?? MAX_RECORDING_MS;
   const [state, setState] = useState<RecorderState>("idle");
   const [pcm, setPcm] = useState(() => new Float32Array(0));
   const [sampleRate, setSampleRate] = useState(0);
@@ -201,12 +203,12 @@ export function useRecorder(): UseRecorderResult {
 
     maxTimerRef.current = setTimeout(() => {
       finish();
-    }, MAX_RECORDING_MS);
+    }, maxMs);
 
     tickTimerRef.current = setInterval(() => {
-      setDurationMs(Math.min(MAX_RECORDING_MS, Date.now() - startedAtRef.current));
+      setDurationMs(Math.min(maxMs, Date.now() - startedAtRef.current));
     }, 200);
-  }, [finish]);
+  }, [finish, maxMs]);
 
   const reset = useCallback(() => {
     teardownGraph();

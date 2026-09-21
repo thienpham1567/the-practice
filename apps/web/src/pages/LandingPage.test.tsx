@@ -13,7 +13,7 @@ describe("LandingPage", () => {
 
     expect(screen.getByText("Sit the paper. Take the turn.")).toBeTruthy();
     expect(
-      screen.getByText("Daily writing and a timed long turn, marked like an examiner."),
+      screen.getByText("Daily TOEIC writing and speaking, marked like an examiner."),
     ).toBeTruthy();
     expect(screen.getByText("WEDNESDAY, 26 AUGUST 2026")).toBeTruthy();
 

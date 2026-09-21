@@ -1,6 +1,6 @@
 const BAR_COUNT = 5;
 
-/** Live mic mark shown while Part 2 is recording. */
+/** Live mic mark shown while a speaking turn is recording. */
 export function RecordingPulse({ level }: { level: number }) {
   const meter = Math.min(1, Math.max(0, level));
   /** Quiet speech still moves the bars; room tone stays small. */

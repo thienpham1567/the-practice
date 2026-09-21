@@ -1,3 +1,4 @@
+import { SPEAKING_TASKS, speakingDescriptor } from "@writing-helper/practice";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -10,6 +11,7 @@ import {
   submitSpeakingAttempt,
   updateSpeakingAttempt,
   type SpeakingAttemptDetail,
+  type SpeakingCueCard,
   type SpeakingMark,
 } from "../api/speaking";
 import { BandStamp } from "../practice/BandStamp";
@@ -28,13 +30,15 @@ import { paintSpeakingHighlights, clearSpeakingHighlights } from "../speaking/sp
 import { recordingSupported, useRecorder } from "../speaking/useRecorder";
 import { encodeWav } from "../speaking/wav-encode";
 
-const PREP_SECONDS = 60;
+function speakingTaskLabel(type: string): string {
+  return SPEAKING_TASKS.find((task) => task.type === type)?.label ?? type;
+}
 
 function hasLearnerAids(attempt: SpeakingAttemptDetail): boolean {
   return (attempt.structure?.length ?? 0) > 0 || (attempt.vocabulary?.length ?? 0) > 0;
 }
 
-type Phase = "prep" | "record" | "review";
+type Phase = "info" | "prep" | "record" | "review";
 
 type Capture = {
   pcm: Float32Array;
@@ -67,6 +71,9 @@ export function SpeakingAttemptPage() {
 
 function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
   const queryClient = useQueryClient();
+  const cue = attempt.cueCard;
+  const speakMs = Math.max(1, (cue.speakSeconds ?? 60) * 1000);
+  const hasInfoPhase = Boolean(cue.infoSeconds && cue.info);
   const {
     state: recorderState,
     pcm,
@@ -77,9 +84,10 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
     start,
     stop,
     reset,
-  } = useRecorder();
-  const [phase, setPhase] = useState<Phase>("prep");
-  const [prepLeft, setPrepLeft] = useState(PREP_SECONDS);
+  } = useRecorder({ maxMs: speakMs });
+  const [phase, setPhase] = useState<Phase>(hasInfoPhase ? "info" : "prep");
+  const [infoLeft, setInfoLeft] = useState(cue.infoSeconds ?? 0);
+  const [prepLeft, setPrepLeft] = useState(cue.prepSeconds ?? 45);
   const [capture, setCapture] = useState<Capture | null>(null);
   const [blockMessage, setBlockMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState(false);
@@ -87,8 +95,18 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
   const [hintsOpen, setHintsOpen] = useState(attempt.hintsOpened);
   const enteredRecordRef = useRef(false);
 
-  const cue = attempt.cueCard;
   const isRevision = attempt.revisionRound > 0 || Boolean(attempt.parentAttemptId);
+
+  // Info countdown (respond-with-info reads the block before the 3s prep)
+  useEffect(() => {
+    if (phase !== "info") return;
+    if (infoLeft <= 0) {
+      setPhase("prep");
+      return;
+    }
+    const timer = setTimeout(() => setInfoLeft((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phase, infoLeft]);
 
   // Prep countdown
   useEffect(() => {
@@ -212,7 +230,7 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
           Speaking
         </Link>
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
-          Part 2 · {attempt.level}
+          {speakingTaskLabel(cue.type)}
         </span>
         {isRevision && (
           <span className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-vermilion sm:text-[0.7rem]">
@@ -229,6 +247,10 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
 
       <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-2xl flex-1 flex-col px-4 pb-16 pt-2 sm:px-6">
         <div className="speaking-sheet relative">
+        {phase === "info" && (
+          <InfoPhase cue={cue} secondsLeft={infoLeft} onSkip={() => setPhase("prep")} />
+        )}
+
         {phase === "prep" && (
           <PrepPhase
             attempt={attempt}
@@ -272,6 +294,75 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
   );
 }
 
+function CueBody({ cue, phase }: { cue: SpeakingCueCard; phase: Phase }) {
+  const title = cue.question ?? (phase === "info" ? undefined : cue.topic);
+  const showLegacyBullets =
+    phase === "prep" &&
+    !cue.passage &&
+    !cue.imageUrl &&
+    !cue.question &&
+    (cue.bullets?.length ?? 0) > 0;
+
+  return (
+    <>
+      {cue.imageUrl && (
+        <img
+          src={cue.imageUrl}
+          alt="Picture to describe"
+          className="mt-4 w-full max-w-xl"
+        />
+      )}
+      {cue.passage && (phase === "prep" || phase === "record") && (
+        <p className="mt-4 whitespace-pre-wrap font-body text-lg leading-relaxed">{cue.passage}</p>
+      )}
+      {cue.info && (phase === "info" || phase === "prep" || phase === "record") && (
+        <pre className="mt-4 whitespace-pre-wrap font-body text-base leading-relaxed text-ink">
+          {cue.info}
+        </pre>
+      )}
+      {title && phase !== "info" && (
+        <h1 className="mt-4 font-display text-3xl font-semibold leading-snug">{title}</h1>
+      )}
+      {showLegacyBullets && (
+        <>
+          <p className="mt-3 text-ink-soft">You should say:</p>
+          <ul className="mt-3 list-disc space-y-2 pl-5 text-ink">
+            {cue.bullets!.map((bullet) => (
+              <li key={bullet}>{bullet}</li>
+            ))}
+          </ul>
+        </>
+      )}
+    </>
+  );
+}
+
+function InfoPhase({
+  cue,
+  secondsLeft,
+  onSkip,
+}: {
+  cue: SpeakingCueCard;
+  secondsLeft: number;
+  onSkip: () => void;
+}) {
+  return (
+    <section className="animate-fade-up">
+      <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
+        Information · {formatClock(secondsLeft)}
+      </p>
+      <CueBody cue={cue} phase="info" />
+      <button
+        type="button"
+        onClick={onSkip}
+        className="mt-10 min-h-11 bg-ink px-5 py-3 font-mono text-[0.75rem] uppercase tracking-[0.18em] text-paper transition-colors hover:bg-vermilion"
+      >
+        Skip
+      </button>
+    </section>
+  );
+}
+
 function PrepPhase({
   attempt,
   secondsLeft,
@@ -292,13 +383,7 @@ function PrepPhase({
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
         Preparation · {formatClock(secondsLeft)}
       </p>
-      <h1 className="mt-4 font-display text-3xl font-semibold leading-snug">{cue.topic}</h1>
-      <p className="mt-3 text-ink-soft">You should say:</p>
-      <ul className="mt-3 list-disc space-y-2 pl-5 text-ink">
-        {(cue.bullets ?? []).map((bullet) => (
-          <li key={bullet}>{bullet}</li>
-        ))}
-      </ul>
+      <CueBody cue={cue} phase="prep" />
       {hasLearnerAids(attempt) && (
         <div className="mt-8 border-t border-rule pt-6">
           <button
@@ -388,7 +473,7 @@ function RecordPhase({
         {formatClock(seconds)}
       </p>
       <RecordingPulse level={level} />
-      <p className="mt-8 font-display text-xl leading-snug text-ink-soft">{cue.topic}</p>
+      <CueBody cue={cue} phase="record" />
       {errorMessage ? (
         <p className="mt-6 text-sm text-vermilion">{errorMessage}</p>
       ) : (
@@ -512,7 +597,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
           Speaking
         </Link>
         <span className="min-w-0 truncate font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint sm:text-[0.7rem]">
-          Part 2 · {attempt.level}
+          {speakingTaskLabel(attempt.cueCard.type)}
         </span>
         <button
           ref={scoresTriggerRef}
@@ -578,6 +663,9 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
                   maxRaw={attempt.cueCard.maxRaw}
                   cefrEstimate={attempt.cefrEstimate}
                 />
+                <p className="mt-4 text-sm leading-relaxed text-ink-soft">
+                  {speakingDescriptor(attempt.estimatedScaled)}
+                </p>
               </div>
             ) : null}
 

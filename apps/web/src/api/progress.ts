@@ -19,6 +19,8 @@ export type ProgressSeriesPoint = {
   band: number;
   scores: ProgressScores;
   per100: ProgressPer100 | null;
+  estimatedScaled?: number | null;
+  cefrEstimate?: string | null;
 };
 
 /** Graded speaking roots — kept apart from writing `series`. */

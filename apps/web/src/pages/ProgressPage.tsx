@@ -66,7 +66,7 @@ export function ProgressPage() {
                 <section aria-label="Writing progress" className="min-w-0 space-y-12">
                   <header>
                     <h2 className="font-display text-2xl font-semibold">Writing</h2>
-                    <p className="mt-1 text-sm text-ink-soft">Band, criteria, and style across graded papers.</p>
+                    <p className="mt-1 text-sm text-ink-soft">Practice scores, criteria, and style across graded papers.</p>
                   </header>
                   <div className="animate-fade-up" style={{ animationDelay: "80ms" }}>
                     <ProgressBandChart series={series} />
