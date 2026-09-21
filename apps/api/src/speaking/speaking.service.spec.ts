@@ -151,6 +151,8 @@ describe("SpeakingService", () => {
           data: expect.objectContaining({
             userId: "user-1",
             level: "A2",
+            scale: "toeic",
+            taskType: "express-opinion",
             cueCard: {
               ...generatedCue,
               key: "wfh-two-days",

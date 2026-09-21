@@ -152,6 +152,7 @@ export class PracticeService {
       data: {
         userId,
         level: dto.level,
+        scale: "toeic",
         taskType: chosen.type,
         // Chỉ lưu tình huống. Khung yêu cầu cố định của dạng bài đã đi kèm
         // `TaskSpec`, nên cả hai prompt chấm lẫn giao diện đều tự lấy được —

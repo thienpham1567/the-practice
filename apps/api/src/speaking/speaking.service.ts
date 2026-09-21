@@ -182,6 +182,8 @@ export class SpeakingService {
       data: {
         userId,
         level: dto.level,
+        scale: "toeic",
+        taskType: type,
         cueCard: cueCard as Prisma.InputJsonValue,
         structure: structure as Prisma.InputJsonValue,
         vocabulary: vocabulary as Prisma.InputJsonValue,

@@ -90,6 +90,12 @@ model PracticeAttempt {
   submittedAt    DateTime?
   elapsedSeconds Int?
 
+  scale           String  @default("ielts")
+  rawRating       Int?
+  estimatedScaled Int?
+  cefrEstimate    String?
+  taskPayload     Json?
+
   band          Float?
   scores        Json?
   feedback      Json?
@@ -156,6 +162,12 @@ model SpeakingAttempt {
   /// Chiếm khoá trước khi gọi AI — chống double-submit tính tiền hai lần.
   gradingStartedAt DateTime?
   submittedAt      DateTime?
+
+  scale           String  @default("ielts")
+  rawRating       Int?
+  estimatedScaled Int?
+  cefrEstimate    String?
+  taskType        String?
 
   band     Float?
   /// { fluencyCoherence, lexicalResource, grammaticalRange, pronunciation }

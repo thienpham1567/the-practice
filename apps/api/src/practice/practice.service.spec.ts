@@ -117,6 +117,7 @@ describe("PracticeService", () => {
           data: expect.objectContaining({
             userId: "user-1",
             level: "A2",
+            scale: "toeic",
             taskType: "describe-experience",
             ideas: generated.ideas,
             vocabulary: generated.vocabulary,
