@@ -469,6 +469,9 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
 
   const action = reviseAction({
     band: attempt.band,
+    scale: attempt.scale,
+    rawRating: attempt.rawRating,
+    estimatedScaled: attempt.estimatedScaled,
     submittedAt: attempt.submittedAt,
     revisionRound: attempt.revisionRound,
     hasRevision: attempt.hasRevision,

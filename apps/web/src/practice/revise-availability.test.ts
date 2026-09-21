@@ -9,6 +9,8 @@ import {
 describe("reviseAction", () => {
   const graded = {
     band: 6.0,
+    scale: "ielts" as const,
+    rawRating: null as number | null,
     submittedAt: "2026-08-27T10:00:00Z",
     revisionRound: 0,
     hasRevision: false,
@@ -43,8 +45,37 @@ describe("reviseAction", () => {
     expect(reviseAction({ ...graded, revisionRound: 2 })).toEqual({ kind: "none" });
   });
 
-  it("returns none when band is null", () => {
+  it("returns none when an IELTS attempt has no band", () => {
     expect(reviseAction({ ...graded, band: null })).toEqual({ kind: "none" });
+  });
+
+  it("returns revise for a TOEIC attempt with rawRating and no band", () => {
+    expect(
+      reviseAction({
+        band: null,
+        scale: "toeic",
+        rawRating: 4,
+        estimatedScaled: 160,
+        submittedAt: "2026-08-27T10:00:00Z",
+        revisionRound: 0,
+        hasRevision: false,
+        pendingRevisionId: null,
+      }),
+    ).toEqual({ kind: "revise" });
+  });
+
+  it("still caps TOEIC revisions at two rounds", () => {
+    expect(
+      reviseAction({
+        band: null,
+        scale: "toeic",
+        rawRating: 4,
+        submittedAt: "2026-08-27T10:00:00Z",
+        revisionRound: 2,
+        hasRevision: false,
+        pendingRevisionId: null,
+      }),
+    ).toEqual({ kind: "none" });
   });
 
   it("returns none when not yet submitted", () => {
@@ -70,6 +101,8 @@ describe("reviseAction", () => {
 describe("canRevise", () => {
   const graded = {
     band: 6.0,
+    scale: "ielts" as const,
+    rawRating: null as number | null,
     submittedAt: "2026-08-27T10:00:00Z",
     revisionRound: 0,
     hasRevision: false,

@@ -1,5 +1,8 @@
 export type ReviseAttempt = {
   band: number | null;
+  scale?: "toeic" | "ielts";
+  rawRating?: number | null;
+  estimatedScaled?: number | null;
   submittedAt: string | Date | null;
   revisionRound: number;
   /** True when a child attempt already points at this one. Defaults to false. */
@@ -7,6 +10,11 @@ export type ReviseAttempt = {
   /** Unsubmitted child revision id, when one exists. Defaults to null. */
   pendingRevisionId?: string | null;
 };
+
+function isGraded(attempt: ReviseAttempt): boolean {
+  if (attempt.rawRating != null) return true;
+  return attempt.scale === "ielts" && attempt.band != null;
+}
 
 export type ReviseAction =
   | { kind: "revise" }
@@ -20,7 +28,7 @@ export type ReviseAction =
  * - none: max rounds, or a submitted child already closes the slot
  */
 export function reviseAction(attempt: ReviseAttempt): ReviseAction {
-  if (attempt.band == null || attempt.submittedAt == null) {
+  if (!isGraded(attempt) || attempt.submittedAt == null) {
     return { kind: "none" };
   }
 
