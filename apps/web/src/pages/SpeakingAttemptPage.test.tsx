@@ -243,8 +243,8 @@ describe("SpeakingAttemptPage phases", () => {
     expect(screen.getByRole("button", { name: /Record again/i })).toBeTruthy();
   });
 
-  it("blocks submit when the clip is too short", async () => {
-    finishConfig.durationMs = 5_000;
+  it("blocks submit when the clip is under 3 seconds", async () => {
+    finishConfig.durationMs = 2_000;
     vi.mocked(getSpeakingAttempt).mockResolvedValue(openAttempt);
     renderPage();
     fireEvent.click(await screen.findByRole("button", { name: /Skip prep/i }));
@@ -253,7 +253,7 @@ describe("SpeakingAttemptPage phases", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /^Submit$/i }));
 
-    expect(await screen.findByText(/at least 10 seconds/i)).toBeTruthy();
+    expect(await screen.findByText(/at least 3 seconds/i)).toBeTruthy();
     expect(submitSpeakingAttempt).not.toHaveBeenCalled();
   });
 
@@ -626,9 +626,61 @@ describe("SpeakingAttemptPage TOEIC exam room", () => {
     expect(screen.queryByText("You should say:")).toBeNull();
     expect(screen.queryByText("where you went")).toBeNull();
     expect(screen.queryByText(/Part 2/)).toBeNull();
+    expect(recorderOpts.maxMs).toBe(30_000);
   });
 
-  it("shows the info block before record on respond-with-info", async () => {
+  it("caps respond-question recording at 15 seconds", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      scale: "toeic",
+      cueCard: {
+        type: "respond-question",
+        prepSeconds: 3,
+        speakSeconds: 15,
+        maxRaw: 3,
+        question: "What time do you usually start work, and why?",
+      },
+    });
+    renderPage();
+
+    expect(await screen.findByText("What time do you usually start work, and why?")).toBeTruthy();
+    expect(recorderOpts.maxMs).toBe(15_000);
+
+    fireEvent.click(screen.getByRole("button", { name: /Skip prep/i }));
+    expect(await screen.findByLabelText("Time remaining")).toHaveTextContent("0:15");
+  });
+
+  it("lets a 5-second answer to a 15-second question be submitted", async () => {
+    finishConfig.durationMs = 5_000;
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      scale: "toeic",
+      cueCard: {
+        type: "respond-question",
+        prepSeconds: 3,
+        speakSeconds: 15,
+        maxRaw: 3,
+        question: "How do you usually get to the office?",
+      },
+    });
+    vi.mocked(submitSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      submittedAt: "2026-08-28T10:05:00.000Z",
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /Skip prep/i }));
+    await screen.findByRole("button", { name: /Stop recording/i });
+    fireEvent.click(screen.getByRole("button", { name: /Stop recording/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Submit$/i }));
+
+    await waitFor(() => {
+      expect(submitSpeakingAttempt).toHaveBeenCalled();
+    });
+    expect(screen.queryByText(/at least 3 seconds/i)).toBeNull();
+  });
+
+  it("shows the info block for 45s, then prep, then a 30s record cap", async () => {
     vi.mocked(getSpeakingAttempt).mockResolvedValue({
       ...openAttempt,
       scale: "toeic",
@@ -644,10 +696,27 @@ describe("SpeakingAttemptPage TOEIC exam room", () => {
     });
     renderPage();
 
-    expect(await screen.findByText(/City Business Forum/)).toBeTruthy();
+    expect(await screen.findByText(/Information · 0:45/)).toBeTruthy();
+    expect(screen.getByText(/City Business Forum/)).toBeTruthy();
     expect(screen.getByText(/9:15 Keynote/)).toBeTruthy();
+    expect(
+      screen.queryByText("What time does the keynote speech begin, and where is it held?"),
+    ).toBeNull();
     expect(screen.queryByRole("button", { name: /Stop recording/i })).toBeNull();
     expect(screen.queryByText(/Part 2/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Skip$/i }));
+
+    expect(await screen.findByText(/Preparation/)).toBeTruthy();
+    expect(
+      screen.getByText("What time does the keynote speech begin, and where is it held?"),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Skip prep/i }));
+
+    expect(await screen.findByRole("button", { name: /Stop recording/i })).toBeTruthy();
+    expect(screen.getByLabelText("Time remaining").textContent).toMatch(/0:30/);
+    expect(recorderOpts.maxMs).toBe(30_000);
   });
 
   it("shows the speaking descriptor next to the practice score stamp", async () => {

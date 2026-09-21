@@ -1,5 +1,5 @@
-/** Minimum speaking length the API accepts — mirror server `Min(10_000)`. */
-export const MIN_SPEAKING_DURATION_MS = 10_000;
+/** Minimum speaking length the API accepts — mirror server `Min(3_000)`. */
+export const MIN_SPEAKING_DURATION_MS = 3_000;
 
 /**
  * RMS below this is treated as mic silence / near-silence.

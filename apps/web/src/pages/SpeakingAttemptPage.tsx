@@ -193,7 +193,7 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
     setSubmitError(false);
     const reason = recordingBlockReason(capture.pcm, capture.durationMs);
     if (reason === "too-short") {
-      setBlockMessage("Speak for at least 10 seconds before submitting.");
+      setBlockMessage("Speak for at least 3 seconds before submitting.");
       return;
     }
     if (reason === "silent") {
@@ -462,16 +462,19 @@ function RecordPhase({
   errorMessage: string | null;
   onStop: () => void;
 }) {
-  const seconds = Math.floor(durationMs / 1000);
+  const speakSeconds = cue.speakSeconds ?? 60;
+  const elapsed = Math.floor(durationMs / 1000);
+  const remaining = Math.max(0, speakSeconds - elapsed);
 
   return (
     <section className="animate-fade-up">
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">Recording</p>
       <p
         className="mt-4 font-display text-5xl tabular-nums tracking-tight"
-        aria-label="Recording time"
+        aria-label="Time remaining"
       >
-        {formatClock(seconds)}
+        {formatClock(remaining)}
+        <span className="ml-3 font-mono text-lg text-ink-faint">/ {formatClock(speakSeconds)}</span>
       </p>
       <RecordingPulse level={level} />
       <CueBody cue={cue} phase="record" />

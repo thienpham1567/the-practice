@@ -36,8 +36,13 @@ describe("recordingBlockReason", () => {
     return pcm;
   })();
 
-  it("blocks recordings shorter than 10 seconds", () => {
+  it("matches the API 3-second floor", () => {
+    expect(MIN_SPEAKING_DURATION_MS).toBe(3_000);
+  });
+
+  it("blocks recordings shorter than 3 seconds", () => {
     expect(recordingBlockReason(loud, MIN_SPEAKING_DURATION_MS - 1)).toBe("too-short");
+    expect(recordingBlockReason(loud, 2_999)).toBe("too-short");
   });
 
   it("blocks silent recordings even when long enough", () => {
@@ -46,7 +51,11 @@ describe("recordingBlockReason", () => {
     );
   });
 
-  it("allows a loud recording of at least 10 seconds", () => {
+  it("allows a loud 5-second clip from a 15-second question", () => {
+    expect(recordingBlockReason(loud, 5_000)).toBeNull();
+  });
+
+  it("allows a loud recording of at least 3 seconds", () => {
     expect(recordingBlockReason(loud, MIN_SPEAKING_DURATION_MS)).toBeNull();
   });
 
