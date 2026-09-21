@@ -550,10 +550,7 @@ export class PracticeService {
       select: { taskType: true },
     });
 
-    return pickTask(
-      level,
-      recent.map((row) => row.taskType as TaskType),
-    );
+    return pickTask(recent.map((row) => row.taskType as TaskType));
   }
 
   private resolveTask(level: Level, taskType: TaskType): TaskSpec {

@@ -4,6 +4,7 @@ import {
   formatClock,
   lastFourteenDays,
   remainingSeconds,
+  remainingSecondsFromDuration,
   wordCountTone,
 } from "./exam-math";
 
@@ -33,6 +34,20 @@ describe("remainingSeconds", () => {
     const startedAt = new Date("2026-08-25T10:00:00Z");
     const now = new Date("2026-08-25T10:30:00Z");
     expect(remainingSeconds(startedAt, 20, now)).toBe(0);
+  });
+});
+
+describe("remainingSecondsFromDuration", () => {
+  it("counts down using seconds, so a 90-second picture task is exact", () => {
+    const startedAt = new Date("2026-08-25T10:00:00Z");
+    const now = new Date("2026-08-25T10:00:30Z");
+    expect(remainingSecondsFromDuration(startedAt, 90, now)).toBe(60);
+  });
+
+  it("stops at zero instead of going negative", () => {
+    const startedAt = new Date("2026-08-25T10:00:00Z");
+    const now = new Date("2026-08-25T10:02:00Z");
+    expect(remainingSecondsFromDuration(startedAt, 90, now)).toBe(0);
   });
 });
 

@@ -15,9 +15,17 @@ export function lastFourteenDays(submittedDates: Date[], now: Date = new Date())
   });
 }
 
-export function remainingSeconds(startedAt: Date, timeMinutes: number, now: Date = new Date()): number {
-  const deadline = startedAt.getTime() + timeMinutes * 60_000;
+export function remainingSecondsFromDuration(
+  startedAt: Date,
+  timeSeconds: number,
+  now: Date = new Date(),
+): number {
+  const deadline = startedAt.getTime() + timeSeconds * 1000;
   return Math.max(0, Math.round((deadline - now.getTime()) / 1000));
+}
+
+export function remainingSeconds(startedAt: Date, timeMinutes: number, now: Date = new Date()): number {
+  return remainingSecondsFromDuration(startedAt, timeMinutes * 60, now);
 }
 
 export function formatClock(totalSeconds: number): string {

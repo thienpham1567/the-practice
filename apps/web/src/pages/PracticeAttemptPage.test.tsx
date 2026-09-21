@@ -69,7 +69,7 @@ import {
 const gradedAttempt: PracticeAttemptDetail = {
   id: "a1",
   level: "A2",
-  taskType: "email",
+  taskType: "email-request",
   band: 5.5,
   wordCount: 100,
   hintsOpened: false,

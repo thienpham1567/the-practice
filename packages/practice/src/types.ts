@@ -1,21 +1,19 @@
 export type Level = "A2" | "B1" | "B2" | "C1";
 
-export type TaskType =
-  | "email"
-  | "describe-experience"
-  | "letter"
-  | "review"
-  | "opinion-essay"
-  | "discussion-essay"
-  | "problem-solution"
-  | "report";
+export type WritingTaskType =
+  | "picture-sentence"
+  | "email-request"
+  | "opinion-essay";
+
+export type TaskType = WritingTaskType; // new catalog; old ielts strings may still exist on DB rows
 
 export interface TaskSpec {
   type: TaskType;
-  levels: Level[];
   minWords: number;
   maxWords: number;
   timeMinutes: number;
+  timeSeconds: number;
+  maxRaw: 3 | 4 | 5;
   label: string;
   /** Fixed task frame. The model invents the topic, not this instruction. */
   instruction: string;

@@ -1,17 +1,16 @@
-import { tasksForLevel } from "./task-catalog";
-import type { Level, TaskSpec, TaskType } from "./types";
+import { TASK_CATALOG } from "./task-catalog";
+import type { TaskSpec, WritingTaskType } from "./types";
 
 /**
- * Rotate through the types available at this level, skipping ones the writer
- * has just done. If every type is recent, still return one so practice can start.
+ * Rotate through writing types, skipping ones the writer has just done.
+ * If every type is recent, still return one so practice can start.
  */
-export function pickTask(level: Level, recentTypes: TaskType[]): TaskSpec {
-  const available = tasksForLevel(level);
-  const unused = available.filter((task) => !recentTypes.includes(task.type));
-  const pool = unused.length > 0 ? unused : available;
+export function pickTask(recentTypes: WritingTaskType[]): TaskSpec {
+  const unused = TASK_CATALOG.filter((task) => !recentTypes.includes(task.type));
+  const pool = unused.length > 0 ? unused : TASK_CATALOG;
   const picked = pool[0];
   if (!picked) {
-    throw new Error(`No practice tasks defined for level ${level}`);
+    throw new Error("No practice tasks defined");
   }
   return picked;
 }

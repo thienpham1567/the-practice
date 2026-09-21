@@ -12,12 +12,13 @@ export type {
   TaskType,
   VocabularyItem,
   WritingMark,
+  WritingTaskType,
 } from "./types";
 
 export type { SpeakingCueCard } from "./speaking-catalog";
 export type { SpeakingFluency } from "./speaking-fluency";
 
-export { TASK_CATALOG, tasksForLevel } from "./task-catalog";
+export { TASK_CATALOG } from "./task-catalog";
 export { SPEAKING_CATALOG, speakingTasksForLevel } from "./speaking-catalog";
 export { pickTask } from "./pick-task";
 export { pickSpeakingTask } from "./pick-speaking-task";

@@ -1,80 +1,36 @@
-import type { Level, TaskSpec } from "./types";
+import type { TaskSpec } from "./types";
 
 export const TASK_CATALOG: TaskSpec[] = [
   {
-    type: "email",
-    levels: ["A2", "B1"],
-    minWords: 80,
-    maxWords: 120,
-    timeMinutes: 20,
-    label: "Email",
-    instruction: "Write an email to a specific person for a given purpose.",
+    type: "picture-sentence",
+    minWords: 1,
+    maxWords: 40,
+    timeMinutes: 1.5,
+    timeSeconds: 90,
+    label: "Picture sentence",
+    maxRaw: 3,
+    instruction:
+      "Write one sentence about the picture. You must use both given words (you may change their form).",
   },
   {
-    type: "describe-experience",
-    levels: ["A2", "B1"],
-    minWords: 80,
-    maxWords: 120,
-    timeMinutes: 20,
-    label: "Describe an experience",
-    instruction: "Recount an experience and say how you felt about it.",
-  },
-  {
-    type: "letter",
-    levels: ["B1", "B2"],
-    minWords: 150,
+    type: "email-request",
+    minWords: 40,
     maxWords: 200,
-    timeMinutes: 20,
-    label: "Letter",
-    instruction: "Write a formal or semi-formal letter (IELTS General Training Task 1).",
-  },
-  {
-    type: "review",
-    levels: ["B1", "B2"],
-    minWords: 150,
-    maxWords: 200,
-    timeMinutes: 30,
-    label: "Review",
-    instruction: "Review something you have experienced and give a recommendation.",
+    timeMinutes: 10,
+    timeSeconds: 600,
+    label: "Email response",
+    maxRaw: 4,
+    instruction: "Read the email. Reply in 10 minutes. Answer every request.",
   },
   {
     type: "opinion-essay",
-    levels: ["B1", "B2", "C1"],
-    minWords: 180,
-    maxWords: 250,
+    minWords: 300,
+    maxWords: 400,
     timeMinutes: 30,
+    timeSeconds: 1800,
     label: "Opinion essay",
-    instruction: "State how far you agree and argue your position.",
-  },
-  {
-    type: "discussion-essay",
-    levels: ["B2", "C1"],
-    minWords: 250,
-    maxWords: 300,
-    timeMinutes: 40,
-    label: "Discussion essay",
-    instruction: "Discuss both views and give your own opinion.",
-  },
-  {
-    type: "problem-solution",
-    levels: ["B2", "C1"],
-    minWords: 250,
-    maxWords: 300,
-    timeMinutes: 40,
-    label: "Problem-solution essay",
-    instruction: "Explain the causes and propose solutions.",
-  },
-  {
-    type: "report",
-    levels: ["C1"],
-    minWords: 250,
-    maxWords: 300,
-    timeMinutes: 40,
-    label: "Report",
-    instruction: "Write a report or proposal to a workplace brief.",
+    maxRaw: 5,
+    instruction:
+      "State, explain, and support your opinion. An effective essay is typically at least 300 words.",
   },
 ];
-
-export function tasksForLevel(level: Level): TaskSpec[] {
-  return TASK_CATALOG.filter((task) => task.levels.includes(level));
-}

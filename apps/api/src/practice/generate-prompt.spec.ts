@@ -1,15 +1,15 @@
 import { TASK_CATALOG } from "@writing-helper/practice";
 import { buildGeneratePrompt, GENERATE_TASK_SCHEMA } from "./generate-prompt";
 
-const email = TASK_CATALOG.find((task) => task.type === "email")!;
+const email = TASK_CATALOG.find((task) => task.type === "email-request")!;
 
 describe("buildGeneratePrompt", () => {
   it("embeds the task instruction and word-count range as context", () => {
     const prompt = buildGeneratePrompt(email, "A2");
 
     expect(prompt).toContain(email.instruction);
-    expect(prompt).toContain("80");
-    expect(prompt).toContain("120");
+    expect(prompt).toContain("40");
+    expect(prompt).toContain("200");
     expect(prompt).toContain("A2");
   });
 

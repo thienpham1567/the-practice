@@ -24,7 +24,7 @@ import { deleteAttempt, listAttempts } from "../api/practice";
 const rootNoRevisions: PracticeAttemptSummary = {
   id: "root-1",
   level: "B1",
-  taskType: "email",
+  taskType: "email-request",
   band: 5.5,
   wordCount: 100,
   hintsOpened: false,
