@@ -25,6 +25,7 @@ export { overallBand } from "./overall-band";
 export { practiceScaled } from "./practice-scaled";
 export type { CefrEstimate, ToeicSkill } from "./toeic-cefr";
 export { cefrFromScaled } from "./toeic-cefr";
+export { speakingDescriptor, writingDescriptor } from "./toeic-descriptors";
 export { speakingFluency } from "./speaking-fluency";
 export { computeStreak, type Streak } from "./compute-streak";
 export { MARK_CATEGORIES, MARK_LABELS, MARK_SEVERITY } from "./mark-catalog";
