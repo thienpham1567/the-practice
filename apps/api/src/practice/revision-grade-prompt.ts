@@ -158,7 +158,7 @@ export function buildRevisionGradePrompt(input: RevisionGradeInput): string {
 
   return (
     `You are scoring a revised TOEIC Writing practice response using ETS criteria for this task type. ` +
-    `Do not compute an overall band — the server will map the raw rating.\n\n` +
+    `Do not compute an overall rating — the server will map the rawRating.\n\n` +
     `Task type: ${input.task.label}\n` +
     levelLine +
     `Instruction: ${input.task.instruction}\n` +

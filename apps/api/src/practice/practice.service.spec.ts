@@ -1,4 +1,4 @@
-import { ConflictException, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Logger, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { TOEIC_SCENES } from "@writing-helper/practice";
 import type { AiService } from "../ai/ai.service";
@@ -198,7 +198,7 @@ describe("PracticeService", () => {
 
       await service.create("user-1", { taskType: "email-request" });
 
-      expect(vocab.reviewCandidates).toHaveBeenCalledWith("user-1", "TOEIC");
+      expect(vocab.reviewCandidates).toHaveBeenCalledWith("user-1");
       expect(complete.mock.calls[0]![0].prompt).toContain("lively");
       expect(complete.mock.calls[0]![0].prompt).toContain("Decide the topic FIRST");
     });
@@ -526,6 +526,77 @@ describe("PracticeService", () => {
       );
     });
 
+    it("clamps rawRating 9 on email-request to 4 and scales to 200", async () => {
+      const { service, prisma, complete } = serviceWith({
+        attempt: { ...draft, parentAttemptId: null, parent: null },
+      });
+      complete
+        .mockResolvedValueOnce({ marks: [] })
+        .mockResolvedValueOnce({ ...graded, rawRating: 9 })
+        .mockResolvedValueOnce({ marks: [] });
+
+      await service.submit("user-1", "a1", { styleSnapshot: {} });
+
+      expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rawRating: 4,
+            estimatedScaled: 200,
+            cefrEstimate: "C1",
+            band: null,
+          }),
+        }),
+      );
+    });
+
+    it("maps rawRating -1 or NaN to 0 scaled 0 with a null CEFR estimate", async () => {
+      for (const rawRating of [-1, Number.NaN]) {
+        const { service, prisma, complete } = serviceWith({
+          attempt: { ...draft, parentAttemptId: null, parent: null },
+        });
+        complete
+          .mockResolvedValueOnce({ marks: [] })
+          .mockResolvedValueOnce({ ...graded, rawRating })
+          .mockResolvedValueOnce({ marks: [] });
+
+        await service.submit("user-1", "a1", { styleSnapshot: {} });
+
+        expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              rawRating: 0,
+              estimatedScaled: 0,
+              cefrEstimate: null,
+              band: null,
+            }),
+          }),
+        );
+      }
+    });
+
+    it("maps rawRating 0 to scaled 0 with a null CEFR estimate", async () => {
+      const { service, prisma, complete } = serviceWith({
+        attempt: { ...draft, parentAttemptId: null, parent: null },
+      });
+      complete
+        .mockResolvedValueOnce({ marks: [] })
+        .mockResolvedValueOnce({ ...graded, rawRating: 0 })
+        .mockResolvedValueOnce({ marks: [] });
+
+      await service.submit("user-1", "a1", { styleSnapshot: {} });
+
+      expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rawRating: 0,
+            estimatedScaled: 0,
+            cefrEstimate: null,
+            band: null,
+          }),
+        }),
+      );
+    });
+
     const parentGraded = {
       feedback: graded.feedback,
       band: null,
@@ -835,6 +906,24 @@ describe("PracticeService", () => {
         service.submit("user-1", "a1", { styleSnapshot: {} }),
       ).rejects.toThrow("AI down");
 
+      expect(prisma.practiceAttempt.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: "a1", userId: "user-1", submittedAt: null }),
+          data: { gradingStartedAt: null },
+        }),
+      );
+    });
+
+    it("releases the grading lock when the task type is unknown", async () => {
+      const { service, prisma, complete } = serviceWith({
+        attempt: { ...draft, taskType: "email", parentAttemptId: null, parent: null },
+      });
+
+      await expect(service.submit("user-1", "a1", { styleSnapshot: {} })).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+
+      expect(complete).not.toHaveBeenCalled();
       expect(prisma.practiceAttempt.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ id: "a1", userId: "user-1", submittedAt: null }),

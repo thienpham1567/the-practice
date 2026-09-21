@@ -19,6 +19,7 @@ describe("buildGradePrompt", () => {
     expect(prompt).toContain(String(essay.minWords));
     expect(prompt).toContain("I agree because...");
     expect(prompt).not.toMatch(/IELTS/i);
+    expect(prompt).not.toMatch(/overall band/i);
   });
 
   it("uses ETS picture-sentence criteria and a 0–3 raw rating", () => {

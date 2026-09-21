@@ -167,7 +167,7 @@ export class PracticeService {
 
     let reviewCandidates: VocabSuggestItem[] = [];
     try {
-      reviewCandidates = await this.vocab.reviewCandidates(userId, REVIEW_LEVEL);
+      reviewCandidates = await this.vocab.reviewCandidates(userId);
     } catch (error: unknown) {
       this.logger.warn(
         `event=vocab_review_candidates_failed userId=${userId} ${error instanceof Error ? error.message : "unknown"}`,
@@ -379,12 +379,12 @@ export class PracticeService {
       throw new ConflictException("Practice attempt is already being graded");
     }
 
-    const task = this.taskByType(attempt.taskType as TaskType);
-    const plainText = dto.plainText ?? attempt.plainText;
-    const wordCount = dto.wordCount ?? attempt.wordCount;
-    const isRevision = Boolean(attempt.parentAttemptId);
-
     try {
+      const task = this.taskByType(attempt.taskType as TaskType);
+      const plainText = dto.plainText ?? attempt.plainText;
+      const wordCount = dto.wordCount ?? attempt.wordCount;
+      const isRevision = Boolean(attempt.parentAttemptId);
+
       // Bài revision cần bài cha SỚM: vừa để chấm (feedback + audit), vừa để
       // cấp ngữ cảnh cho lượt bóc lỗi — không phải chờ tới lúc chấm mới biết
       // bài cha nói gì (xem docs/superpowers/specs/2026-09-14-grading-exhaustiveness-design.md).

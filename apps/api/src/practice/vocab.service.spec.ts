@@ -199,6 +199,26 @@ describe("VocabService", () => {
       );
     });
 
+    it("queries unused entries at every level when level is omitted", async () => {
+      const { service, prisma } = serviceWith({
+        findMany: jest.fn().mockResolvedValue([]),
+        attemptFindFirst: jest.fn().mockResolvedValue(null),
+      });
+
+      await service.reviewCandidates("user-1");
+
+      expect(prisma.vocabEntry.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: "user-1",
+          usedCount: 0,
+          word: { notIn: [] },
+        },
+        orderBy: { lastSuggestedAt: "asc" },
+        take: 4,
+        select: { word: true, meaning: true, example: true },
+      });
+    });
+
     it("ignores malformed vocabulary on the newest attempt", async () => {
       const { service, prisma } = serviceWith({
         findMany: jest.fn().mockResolvedValue([]),

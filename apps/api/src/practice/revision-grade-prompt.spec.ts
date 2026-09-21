@@ -33,6 +33,7 @@ describe("buildRevisionGradePrompt", () => {
     });
 
     expect(prompt).not.toMatch(/IELTS/i);
+    expect(prompt).not.toMatch(/overall band/i);
     expect(prompt).toContain(parentFeedback.grammar);
     expect(prompt).toContain(parentFeedback.vocabulary);
     expect(prompt).toContain(parentFeedback.organization);

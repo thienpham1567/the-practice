@@ -74,7 +74,7 @@ export class VocabService {
 
   async reviewCandidates(
     userId: string,
-    level: string,
+    level?: string,
   ): Promise<VocabSuggestItem[]> {
     const newest = await this.prisma.practiceAttempt.findFirst({
       where: { userId },
@@ -87,7 +87,7 @@ export class VocabService {
     return this.prisma.vocabEntry.findMany({
       where: {
         userId,
-        level,
+        ...(level ? { level } : {}),
         usedCount: 0,
         word: { notIn: excludeWords },
       },

@@ -75,7 +75,7 @@ function criteriaFor(task: TaskSpec): string {
 export function buildGradePrompt(input: GradeInput): string {
   return (
     `You are scoring a TOEIC Writing practice response using ETS criteria for this task type. ` +
-    `Do not compute an overall band — the server will map the raw rating.\n\n` +
+    `Do not compute an overall rating — the server will map the rawRating.\n\n` +
     `Task type: ${input.task.label}\n` +
     `Instruction: ${input.task.instruction}\n` +
     `Prompt given to the writer:\n${input.promptText}\n\n` +
