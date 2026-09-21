@@ -34,7 +34,8 @@ export type AiEndpoint =
   | "practice.marks"
   | "practice.samples"
   | "speaking.generate"
-  | "speaking.grade";
+  | "speaking.grade"
+  | "speaking.samples";
 
 interface OpenRouterResponse {
   choices?: { message?: { content?: string } }[];

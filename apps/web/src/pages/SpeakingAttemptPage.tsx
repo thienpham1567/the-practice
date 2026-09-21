@@ -4,15 +4,18 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { BrandLockup } from "../BrandLockup";
 import { ThemeToggle } from "../folio/ThemeToggle";
 import {
+  generateSampleTalks,
   getSpeakingAttempt,
   reviseSpeakingAttempt,
   submitSpeakingAttempt,
+  updateSpeakingAttempt,
   type SpeakingAttemptDetail,
   type SpeakingFeedback,
   type SpeakingMark,
   type SpeakingScores,
 } from "../api/speaking";
 import { BandStamp } from "../practice/BandStamp";
+import { SampleEssays } from "../practice/SampleEssays";
 import { AttemptDeleteControl } from "../folio/AttemptDeleteControl";
 import { PageAtmosphere } from "../folio/PageAtmosphere";
 import { formatClock } from "../practice/exam-math";
@@ -26,6 +29,10 @@ import { recordingSupported, useRecorder } from "../speaking/useRecorder";
 import { encodeWav } from "../speaking/wav-encode";
 
 const PREP_SECONDS = 60;
+
+function hasLearnerAids(attempt: SpeakingAttemptDetail): boolean {
+  return (attempt.structure?.length ?? 0) > 0 || (attempt.vocabulary?.length ?? 0) > 0;
+}
 
 type Phase = "prep" | "record" | "review";
 
@@ -77,6 +84,7 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
   const [blockMessage, setBlockMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [hintsOpen, setHintsOpen] = useState(attempt.hintsOpened);
   const enteredRecordRef = useRef(false);
 
   const cue = attempt.cueCard;
@@ -136,6 +144,17 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
   const skipPrep = () => {
     setPrepLeft(0);
     setPhase("record");
+  };
+
+  const saveHints = useMutation({
+    mutationFn: () => updateSpeakingAttempt(attempt.id, { hintsOpened: true }),
+  });
+
+  const openHints = () => {
+    setHintsOpen(true);
+    if (!attempt.hintsOpened) {
+      saveHints.mutate();
+    }
   };
 
   const handleStop = () => {
@@ -211,7 +230,13 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
       <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-2xl flex-1 flex-col px-4 pb-16 pt-2 sm:px-6">
         <div className="speaking-sheet relative">
         {phase === "prep" && (
-          <PrepPhase cue={cue} secondsLeft={prepLeft} onSkip={skipPrep} />
+          <PrepPhase
+            attempt={attempt}
+            secondsLeft={prepLeft}
+            hintsOpen={hintsOpen}
+            onOpenHints={openHints}
+            onSkip={skipPrep}
+          />
         )}
 
         {phase === "record" && (
@@ -248,14 +273,20 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
 }
 
 function PrepPhase({
-  cue,
+  attempt,
   secondsLeft,
+  hintsOpen,
+  onOpenHints,
   onSkip,
 }: {
-  cue: { topic: string; bullets: string[] };
+  attempt: SpeakingAttemptDetail;
   secondsLeft: number;
+  hintsOpen: boolean;
+  onOpenHints: () => void;
   onSkip: () => void;
 }) {
+  const cue = attempt.cueCard;
+
   return (
     <section className="animate-fade-up">
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">
@@ -268,6 +299,19 @@ function PrepPhase({
           <li key={bullet}>{bullet}</li>
         ))}
       </ul>
+      {hasLearnerAids(attempt) && (
+        <div className="mt-8 border-t border-rule pt-6">
+          <button
+            type="button"
+            onClick={onOpenHints}
+            className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-soft hover:text-vermilion"
+            aria-expanded={hintsOpen}
+          >
+            {hintsOpen ? "Hints" : "Show hints"}
+          </button>
+          {hintsOpen && <LearnerAidsLists attempt={attempt} />}
+        </div>
+      )}
       <button
         type="button"
         onClick={onSkip}
@@ -276,6 +320,46 @@ function PrepPhase({
         Skip prep
       </button>
     </section>
+  );
+}
+
+function LearnerAidsLists({ attempt }: { attempt: SpeakingAttemptDetail }) {
+  return (
+    <div className="mt-4 space-y-5 text-sm">
+      {attempt.structure && attempt.structure.length > 0 && (
+        <div>
+          <h3 className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
+            Structure
+          </h3>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-ink-soft">
+            {attempt.structure.map((beat) => (
+              <li key={beat}>{beat}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {attempt.vocabulary && attempt.vocabulary.length > 0 && (
+        <div>
+          <h3 className="font-mono text-[0.65rem] uppercase tracking-[0.15em] text-ink-faint">
+            Vocabulary
+          </h3>
+          <ul className="mt-2 space-y-2">
+            {attempt.vocabulary.map((item) => (
+              <li key={item.word}>
+                <span className="font-display">{item.word}</span>
+                {item.review && (
+                  <span className="ml-2 inline-block border border-vermilion px-1.5 py-px font-mono text-[0.6rem] uppercase tracking-[0.12em] text-vermilion">
+                    review
+                  </span>
+                )}
+                <span className="text-ink-soft"> · {item.meaning}</span>
+                <span className="mt-0.5 block italic text-ink-faint">{item.example}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -378,6 +462,7 @@ function ReviewPhase({
 
 function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [scoresOpen, setScoresOpen] = useState(true);
   const scoresTriggerRef = useRef<HTMLButtonElement>(null);
   const transcriptRef = useRef<HTMLParagraphElement>(null);
@@ -394,6 +479,13 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
     mutationFn: () => reviseSpeakingAttempt(attempt.id),
     onSuccess: (created) => {
       navigate(`/speaking/${created.id}`);
+    },
+  });
+
+  const samples = useMutation({
+    mutationFn: () => generateSampleTalks(attempt.id),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["speaking-attempt", attempt.id], updated);
     },
   });
 
@@ -504,6 +596,18 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
                 <p className="mt-3 text-sm leading-relaxed text-ink-soft">{attempt.feedback.overview}</p>
               </section>
             )}
+
+            {hasLearnerAids(attempt) && (
+              <section className="mt-8 border-t border-rule pt-6">
+                <LearnerAidsLists attempt={attempt} />
+              </section>
+            )}
+
+            <SampleEssays
+              sampleEssays={attempt.sampleTalks}
+              onGenerate={() => samples.mutate()}
+              isPending={samples.isPending}
+            />
           </div>
         </SidePanel>
 

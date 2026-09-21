@@ -280,6 +280,28 @@ describe("AiService", () => {
       expect(body.model).toBe("google/gemini-2.5-flash");
     });
 
+    it("dùng AI_MODEL cho speaking.samples, không dùng AI_MODEL_AUDIO", async () => {
+      const fetchSpy = jest
+        .spyOn(global, "fetch")
+        .mockResolvedValue(jsonResponse({ choices: [{ message: { content: "ok" } }] }));
+
+      const { service } = makeService({
+        OPENROUTER_API_KEY: "key",
+        AI_MODEL: "anthropic/claude-haiku-4.5",
+        AI_MODEL_AUDIO: "google/gemini-2.5-flash",
+      });
+
+      await service.complete({
+        prompt: "x",
+        maxTokens: 10,
+        usage: { userId: "user-1", endpoint: "speaking.samples" },
+      });
+
+      const [, init] = fetchSpy.mock.calls[0]!;
+      const body = JSON.parse(init!.body as string) as { model: string };
+      expect(body.model).toBe("anthropic/claude-haiku-4.5");
+    });
+
     it("fallback về AI_MODEL khi thiếu AI_MODEL_AUDIO mà có audio", async () => {
       const fetchSpy = jest
         .spyOn(global, "fetch")

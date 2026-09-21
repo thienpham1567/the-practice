@@ -71,14 +71,18 @@ vi.mock("../api/speaking", async (importOriginal) => {
     submitSpeakingAttempt: vi.fn(),
     reviseSpeakingAttempt: vi.fn(),
     deleteSpeakingAttempt: vi.fn(),
+    updateSpeakingAttempt: vi.fn(),
+    generateSampleTalks: vi.fn(),
   };
 });
 
 import {
   deleteSpeakingAttempt,
+  generateSampleTalks,
   getSpeakingAttempt,
   reviseSpeakingAttempt,
   submitSpeakingAttempt,
+  updateSpeakingAttempt,
 } from "../api/speaking";
 
 const navigate = vi.fn();
@@ -108,6 +112,18 @@ const openAttempt: SpeakingAttemptDetail = {
   parentBand: null,
   hasRevision: false,
   pendingRevisionId: null,
+  structure: [
+    "Name the journey",
+    "Where you went",
+    "Who you went with",
+    "Why it was memorable",
+    "Close with how you feel now",
+  ],
+  vocabulary: [
+    { word: "scenic", meaning: "beautiful to look at", example: "We took a scenic route." },
+  ],
+  hintsOpened: false,
+  sampleTalks: null,
 };
 
 function renderPage(attemptId = "s1") {
@@ -137,6 +153,8 @@ describe("SpeakingAttemptPage phases", () => {
     vi.mocked(submitSpeakingAttempt).mockReset();
     vi.mocked(reviseSpeakingAttempt).mockReset();
     vi.mocked(deleteSpeakingAttempt).mockReset();
+    vi.mocked(updateSpeakingAttempt).mockReset();
+    vi.mocked(generateSampleTalks).mockReset();
     vi.stubGlobal("URL", {
       createObjectURL: vi.fn(() => "blob:mock-audio"),
       revokeObjectURL: vi.fn(),
@@ -375,3 +393,129 @@ describe("SpeakingAttemptPage phases", () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith("/speaking"));
   });
 });
+
+describe("SpeakingAttemptPage prep hints", () => {
+  beforeEach(() => {
+    vi.mocked(getSpeakingAttempt).mockReset();
+    vi.mocked(updateSpeakingAttempt).mockReset();
+    vi.mocked(updateSpeakingAttempt).mockImplementation(async (_id, input) => ({
+      ...openAttempt,
+      ...input,
+      hintsOpened: input.hintsOpened ?? openAttempt.hintsOpened,
+    }));
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("shows Show hints on prep and PATCHes hintsOpened", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue(openAttempt);
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Show hints" }));
+
+    expect(await screen.findByText("Structure")).toBeTruthy();
+    expect(screen.getByText("Name the journey")).toBeTruthy();
+    expect(screen.getByText("scenic")).toBeTruthy();
+    expect(updateSpeakingAttempt).toHaveBeenCalledWith("s1", { hintsOpened: true });
+  });
+
+  it("hides hints after skipping prep", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue(openAttempt);
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Show hints" }));
+    expect(await screen.findByText("Structure")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Skip prep/i }));
+
+    expect(await screen.findByRole("button", { name: /Stop recording/i })).toBeTruthy();
+    expect(screen.queryByText("Structure")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show hints" })).toBeNull();
+  });
+
+  it("does not show the hints door when structure and vocabulary are missing", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...openAttempt,
+      structure: null,
+      vocabulary: null,
+    });
+    renderPage();
+    await screen.findByText("Describe a memorable journey");
+    expect(screen.queryByRole("button", { name: "Show hints" })).toBeNull();
+  });
+});
+
+describe("SpeakingAttemptPage result aids", () => {
+  const graded = {
+    ...openAttempt,
+    submittedAt: "2026-08-28T10:05:00.000Z",
+    band: 6,
+    transcript: "I went to Paris um yesterday",
+    marks: [{ start: 15, end: 17, kind: "filler" as const, note: "filler word" }],
+    fluency: { wordsPerMinute: 110, fillerCount: 1 },
+    scores: {
+      fluencyCoherence: 6,
+      lexicalResource: 6,
+      grammaticalRange: 5.5,
+      pronunciation: 6,
+    },
+    feedback: {
+      fluencyCoherence: "Steady pace.",
+      lexicalResource: "Adequate.",
+      grammaticalRange: "Simple forms.",
+      pronunciation: "Clear enough.",
+      overview: "A fair talk.",
+      nextFocus: "Cut fillers.",
+    },
+  };
+
+  beforeEach(() => {
+    vi.mocked(getSpeakingAttempt).mockReset();
+    vi.mocked(generateSampleTalks).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("shows structure, vocabulary, and the model-answer button after grading", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue(graded);
+    renderPage();
+
+    expect(await screen.findByText("Structure")).toBeTruthy();
+    expect(screen.getByText("Name the journey")).toBeTruthy();
+    expect(screen.getByText("scenic")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "See model answers" })).toBeTruthy();
+  });
+
+  it("loads sample talks and hides the button", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue(graded);
+    vi.mocked(generateSampleTalks).mockResolvedValue({
+      ...graded,
+      sampleTalks: ["First model talk.", "Second model talk."],
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "See model answers" }));
+
+    expect(await screen.findByText("First model talk.")).toBeTruthy();
+    expect(screen.getByText("Second model talk.")).toBeTruthy();
+    expect(generateSampleTalks).toHaveBeenCalledWith("s1");
+    expect(screen.queryByRole("button", { name: "See model answers" })).toBeNull();
+  });
+
+  it("omits structure and vocab blocks when the attempt has no prep notes", async () => {
+    vi.mocked(getSpeakingAttempt).mockResolvedValue({
+      ...graded,
+      structure: null,
+      vocabulary: null,
+    });
+    renderPage();
+
+    await screen.findByText(/I went to Paris um yesterday/);
+    expect(screen.queryByText("Structure")).toBeNull();
+    expect(screen.getByRole("button", { name: "See model answers" })).toBeTruthy();
+  });
+});
+

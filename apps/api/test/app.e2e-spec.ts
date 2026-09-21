@@ -1299,6 +1299,19 @@ describe("API (e2e)", () => {
       topic: "Describe a festival you enjoyed",
       bullets: ["what the festival was", "who you went with", "why you enjoyed it"],
     };
+    const generatedPrep = {
+      ...generatedCue,
+      structure: [
+        "Name the festival in one breath",
+        "What it was and when",
+        "Who you went with",
+        "Why you enjoyed it",
+        "Close with how you feel now",
+      ],
+      vocabulary: [
+        { word: "packed", meaning: "very crowded", example: "The square was packed." },
+      ],
+    };
 
     const graded = {
       transcript: "Um, I went to a festival last year with my friends and we danced.",
@@ -1333,8 +1346,12 @@ describe("API (e2e)", () => {
         let content: string;
         if (schemaName === "speaking_grade") {
           content = JSON.stringify(graded);
+        } else if (schemaName === "speaking_sample_talks") {
+          content = JSON.stringify({
+            talks: [{ text: "Talk one." }, { text: "Talk two." }],
+          });
         } else {
-          content = JSON.stringify(generatedCue);
+          content = JSON.stringify(generatedPrep);
         }
 
         return {
@@ -1363,6 +1380,10 @@ describe("API (e2e)", () => {
 
       expect(created.body.level).toBe("B1");
       expect(created.body.cueCard).toEqual(generatedCue);
+      expect(created.body.structure).toHaveLength(5);
+      expect(created.body.vocabulary[0].word).toBe("packed");
+      expect(created.body.hintsOpened).toBe(false);
+      expect(created.body.sampleTalks).toBeNull();
       expect(created.body.submittedAt).toBeNull();
       expect(created.body.startedAt).toEqual(expect.any(String));
     });
@@ -1430,6 +1451,7 @@ describe("API (e2e)", () => {
       expect(revised.body.parentAttemptId).toBe(id);
       expect(revised.body.revisionRound).toBe(1);
       expect(revised.body.cueCard).toEqual(generatedCue);
+      expect(revised.body.structure).toHaveLength(5);
       expect(revised.body.submittedAt).toBeNull();
 
       const root = await server().get(`/speaking/attempts/${id}`).set(auth).expect(200);
@@ -1441,6 +1463,51 @@ describe("API (e2e)", () => {
       const listAfter = await server().get("/speaking/attempts").set(auth).expect(200);
       expect(listAfter.body.items).toHaveLength(1);
       expect(listAfter.body.items[0].revisionCount).toBe(1);
+    });
+
+    it("PATCH hintsOpened rồi 409 sau khi nộp; samples sau chấm, bấm lại không gọi AI", async () => {
+      const fetchSpy = mockSpeakingAi();
+      const { accessToken } = await registerUser("speaking-aids@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+
+      const created = await server()
+        .post("/speaking/attempts")
+        .set(auth)
+        .send({ level: "B1" })
+        .expect(201);
+      const id = created.body.id as string;
+      const afterGenerate = fetchSpy.mock.calls.length;
+
+      const hinted = await server()
+        .patch(`/speaking/attempts/${id}`)
+        .set(auth)
+        .send({ hintsOpened: true })
+        .expect(200);
+      expect(hinted.body.hintsOpened).toBe(true);
+      expect(fetchSpy.mock.calls.length).toBe(afterGenerate);
+
+      await server()
+        .post(`/speaking/attempts/${id}/submit`)
+        .set(auth)
+        .send({ audioBase64: "QUFBQUFB", format: "wav", durationMs: 15_000 })
+        .expect(201);
+
+      await server()
+        .patch(`/speaking/attempts/${id}`)
+        .set(auth)
+        .send({ hintsOpened: true })
+        .expect(409);
+
+      const afterGrade = fetchSpy.mock.calls.length;
+      const samples = await server()
+        .post(`/speaking/attempts/${id}/samples`)
+        .set(auth)
+        .expect(201);
+      expect(samples.body.sampleTalks).toEqual(["Talk one.", "Talk two."]);
+      expect(fetchSpy.mock.calls.length).toBe(afterGrade + 1);
+
+      await server().post(`/speaking/attempts/${id}/samples`).set(auth).expect(201);
+      expect(fetchSpy.mock.calls.length).toBe(afterGrade + 1);
     });
 
     it("DELETE /speaking/attempts/:id xoá talk của mình, 404 với talk người khác, cascade re-recordings", async () => {

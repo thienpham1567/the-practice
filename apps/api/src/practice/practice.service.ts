@@ -51,8 +51,8 @@ import {
   buildSampleEssayPrompt,
   type SampleEssayResult,
 } from "./sample-essay-prompt";
-import { normalizeWord } from "./vocab-match";
 import { VocabService, type VocabSuggestItem } from "./vocab.service";
+import { tagReviewVocabulary } from "./vocab-tag";
 
 const LIST_FIELDS = {
   id: true,
@@ -569,23 +569,4 @@ export class PracticeService {
     if (!task) throw new BadRequestException(`Unknown task type: ${taskType}`);
     return task;
   }
-}
-
-/** Tag AI vocabulary items that match review candidates (normalized word). */
-function tagReviewVocabulary(
-  vocabulary: GeneratedTask["vocabulary"],
-  candidates: VocabSuggestItem[],
-): Array<GeneratedTask["vocabulary"][number] & { review?: true }> {
-  if (candidates.length === 0) return vocabulary;
-
-  const reviewWords = new Set(
-    candidates.map((item) => normalizeWord(item.word)).filter(Boolean),
-  );
-
-  return vocabulary.map((item) => {
-    if (reviewWords.has(normalizeWord(item.word))) {
-      return { ...item, review: true as const };
-    }
-    return item;
-  });
 }

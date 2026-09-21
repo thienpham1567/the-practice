@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -16,7 +17,7 @@ import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { UserThrottlerGuard } from "../ai/user-throttler.guard";
 import { DailyAiQuotaGuard } from "../ai/daily-ai-quota.guard";
 import { ListQueryDto } from "../common/list-query.dto";
-import { CreateSpeakingAttemptDto, SubmitSpeakingAttemptDto } from "./dto/speaking.dto";
+import { CreateSpeakingAttemptDto, SubmitSpeakingAttemptDto, UpdateSpeakingAttemptDto } from "./dto/speaking.dto";
 import { SpeakingService } from "./speaking.service";
 
 @Controller("speaking/attempts")
@@ -47,6 +48,15 @@ export class SpeakingController {
     return this.speaking.remove(userId, id);
   }
 
+  @Patch(":id")
+  update(
+    @CurrentUserId() userId: string,
+    @Param("id") id: string,
+    @Body() dto: UpdateSpeakingAttemptDto,
+  ) {
+    return this.speaking.update(userId, id, dto);
+  }
+
   @Post(":id/submit")
   @UseGuards(UserThrottlerGuard, DailyAiQuotaGuard)
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
@@ -63,5 +73,12 @@ export class SpeakingController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   revise(@CurrentUserId() userId: string, @Param("id") id: string) {
     return this.speaking.revise(userId, id);
+  }
+
+  @Post(":id/samples")
+  @UseGuards(UserThrottlerGuard, DailyAiQuotaGuard)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  generateSamples(@CurrentUserId() userId: string, @Param("id") id: string) {
+    return this.speaking.generateSamples(userId, id);
   }
 }

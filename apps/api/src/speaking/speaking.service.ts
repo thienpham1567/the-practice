@@ -15,8 +15,14 @@ import {
 import { AiService, PRACTICE_DEADLINE_MS, PRACTICE_TIMEOUT_MS } from "../ai/ai.service";
 import { DEFAULT_PAGE_SIZE, toCursorPage } from "../common/cursor-page";
 import { PrismaService } from "../prisma/prisma.service";
-import type { CreateSpeakingAttemptDto, SubmitSpeakingAttemptDto } from "./dto/speaking.dto";
+import type {
+  CreateSpeakingAttemptDto,
+  SubmitSpeakingAttemptDto,
+  UpdateSpeakingAttemptDto,
+} from "./dto/speaking.dto";
 import { locateMarks } from "./locate-marks";
+import { VocabService, type VocabSuggestItem } from "../practice/vocab.service";
+import { tagReviewVocabulary } from "../practice/vocab-tag";
 import {
   SPEAKING_GENERATE_SCHEMA,
   buildSpeakingGeneratePrompt,
@@ -27,6 +33,11 @@ import {
   buildSpeakingGradePrompt,
   type SpeakingGradeResult,
 } from "./speaking-grade-prompt";
+import {
+  SPEAKING_SAMPLE_SCHEMA,
+  buildSpeakingSamplePrompt,
+  type SpeakingSampleResult,
+} from "./speaking-sample-prompt";
 
 const LIST_FIELDS = {
   id: true,
@@ -101,6 +112,7 @@ export class SpeakingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ai: AiService,
+    private readonly vocab: VocabService,
   ) {}
 
   async create(userId: string, dto: CreateSpeakingAttemptDto) {
@@ -118,10 +130,20 @@ export class SpeakingService {
       .filter((topic): topic is string => Boolean(topic));
 
     const seed = pickSpeakingTask(dto.level as Level, recentTopics);
+
+    let reviewCandidates: VocabSuggestItem[] = [];
+    try {
+      reviewCandidates = await this.vocab.reviewCandidates(userId, dto.level);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `event=vocab_review_candidates_failed userId=${userId} ${error instanceof Error ? error.message : "unknown"}`,
+      );
+    }
+
     const generated = await this.ai.complete<GeneratedCueCard>({
-      prompt: buildSpeakingGeneratePrompt(seed, dto.level as Level),
+      prompt: buildSpeakingGeneratePrompt(seed, dto.level as Level, reviewCandidates),
       schema: SPEAKING_GENERATE_SCHEMA,
-      maxTokens: 800,
+      maxTokens: 1500,
       timeoutMs: PRACTICE_TIMEOUT_MS,
       deadlineMs: PRACTICE_DEADLINE_MS,
       usage: { userId, endpoint: "speaking.generate" },
@@ -131,14 +153,28 @@ export class SpeakingService {
       topic: generated.topic.trim(),
       bullets: generated.bullets.map((b) => b.trim()).slice(0, 3),
     };
+    const structure = generated.structure.map((beat) => beat.trim()).slice(0, 5);
+    const vocabulary = tagReviewVocabulary(generated.vocabulary, reviewCandidates);
 
-    return this.prisma.speakingAttempt.create({
+    const attempt = await this.prisma.speakingAttempt.create({
       data: {
         userId,
         level: dto.level,
         cueCard: cueCard as Prisma.InputJsonValue,
+        structure: structure as Prisma.InputJsonValue,
+        vocabulary: vocabulary as Prisma.InputJsonValue,
       },
     });
+
+    try {
+      await this.vocab.recordSuggested(userId, dto.level, generated.vocabulary);
+    } catch (error: unknown) {
+      this.logger.warn(
+        `event=vocab_record_suggested_failed userId=${userId} ${error instanceof Error ? error.message : "unknown"}`,
+      );
+    }
+
+    return attempt;
   }
 
   async list(userId: string, opts: { cursor?: string; limit?: number } = {}) {
@@ -207,11 +243,55 @@ export class SpeakingService {
           userId,
           level: parent.level,
           cueCard: parent.cueCard as Prisma.InputJsonValue,
+          structure: parent.structure as Prisma.InputJsonValue,
+          vocabulary: parent.vocabulary as Prisma.InputJsonValue,
+          hintsOpened: parent.hintsOpened,
           parentAttemptId: id,
           revisionRound: parent.revisionRound + 1,
         },
       });
     });
+  }
+
+  async update(userId: string, id: string, dto: UpdateSpeakingAttemptDto) {
+    const attempt = await this.findOne(userId, id);
+    if (attempt.submittedAt) {
+      throw new ConflictException("Submitted speaking cannot be edited");
+    }
+
+    return this.prisma.speakingAttempt.update({
+      where: { id },
+      data: {
+        ...(dto.hintsOpened ? { hintsOpened: true } : {}),
+      },
+    });
+  }
+
+  async generateSamples(userId: string, id: string) {
+    const attempt = await this.findOne(userId, id);
+    if (!attempt.submittedAt || attempt.band == null) {
+      throw new ConflictException("Speaking attempt has not been graded yet");
+    }
+    if (attempt.sampleTalks != null) {
+      return attempt;
+    }
+
+    const cueCard = asCueCard(attempt.cueCard);
+    const generated = await this.ai.complete<SpeakingSampleResult>({
+      prompt: buildSpeakingSamplePrompt(cueCard, attempt.level as Level),
+      schema: SPEAKING_SAMPLE_SCHEMA,
+      maxTokens: 2500,
+      timeoutMs: PRACTICE_TIMEOUT_MS,
+      deadlineMs: PRACTICE_DEADLINE_MS,
+      usage: { userId, endpoint: "speaking.samples" },
+    });
+    const sampleTalks = generated.talks.map((talk) => talk.text);
+
+    const updated = await this.prisma.speakingAttempt.update({
+      where: { id },
+      data: { sampleTalks: sampleTalks as unknown as Prisma.InputJsonValue },
+    });
+    return { ...attempt, ...updated };
   }
 
   async submit(userId: string, id: string, dto: SubmitSpeakingAttemptDto) {

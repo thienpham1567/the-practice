@@ -9,11 +9,30 @@ import type { AiService } from "../ai/ai.service";
 import type { PrismaService } from "../prisma/prisma.service";
 import { SPEAKING_GRADE_SCHEMA } from "./speaking-grade-prompt";
 import { SPEAKING_GENERATE_SCHEMA } from "./speaking-generate-prompt";
+import { SPEAKING_SAMPLE_SCHEMA } from "./speaking-sample-prompt";
 import { SpeakingService } from "./speaking.service";
 
 const generatedCue = {
   topic: "Describe a festival you enjoyed",
   bullets: ["what the festival was", "who you went with", "why you enjoyed it"],
+};
+
+const generatedStructure = [
+  "Name the festival in one breath",
+  "What it was and when",
+  "Who you went with",
+  "Why you enjoyed it",
+  "Close with how you feel now",
+];
+
+const generatedVocabulary = [
+  { word: "packed", meaning: "very crowded", example: "The square was packed." },
+];
+
+const generatedFull = {
+  ...generatedCue,
+  structure: generatedStructure,
+  vocabulary: generatedVocabulary,
 };
 
 const graded = {
@@ -38,15 +57,20 @@ const graded = {
   },
 };
 
-function serviceWith(overrides: {
-  recentTopics?: string[];
-  attempt?: Record<string, unknown> | null;
-  findFirstResults?: Array<Record<string, unknown> | null>;
-  created?: Record<string, unknown>;
-  updated?: Record<string, unknown>;
-  claimCounts?: number[];
-  listRows?: Array<Record<string, unknown>>;
-} = {}) {
+function serviceWith(
+  overrides: {
+    recentTopics?: string[];
+    attempt?: Record<string, unknown> | null;
+    findFirstResults?: Array<Record<string, unknown> | null>;
+    created?: Record<string, unknown>;
+    updated?: Record<string, unknown>;
+    claimCounts?: number[];
+    listRows?: Array<Record<string, unknown>>;
+    reviewCandidates?: Array<{ word: string; meaning: string; example: string }>;
+    reviewCandidatesError?: Error;
+    recordSuggestedError?: Error;
+  } = {},
+) {
   const claimCounts = [...(overrides.claimCounts ?? [1])];
   const findFirstResults = overrides.findFirstResults
     ? [...overrides.findFirstResults]
@@ -83,16 +107,30 @@ function serviceWith(overrides: {
     ),
   };
 
-  const complete = jest.fn().mockResolvedValue(generatedCue);
+  const complete = jest.fn().mockResolvedValue(generatedFull);
   const ai = { complete } as unknown as AiService;
-  const service = new SpeakingService(prisma as unknown as PrismaService, ai);
 
-  return { service, prisma, complete };
+  const reviewCandidates = jest.fn().mockImplementation(async () => {
+    if (overrides.reviewCandidatesError) throw overrides.reviewCandidatesError;
+    return overrides.reviewCandidates ?? [];
+  });
+  const recordSuggested = jest.fn().mockImplementation(async () => {
+    if (overrides.recordSuggestedError) throw overrides.recordSuggestedError;
+  });
+  const vocab = { reviewCandidates, recordSuggested, markUsed: jest.fn() };
+
+  const service = new SpeakingService(
+    prisma as unknown as PrismaService,
+    ai,
+    vocab as never,
+  );
+
+  return { service, prisma, complete, vocab };
 }
 
 describe("SpeakingService", () => {
   describe("create", () => {
-    it("picks a seed, calls speaking.generate, and stores the cue card", async () => {
+    it("picks a seed, calls speaking.generate, and stores cue card plus prep notes", async () => {
       const { service, prisma, complete } = serviceWith({
         recentTopics: ["Describe a place you like to visit"],
         created: { id: "s1", level: "A2", cueCard: generatedCue },
@@ -103,6 +141,7 @@ describe("SpeakingService", () => {
       expect(complete).toHaveBeenCalledWith(
         expect.objectContaining({
           schema: SPEAKING_GENERATE_SCHEMA,
+          maxTokens: 1500,
           usage: { userId: "user-1", endpoint: "speaking.generate" },
           prompt: expect.stringContaining("A2"),
         }),
@@ -113,9 +152,52 @@ describe("SpeakingService", () => {
             userId: "user-1",
             level: "A2",
             cueCard: generatedCue,
+            structure: generatedStructure,
+            vocabulary: generatedVocabulary,
           }),
         }),
       );
+    });
+
+    it("flags matching vocabulary items with review: true and records all suggested", async () => {
+      const candidates = [
+        { word: "Packed", meaning: "very crowded", example: "The square was packed." },
+      ];
+      const { service, prisma, complete, vocab } = serviceWith();
+      complete.mockResolvedValueOnce({
+        ...generatedFull,
+        vocabulary: generatedVocabulary,
+      });
+      vocab.reviewCandidates.mockResolvedValueOnce(candidates);
+
+      await service.create("user-1", { level: "A2" });
+
+      expect(prisma.speakingAttempt.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            vocabulary: [{ ...generatedVocabulary[0], review: true }],
+          }),
+        }),
+      );
+      expect(vocab.recordSuggested).toHaveBeenCalledWith(
+        "user-1",
+        "A2",
+        generatedVocabulary,
+      );
+    });
+
+    it("still creates the attempt when recordSuggested throws", async () => {
+      jest.spyOn(Logger.prototype, "warn").mockImplementation();
+      const { service, prisma } = serviceWith({
+        recordSuggestedError: new Error("upsert failed"),
+      });
+
+      await expect(service.create("user-1", { level: "A2" })).resolves.toEqual(
+        expect.objectContaining({ id: "s1" }),
+      );
+      expect(prisma.speakingAttempt.create).toHaveBeenCalled();
+      expect(Logger.prototype.warn).toHaveBeenCalled();
+      jest.restoreAllMocks();
     });
   });
 
@@ -343,12 +425,15 @@ describe("SpeakingService", () => {
   });
 
   describe("revise", () => {
-    it("copies cueCard without calling AI", async () => {
+    it("copies cueCard and prep notes without calling AI", async () => {
       const parent = {
         id: "s1",
         userId: "user-1",
         level: "B1",
         cueCard: generatedCue,
+        structure: generatedStructure,
+        vocabulary: generatedVocabulary,
+        hintsOpened: true,
         submittedAt: new Date(),
         band: 6,
         revisionRound: 0,
@@ -365,8 +450,18 @@ describe("SpeakingService", () => {
         expect.objectContaining({
           data: expect.objectContaining({
             cueCard: generatedCue,
+            structure: generatedStructure,
+            vocabulary: generatedVocabulary,
+            hintsOpened: true,
             parentAttemptId: "s1",
             revisionRound: 1,
+          }),
+        }),
+      );
+      expect(prisma.speakingAttempt.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.not.objectContaining({
+            sampleTalks: expect.anything(),
           }),
         }),
       );
@@ -424,6 +519,111 @@ describe("SpeakingService", () => {
         ],
       });
       await expect(service.revise("user-1", "s1")).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
+  describe("update", () => {
+    const open = {
+      id: "s1",
+      userId: "user-1",
+      submittedAt: null,
+      parent: null,
+      revisions: [] as { id: string; submittedAt: Date | null }[],
+    };
+
+    it("sets hintsOpened to true", async () => {
+      const { service, prisma } = serviceWith({
+        attempt: open,
+        updated: { id: "s1", hintsOpened: true },
+      });
+
+      await service.update("user-1", "s1", { hintsOpened: true });
+
+      expect(prisma.speakingAttempt.update).toHaveBeenCalledWith({
+        where: { id: "s1" },
+        data: { hintsOpened: true },
+      });
+    });
+
+    it("409 when already submitted", async () => {
+      const { service, prisma } = serviceWith({
+        attempt: { ...open, submittedAt: new Date() },
+      });
+      await expect(
+        service.update("user-1", "s1", { hintsOpened: true }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.speakingAttempt.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("generateSamples", () => {
+    const gradedAttempt = {
+      id: "s1",
+      userId: "user-1",
+      level: "B1",
+      cueCard: generatedCue,
+      submittedAt: new Date("2026-08-28T10:05:00Z"),
+      band: 6,
+      sampleTalks: null,
+      parent: null,
+      revisions: [] as { id: string; submittedAt: Date | null }[],
+    };
+
+    it("returns 409 when the attempt has not been graded", async () => {
+      const { service, complete } = serviceWith({
+        attempt: { ...gradedAttempt, submittedAt: null, band: null },
+      });
+
+      await expect(service.generateSamples("user-1", "s1")).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(complete).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 when the attempt is missing or belongs to someone else", async () => {
+      const { service } = serviceWith({ attempt: null });
+
+      await expect(service.generateSamples("user-1", "missing")).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+
+    it("returns the existing samples without calling AI when already generated", async () => {
+      const existing = ["Talk one text.", "Talk two text."];
+      const { service, complete } = serviceWith({
+        attempt: { ...gradedAttempt, sampleTalks: existing },
+      });
+
+      const result = await service.generateSamples("user-1", "s1");
+
+      expect(result.sampleTalks).toEqual(existing);
+      expect(complete).not.toHaveBeenCalled();
+    });
+
+    it("generates and saves two talks when none exist yet", async () => {
+      const { service, prisma, complete } = serviceWith({
+        attempt: gradedAttempt,
+        updated: { id: "s1", sampleTalks: ["Talk one.", "Talk two."] },
+      });
+      complete.mockResolvedValueOnce({
+        talks: [{ text: "Talk one." }, { text: "Talk two." }],
+      });
+
+      const result = await service.generateSamples("user-1", "s1");
+
+      expect(complete).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: expect.stringContaining(generatedCue.topic),
+          schema: SPEAKING_SAMPLE_SCHEMA,
+          usage: { userId: "user-1", endpoint: "speaking.samples" },
+        }),
+      );
+      expect(complete.mock.calls[0]![0].prompt).toContain("B1");
+      expect(prisma.speakingAttempt.update).toHaveBeenCalledWith({
+        where: { id: "s1" },
+        data: { sampleTalks: ["Talk one.", "Talk two."] },
+      });
+      expect(result.sampleTalks).toEqual(["Talk one.", "Talk two."]);
     });
   });
 

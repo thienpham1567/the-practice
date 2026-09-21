@@ -65,6 +65,10 @@ export interface SpeakingAttemptDetail {
   parentBand: number | null;
   hasRevision: boolean;
   pendingRevisionId: string | null;
+  structure: string[] | null;
+  vocabulary: { word: string; meaning: string; example: string; review?: boolean }[] | null;
+  hintsOpened: boolean;
+  sampleTalks: string[] | null;
 }
 
 export interface SubmitSpeakingInput {
@@ -91,6 +95,12 @@ export const submitSpeakingAttempt = (id: string, input: SubmitSpeakingInput) =>
 
 export const reviseSpeakingAttempt = (id: string) =>
   apiJson<SpeakingAttemptDetail>(`/speaking/attempts/${id}/revise`, "POST", {});
+
+export const updateSpeakingAttempt = (id: string, input: { hintsOpened?: boolean }) =>
+  apiJson<SpeakingAttemptDetail>(`/speaking/attempts/${id}`, "PATCH", input);
+
+export const generateSampleTalks = (id: string) =>
+  apiJson<SpeakingAttemptDetail>(`/speaking/attempts/${id}/samples`, "POST", {});
 
 export const deleteSpeakingAttempt = (id: string) =>
   apiFetch<void>(`/speaking/attempts/${id}`, { method: "DELETE" });

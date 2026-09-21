@@ -135,6 +135,14 @@ model SpeakingAttempt {
   level    String            // A2 | B1 | B2 | C1
   /// { topic, bullets: string[] } — đúng khuôn Part 2, không có follow-up (Part 3 ngoài phạm vi).
   cueCard  Json
+  /// string[] đúng 5 nhịp nói (mở → 3 bullet → đóng). null = bài trước feature.
+  structure Json?
+  /// { word, meaning, example, review?: true }[] — cụm nói được. null = bài cũ.
+  vocabulary Json?
+  /// Người học đã mở gợi ý lúc prep. Một chiều.
+  hintsOpened Boolean @default(false)
+  /// string[] đúng 2 transcript mẫu. null = chưa sinh.
+  sampleTalks Json?
 
   durationMs Int?
   /// Transcript AI nghe được (text thuần).

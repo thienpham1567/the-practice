@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsIn, IsInt, IsString, Max, Min } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
 
 const LEVELS = ["A2", "B1", "B2", "C1"] as const;
 const AUDIO_FORMATS = ["wav", "mp3"] as const;
@@ -7,6 +7,12 @@ const AUDIO_FORMATS = ["wav", "mp3"] as const;
 export class CreateSpeakingAttemptDto {
   @IsIn(LEVELS)
   level!: (typeof LEVELS)[number];
+}
+
+export class UpdateSpeakingAttemptDto {
+  @IsOptional()
+  @IsBoolean()
+  hintsOpened?: boolean;
 }
 
 export class SubmitSpeakingAttemptDto {
