@@ -512,6 +512,103 @@ describe("SpeakingService", () => {
         }),
       );
     });
+
+    it("rejects an invalid cue card without leaving the grading lock set", async () => {
+      const { service, prisma, complete } = serviceWith({
+        attempt: {
+          ...draft,
+          cueCard: { topic: "Describe a festival", bullets: ["a", "b", "c"] },
+        },
+      });
+
+      await expect(
+        service.submit("user-1", "s1", {
+          audioBase64: "QUFB",
+          format: "wav",
+          durationMs: 15_000,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(complete).not.toHaveBeenCalled();
+      const claimed = prisma.speakingAttempt.updateMany.mock.calls.some(
+        (call) =>
+          (call[0] as { data?: { gradingStartedAt?: unknown } }).data?.gradingStartedAt instanceof
+          Date,
+      );
+      const released = prisma.speakingAttempt.updateMany.mock.calls.some(
+        (call) =>
+          (call[0] as { data?: { gradingStartedAt?: unknown } }).data?.gradingStartedAt === null,
+      );
+      expect(claimed && !released).toBe(false);
+    });
+
+    it("clamps rawRating 9 on express-opinion to 5 and scales to 200", async () => {
+      const { service, prisma, complete } = serviceWith({ attempt: draft });
+      complete.mockResolvedValueOnce({ ...graded, rawRating: 9 });
+
+      await service.submit("user-1", "s1", {
+        audioBase64: "QUFB",
+        format: "wav",
+        durationMs: 20_000,
+      });
+
+      expect(prisma.speakingAttempt.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rawRating: 5,
+            estimatedScaled: 200,
+            cefrEstimate: "C1",
+            band: null,
+          }),
+        }),
+      );
+    });
+
+    it("maps rawRating -1 or NaN to 0 scaled 0 with a null CEFR estimate", async () => {
+      for (const rawRating of [-1, Number.NaN]) {
+        const { service, prisma, complete } = serviceWith({ attempt: draft });
+        complete.mockResolvedValueOnce({ ...graded, rawRating });
+
+        await service.submit("user-1", "s1", {
+          audioBase64: "QUFB",
+          format: "wav",
+          durationMs: 20_000,
+        });
+
+        expect(prisma.speakingAttempt.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              rawRating: 0,
+              estimatedScaled: 0,
+              cefrEstimate: null,
+              band: null,
+            }),
+          }),
+        );
+      }
+    });
+
+    it("maps rawRating 0 to scaled 0 with a null CEFR estimate", async () => {
+      const { service, prisma, complete } = serviceWith({ attempt: draft });
+      complete.mockResolvedValueOnce({ ...graded, rawRating: 0 });
+
+      await service.submit("user-1", "s1", {
+        audioBase64: "QUFB",
+        format: "wav",
+        durationMs: 20_000,
+      });
+
+      expect(prisma.speakingAttempt.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            rawRating: 0,
+            estimatedScaled: 0,
+            cefrEstimate: null,
+            band: null,
+          }),
+        }),
+      );
+    });
   });
 
   describe("revise", () => {

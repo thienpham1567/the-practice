@@ -433,6 +433,10 @@ export class SpeakingService {
       throw new ConflictException("Speaking attempt already submitted");
     }
 
+    const cueCard = asCueCard(attempt.cueCard);
+    const spec = pickSpeakingSpec(cueCard.type);
+    const maxRaw = cueCard.maxRaw ?? spec.maxRaw;
+
     const now = new Date();
     const staleBefore = new Date(now.getTime() - GRADING_LOCK_STALE_MS);
     const claimed = await this.prisma.speakingAttempt.updateMany({
@@ -448,10 +452,6 @@ export class SpeakingService {
     if (claimed.count === 0) {
       throw new ConflictException("Speaking attempt is already being graded");
     }
-
-    const cueCard = asCueCard(attempt.cueCard);
-    const spec = pickSpeakingSpec(cueCard.type);
-    const maxRaw = cueCard.maxRaw ?? spec.maxRaw;
 
     try {
       const graded = await this.ai.complete<SpeakingGradeResult>({
