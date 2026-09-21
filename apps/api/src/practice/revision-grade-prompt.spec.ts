@@ -9,34 +9,38 @@ import {
 const essay = TASK_CATALOG.find((task) => task.type === "opinion-essay")!;
 
 const parentFeedback: GradeResult["feedback"] = {
-  taskResponse: "Address both sides of the argument more clearly.",
-  coherenceCohesion: "Use clearer paragraph transitions.",
-  lexicalResource: "Replace repeated words with precise vocabulary.",
-  grammaticalRange: "Use a wider range of complex sentences.",
+  grammar: "Fix article errors in the opening.",
+  relevance: "",
+  sentenceVariety: "",
+  vocabulary: "Replace repeated words with precise vocabulary.",
+  organization: "Use clearer paragraph transitions.",
+  opinionSupport: "Address both sides of the argument more clearly.",
   overview: "Solid structure but limited development.",
   nextFocus: "Expand each body paragraph with one concrete example.",
-  improvements: ["Add a concrete example to the second body paragraph."],
+  improvements: "Add a concrete example to the second body paragraph.",
 };
 
 describe("buildRevisionGradePrompt", () => {
-  it("includes each old feedback point verbatim and the old band", () => {
+  it("includes each old feedback point verbatim and the old raw rating, without IELTS", () => {
     const prompt = buildRevisionGradePrompt({
       task: essay,
       promptText: "Some people think cities should ban cars.",
       essay: "Cities should ban cars because...",
       wordCount: 180,
       parentFeedback,
-      parentBand: 5.5,
+      parentRawRating: 3,
       parentMarks: [],
     });
 
-    expect(prompt).toContain(parentFeedback.taskResponse);
-    expect(prompt).toContain(parentFeedback.coherenceCohesion);
-    expect(prompt).toContain(parentFeedback.lexicalResource);
-    expect(prompt).toContain(parentFeedback.grammaticalRange);
+    expect(prompt).not.toMatch(/IELTS/i);
+    expect(prompt).toContain(parentFeedback.grammar);
+    expect(prompt).toContain(parentFeedback.vocabulary);
+    expect(prompt).toContain(parentFeedback.organization);
+    expect(prompt).toContain(parentFeedback.opinionSupport);
     expect(prompt).toContain(parentFeedback.overview);
     expect(prompt).toContain(parentFeedback.nextFocus);
-    expect(prompt).toContain("5.5");
+    expect(prompt).toContain("3");
+    expect(prompt).toMatch(/0\s*[–-]\s*5|0 to 5/);
   });
 
   it("does not include the parent's old essay text", () => {
@@ -48,13 +52,14 @@ describe("buildRevisionGradePrompt", () => {
       essay: "Revised essay about urban transport policy.",
       wordCount: 200,
       parentFeedback,
-      parentBand: 6.0,
+      parentRawRating: 3,
       parentMarks: [],
     });
 
     expect(prompt).not.toContain(parentEssay);
     expect(prompt).not.toContain("PARENT_OLD_ESSAY_MARKER");
     expect(prompt).toContain("Revised essay about urban transport policy.");
+    expect(prompt).not.toMatch(/IELTS/i);
   });
 
   it("includes specific prior corrections and warns against reversing them", () => {
@@ -64,7 +69,7 @@ describe("buildRevisionGradePrompt", () => {
       essay: "Cities should ban cars because...",
       wordCount: 180,
       parentFeedback,
-      parentBand: 5.5,
+      parentRawRating: 3,
       parentMarks: [
         { quote: "Best,", category: "register", correction: "Best regards," },
       ],
@@ -73,6 +78,7 @@ describe("buildRevisionGradePrompt", () => {
     expect(prompt).toContain("Best,");
     expect(prompt).toContain("Best regards,");
     expect(prompt).toMatch(/reverse a recommendation/i);
+    expect(prompt).not.toMatch(/IELTS/i);
   });
 });
 
@@ -82,11 +88,12 @@ describe("REVISION_GRADE_SCHEMA", () => {
     const properties = schema.properties as Record<string, unknown>;
     const required = schema.required as string[];
 
-    expect(properties).toHaveProperty("scores");
+    expect(properties).toHaveProperty("rawRating");
+    expect(properties).not.toHaveProperty("scores");
     expect(properties).toHaveProperty("feedback");
     expect(properties).toHaveProperty("feedbackAudit");
     expect(required).toEqual(
-      expect.arrayContaining(["scores", "feedback", "feedbackAudit"]),
+      expect.arrayContaining(["rawRating", "feedback", "feedbackAudit"]),
     );
 
     const feedbackAudit = properties.feedbackAudit as {

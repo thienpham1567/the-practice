@@ -1,20 +1,53 @@
 import { TASK_CATALOG } from "@writing-helper/practice";
 import { buildGeneratePrompt, GENERATE_TASK_SCHEMA } from "./generate-prompt";
 
+const picture = TASK_CATALOG.find((task) => task.type === "picture-sentence")!;
 const email = TASK_CATALOG.find((task) => task.type === "email-request")!;
+const essay = TASK_CATALOG.find((task) => task.type === "opinion-essay")!;
 
 describe("buildGeneratePrompt", () => {
+  it("does not mention a CEFR level", () => {
+    const prompt = buildGeneratePrompt(email);
+
+    expect(prompt).not.toMatch(/CEFR/i);
+    expect(prompt).not.toMatch(/\bA2\b|\bB1\b|\bB2\b|\bC1\b/);
+  });
+
   it("embeds the task instruction and word-count range as context", () => {
-    const prompt = buildGeneratePrompt(email, "A2");
+    const prompt = buildGeneratePrompt(email);
 
     expect(prompt).toContain(email.instruction);
     expect(prompt).toContain("40");
     expect(prompt).toContain("200");
-    expect(prompt).toContain("A2");
+  });
+
+  it("asks for a workplace or daily email with requests the writer must answer", () => {
+    const prompt = buildGeneratePrompt(email).toLowerCase();
+
+    expect(prompt).toMatch(/workplace|daily/);
+    expect(prompt).toMatch(/email/);
+    expect(prompt).toMatch(/request/);
+    expect(prompt).toContain("do not write a sample essay");
+  });
+
+  it("asks for one workplace or daily opinion issue", () => {
+    const prompt = buildGeneratePrompt(essay).toLowerCase();
+
+    expect(prompt).toMatch(/workplace|daily/);
+    expect(prompt).toMatch(/opinion/);
+    expect(prompt).toContain("do not write a sample essay");
+  });
+
+  it("tells the picture-sentence model not to invent an image", () => {
+    const prompt = buildGeneratePrompt(picture);
+
+    expect(prompt.toLowerCase()).toMatch(/do not invent/);
+    expect(prompt.toLowerCase()).toMatch(/image/);
+    expect(prompt).not.toMatch(/CEFR/i);
   });
 
   it("tells the model to invent the topic only, not to copy the fixed instruction", () => {
-    const prompt = buildGeneratePrompt(email, "B1");
+    const prompt = buildGeneratePrompt(email);
 
     expect(prompt.toLowerCase()).toContain("topic");
     expect(prompt).toContain(email.instruction);
@@ -27,14 +60,14 @@ describe("buildGeneratePrompt", () => {
   });
 
   it("when reviewWords is omitted or empty, prompt is byte-identical to the base prompt", () => {
-    const base = buildGeneratePrompt(email, "A2");
+    const base = buildGeneratePrompt(email);
 
-    expect(buildGeneratePrompt(email, "A2", undefined)).toBe(base);
-    expect(buildGeneratePrompt(email, "A2", [])).toBe(base);
+    expect(buildGeneratePrompt(email, undefined)).toBe(base);
+    expect(buildGeneratePrompt(email, [])).toBe(base);
   });
 
   it("when reviewWords is non-empty, instructs topic-first then fit review words into vocabulary", () => {
-    const prompt = buildGeneratePrompt(email, "A2", [
+    const prompt = buildGeneratePrompt(email, [
       {
         word: "commute",
         meaning: "travel to work",
@@ -47,7 +80,7 @@ describe("buildGeneratePrompt", () => {
       },
     ]);
 
-    expect(prompt).toContain(buildGeneratePrompt(email, "A2"));
+    expect(prompt).toContain(buildGeneratePrompt(email));
     expect(prompt.toLowerCase()).toMatch(/topic.*first|decide.*topic|choose.*topic/i);
     expect(prompt).toContain("commute");
     expect(prompt).toContain("lively");

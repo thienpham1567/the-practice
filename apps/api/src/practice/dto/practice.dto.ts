@@ -11,25 +11,15 @@ import {
   Min,
 } from "class-validator";
 
-const LEVELS = ["A2", "B1", "B2", "C1"] as const;
-const TASK_TYPES = [
-  "email",
-  "describe-experience",
-  "letter",
-  "review",
+const WRITING_TASK_TYPES = [
+  "picture-sentence",
+  "email-request",
   "opinion-essay",
-  "discussion-essay",
-  "problem-solution",
-  "report",
 ] as const;
 
 export class CreateAttemptDto {
-  @IsIn(LEVELS)
-  level!: (typeof LEVELS)[number];
-
-  @IsOptional()
-  @IsIn(TASK_TYPES)
-  taskType?: (typeof TASK_TYPES)[number];
+  @IsIn(WRITING_TASK_TYPES)
+  taskType!: (typeof WRITING_TASK_TYPES)[number];
 }
 
 export class UpdateAttemptDto {

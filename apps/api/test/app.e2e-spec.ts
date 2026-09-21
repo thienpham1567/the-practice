@@ -462,19 +462,17 @@ describe("API (e2e)", () => {
     };
 
     const graded = {
-      scores: {
-        taskResponse: 6,
-        coherenceCohesion: 6,
-        lexicalResource: 6,
-        grammaticalRange: 5,
-      },
+      rawRating: 4,
       feedback: {
-        taskResponse: "You covered the bullet points.",
-        coherenceCohesion: "The order is clear.",
-        lexicalResource: "Simple but accurate words.",
-        grammaticalRange: "Mostly simple sentences.",
-        overview: "A fair A2 email.",
+        grammar: "",
+        relevance: "",
+        sentenceVariety: "You covered the requests.",
+        vocabulary: "Simple but accurate words.",
+        organization: "The order is clear.",
+        opinionSupport: "",
+        overview: "A fair email response.",
         nextFocus: "Try one longer sentence next time.",
+        improvements: "Answer every request in its own short paragraph.",
       },
     };
 
@@ -550,7 +548,7 @@ describe("API (e2e)", () => {
       await server()
         .post("/practice/attempts")
         .set(auth)
-        .send({ level: "A2", taskType: "report" })
+        .send({ taskType: "report" })
         .expect(400);
     });
 
@@ -563,7 +561,7 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/practice/attempts")
         .set({ Authorization: `Bearer ${alice.accessToken}` })
-        .send({ level: "A2", taskType: "email" })
+        .send({ taskType: "email-request" })
         .expect(201);
       const id = created.body.id as string;
 
@@ -588,13 +586,13 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/practice/attempts")
         .set(auth)
-        .send({ level: "A2", taskType: "email" })
+        .send({ taskType: "email-request" })
         .expect(201);
 
-      expect(created.body.taskType).toBe("email");
+      expect(created.body.taskType).toBe("email-request");
       // Chỉ tình huống được lưu; khung yêu cầu cố định lấy từ TaskSpec.
       expect(created.body.prompt).toBe(generated.prompt);
-      expect(created.body.prompt).not.toContain("Write an email to a specific person");
+      expect(created.body.prompt).not.toContain("Read the email. Reply in 10 minutes.");
       expect(created.body.ideas).toEqual(generated.ideas);
       expect(created.body.vocabulary).toEqual(generated.vocabulary);
       expect(created.body.startedAt).toEqual(expect.any(String));
@@ -626,8 +624,11 @@ describe("API (e2e)", () => {
         })
         .expect(201);
 
-      expect(submitted.body.band).toBe(6);
-      expect(submitted.body.scores).toEqual(graded.scores);
+      expect(submitted.body.band).toBeNull();
+      expect(submitted.body.rawRating).toBe(4);
+      expect(submitted.body.estimatedScaled).toBe(200);
+      expect(submitted.body.scale).toBe("toeic");
+      expect(submitted.body.scores).toBeNull();
       expect(submitted.body.feedback.nextFocus).toContain("longer sentence");
       expect(submitted.body.styleSnapshot).toEqual({ counts: { passives: 0 } });
       expect(submitted.body.submittedAt).toEqual(expect.any(String));
@@ -638,11 +639,13 @@ describe("API (e2e)", () => {
       expect(listed.body.items[0].content).toBeUndefined();
       expect(listed.body.items[0].ideas).toBeUndefined();
       expect(listed.body.items[0].prompt).toBeUndefined();
-      expect(listed.body.items[0].band).toBe(6);
+      expect(listed.body.items[0].band).toBeNull();
 
       const fetched = await server().get(`/practice/attempts/${id}`).set(auth).expect(200);
       expect(fetched.body.content).toEqual(content);
-      expect(fetched.body.band).toBe(6);
+      expect(fetched.body.band).toBeNull();
+      expect(fetched.body.rawRating).toBe(4);
+      expect(fetched.body.estimatedScaled).toBe(200);
 
       await server()
         .post(`/practice/attempts/${id}/submit`)
@@ -659,7 +662,7 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/practice/attempts")
         .set(auth)
-        .send({ level: "A2", taskType: "email" })
+        .send({ taskType: "email-request" })
         .expect(201);
 
       await server()
@@ -684,7 +687,7 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/practice/attempts")
         .set(auth)
-        .send({ level: "A2", taskType: "email" })
+        .send({ taskType: "email-request" })
         .expect(201);
 
       await server()
@@ -702,7 +705,7 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/practice/attempts")
         .set(auth)
-        .send({ level: "A2", taskType: "email" })
+        .send({ taskType: "email-request" })
         .expect(201);
       const id = created.body.id as string;
 
@@ -750,7 +753,7 @@ describe("API (e2e)", () => {
         const created = await server()
           .post("/practice/attempts")
           .set(auth)
-          .send({ level: "A2", taskType: "email" })
+          .send({ taskType: "email-request" })
           .expect(201);
         const id = created.body.id as string;
 
@@ -988,14 +991,14 @@ describe("API (e2e)", () => {
           word: "commute",
           meaning: "travel to work or school",
           example: "I commute by bus.",
-          level: "A2",
+          level: "TOEIC",
         },
       });
 
       const created = await server()
         .post("/practice/attempts")
         .set(auth)
-        .send({ level: "A2", taskType: "email" })
+        .send({ taskType: "email-request" })
         .expect(201);
 
       const entriesAfterCreate = await prisma.vocabEntry.findMany({
@@ -1029,7 +1032,7 @@ describe("API (e2e)", () => {
       const second = await server()
         .post("/practice/attempts")
         .set(auth)
-        .send({ level: "A2", taskType: "email" })
+        .send({ taskType: "email-request" })
         .expect(201);
 
       const vocab = second.body.vocabulary as Array<{
@@ -1266,7 +1269,7 @@ describe("API (e2e)", () => {
       const created = await server()
         .post("/practice/attempts")
         .set(auth)
-        .send({ level: "A2", taskType: "email" })
+        .send({ taskType: "email-request" })
         .expect(201);
 
       const submitted = await server()

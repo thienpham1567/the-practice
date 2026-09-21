@@ -5,15 +5,17 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import {
-  overallBand,
-  pickTask,
+  cefrFromScaled,
+  practiceScaled,
   TASK_CATALOG,
+  TOEIC_SCENES,
   type Enhancement,
   type Level,
   type TaskSpec,
   type TaskType,
+  type ToeicScene,
   type WritingMark,
 } from "@writing-helper/practice";
 import { AiService, PRACTICE_DEADLINE_MS, PRACTICE_TIMEOUT_MS } from "../ai/ai.service";
@@ -115,6 +117,41 @@ function summarizeRevisionChain(revisions: ListRevisionNode[]): {
 /** Khoá chấm quá 2 phút coi là chết — cho phép chiếm lại. */
 const GRADING_LOCK_STALE_MS = 2 * 60 * 1000;
 
+const REVIEW_LEVEL = "TOEIC";
+
+function isGraded(attempt: {
+  submittedAt: Date | null;
+  rawRating: number | null;
+  scale: string;
+  band: number | null;
+}): boolean {
+  if (!attempt.submittedAt) return false;
+  return attempt.rawRating != null || (attempt.scale === "ielts" && attempt.band != null);
+}
+
+function clampRawRating(raw: unknown, maxRaw: number): number {
+  const n = typeof raw === "number" ? raw : Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(maxRaw, Math.max(0, Math.round(n)));
+}
+
+function sceneIdOf(payload: Prisma.JsonValue | null | undefined): string | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const id = (payload as { sceneId?: unknown }).sceneId;
+  return typeof id === "string" ? id : null;
+}
+
+function pickUnusedScene(recentSceneIds: string[]): ToeicScene {
+  const unused = TOEIC_SCENES.filter((scene) => !recentSceneIds.includes(scene.id));
+  const picked = unused[0] ?? TOEIC_SCENES[0];
+  if (!picked) throw new Error("No TOEIC scenes defined");
+  return picked;
+}
+
+function picturePrompt(scene: ToeicScene): string {
+  return `Use "${scene.wordA}" and "${scene.wordB}" in one sentence about the picture.`;
+}
+
 @Injectable()
 export class PracticeService {
   private readonly logger = new Logger(PracticeService.name);
@@ -126,11 +163,11 @@ export class PracticeService {
   ) {}
 
   async create(userId: string, dto: CreateAttemptDto) {
-    const chosen = await this.chooseTask(userId, dto.level, dto.taskType);
+    const chosen = this.taskByType(dto.taskType);
 
     let reviewCandidates: VocabSuggestItem[] = [];
     try {
-      reviewCandidates = await this.vocab.reviewCandidates(userId, dto.level);
+      reviewCandidates = await this.vocab.reviewCandidates(userId, REVIEW_LEVEL);
     } catch (error: unknown) {
       this.logger.warn(
         `event=vocab_review_candidates_failed userId=${userId} ${error instanceof Error ? error.message : "unknown"}`,
@@ -138,7 +175,7 @@ export class PracticeService {
     }
 
     const generated = await this.ai.complete<GeneratedTask>({
-      prompt: buildGeneratePrompt(chosen, dto.level, reviewCandidates),
+      prompt: buildGeneratePrompt(chosen, reviewCandidates),
       schema: GENERATE_TASK_SCHEMA,
       maxTokens: 1000,
       timeoutMs: PRACTICE_TIMEOUT_MS,
@@ -147,24 +184,34 @@ export class PracticeService {
     });
 
     const vocabulary = tagReviewVocabulary(generated.vocabulary, reviewCandidates);
+    const scene =
+      chosen.type === "picture-sentence" ? await this.pickPictureScene(userId) : null;
 
     const attempt = await this.prisma.practiceAttempt.create({
       data: {
         userId,
-        level: dto.level,
+        level: "TOEIC",
         scale: "toeic",
         taskType: chosen.type,
-        // Chỉ lưu tình huống. Khung yêu cầu cố định của dạng bài đã đi kèm
-        // `TaskSpec`, nên cả hai prompt chấm lẫn giao diện đều tự lấy được —
-        // nối vào đây chỉ tạo ra một câu thừa lặp lại điều đề đã nói.
-        prompt: generated.prompt.trim(),
+        // Picture: server writes the two-word instruction; the model's prompt
+        // field is unused. Other types store the invented situation alone.
+        prompt: scene ? picturePrompt(scene) : generated.prompt.trim(),
         ideas: generated.ideas as Prisma.InputJsonValue,
         vocabulary: vocabulary as Prisma.InputJsonValue,
+        ...(scene && {
+          taskPayload: {
+            imageUrl: scene.imageUrl,
+            wordA: scene.wordA,
+            wordB: scene.wordB,
+            sceneId: scene.id,
+            alt: scene.alt,
+          } as Prisma.InputJsonValue,
+        }),
       },
     });
 
     try {
-      await this.vocab.recordSuggested(userId, dto.level, generated.vocabulary);
+      await this.vocab.recordSuggested(userId, REVIEW_LEVEL, generated.vocabulary);
     } catch (error: unknown) {
       this.logger.warn(
         `event=vocab_record_suggested_failed userId=${userId} ${error instanceof Error ? error.message : "unknown"}`,
@@ -222,7 +269,7 @@ export class PracticeService {
     return this.prisma.$transaction(async (tx) => {
       const parent = await tx.practiceAttempt.findFirst({ where: { id, userId } });
       if (!parent) throw new NotFoundException("Practice attempt not found");
-      if (!parent.submittedAt || parent.band == null) {
+      if (!isGraded(parent)) {
         throw new ConflictException("Practice attempt has not been graded yet");
       }
       if (parent.revisionRound >= 2) {
@@ -263,7 +310,7 @@ export class PracticeService {
    */
   async generateSamples(userId: string, id: string) {
     const attempt = await this.findOne(userId, id);
-    if (!attempt.submittedAt || attempt.band == null) {
+    if (!isGraded(attempt)) {
       throw new ConflictException("Practice attempt has not been graded yet");
     }
     if (attempt.sampleEssays != null) {
@@ -344,6 +391,9 @@ export class PracticeService {
       let parent: {
         feedback: Prisma.JsonValue;
         band: number | null;
+        rawRating: number | null;
+        scale: string;
+        submittedAt: Date | null;
         marks: Prisma.JsonValue;
         plainText: string;
       } | null = null;
@@ -351,9 +401,17 @@ export class PracticeService {
       if (isRevision) {
         parent = await this.prisma.practiceAttempt.findFirst({
           where: { id: attempt.parentAttemptId! },
-          select: { feedback: true, band: true, marks: true, plainText: true },
+          select: {
+            feedback: true,
+            band: true,
+            rawRating: true,
+            scale: true,
+            submittedAt: true,
+            marks: true,
+            plainText: true,
+          },
         });
-        if (!parent || parent.band == null || parent.feedback == null) {
+        if (!parent || parent.feedback == null || !isGraded(parent)) {
           throw new NotFoundException("Parent practice attempt not found");
         }
         const parentMarks = (parent.marks as unknown as WritingMark[] | null) ?? [];
@@ -381,7 +439,7 @@ export class PracticeService {
             essay: plainText,
             wordCount,
             parentFeedback: parent!.feedback as GradeResult["feedback"],
-            parentBand: parent!.band!,
+            parentRawRating: parent!.rawRating ?? 0,
             parentMarks: parentMarksContext,
             level: attempt.level,
           }),
@@ -437,6 +495,10 @@ export class PracticeService {
 
       const { marks, enhancements } = await marksPromise;
 
+      const rawRating = clampRawRating(graded.rawRating, task.maxRaw);
+      const estimatedScaled = practiceScaled(rawRating, task.maxRaw);
+      const cefrEstimate = cefrFromScaled(estimatedScaled, "writing");
+
       const updated = await this.prisma.practiceAttempt.update({
         where: { id },
         data: {
@@ -446,8 +508,12 @@ export class PracticeService {
           submittedAt,
           elapsedSeconds,
           gradingStartedAt: null,
-          band: overallBand(graded.scores),
-          scores: graded.scores as unknown as Prisma.InputJsonValue,
+          band: null,
+          rawRating,
+          estimatedScaled,
+          cefrEstimate,
+          scale: "toeic",
+          scores: Prisma.DbNull,
           feedback: graded.feedback as unknown as Prisma.InputJsonValue,
           ...(feedbackAudit !== undefined && {
             feedbackAudit: feedbackAudit as unknown as Prisma.InputJsonValue,
@@ -543,21 +609,17 @@ export class PracticeService {
     }
   }
 
-  private async chooseTask(userId: string, level: Level, taskType?: string): Promise<TaskSpec> {
-    if (taskType) return this.resolveTask(taskType);
-
+  private async pickPictureScene(userId: string): Promise<ToeicScene> {
     const recent = await this.prisma.practiceAttempt.findMany({
-      where: { userId, level },
+      where: { userId, taskType: "picture-sentence" },
       orderBy: { startedAt: "desc" },
-      take: 10,
-      select: { taskType: true },
+      take: TOEIC_SCENES.length,
+      select: { taskPayload: true },
     });
-
-    return pickTask(recent.map((row) => row.taskType as TaskType));
-  }
-
-  private resolveTask(taskType: string): TaskSpec {
-    return this.taskByType(taskType);
+    const recentIds = recent
+      .map((row) => sceneIdOf(row.taskPayload))
+      .filter((id): id is string => id != null);
+    return pickUnusedScene(recentIds);
   }
 
   private taskByType(taskType: string): TaskSpec {

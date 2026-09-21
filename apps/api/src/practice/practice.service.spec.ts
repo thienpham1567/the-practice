@@ -1,39 +1,50 @@
 import { ConflictException, Logger, NotFoundException } from "@nestjs/common";
-import { overallBand } from "@writing-helper/practice";
+import { Prisma } from "@prisma/client";
+import { TOEIC_SCENES } from "@writing-helper/practice";
 import type { AiService } from "../ai/ai.service";
 import type { PrismaService } from "../prisma/prisma.service";
-import { GRADE_TASK_SCHEMA } from "./grade-prompt";
+import { GRADE_TASK_SCHEMA, type GradeFeedback } from "./grade-prompt";
 import { PracticeService } from "./practice.service";
 import { REVISION_GRADE_SCHEMA } from "./revision-grade-prompt";
 import { SAMPLE_ESSAY_SCHEMA } from "./sample-essay-prompt";
 
 const generated = {
-  prompt: "You are writing to a friend about a concert you went to last weekend.",
-  ideas: ["who you went with", "the music", "the crowd", "how you felt"],
+  prompt: "Please send the agenda and confirm whether you can join Tuesday's meeting.",
+  ideas: ["confirm availability", "ask for the agenda", "offer to take notes", "close politely"],
   vocabulary: [
     { word: "lively", meaning: "full of energy", example: "The crowd was lively." },
   ],
 };
 
+function feedback(overrides: Partial<GradeFeedback> = {}): GradeFeedback {
+  return {
+    grammar: "",
+    relevance: "",
+    sentenceVariety: "",
+    vocabulary: "",
+    organization: "",
+    opinionSupport: "",
+    overview: "",
+    nextFocus: "",
+    improvements: "",
+    ...overrides,
+  };
+}
+
 const graded = {
-  scores: {
-    taskResponse: 6,
-    coherenceCohesion: 6,
-    lexicalResource: 6,
-    grammaticalRange: 5,
-  },
-  feedback: {
-    taskResponse: "You answered the task.",
-    coherenceCohesion: "Ideas are ordered clearly.",
-    lexicalResource: "Vocabulary is adequate.",
-    grammaticalRange: "Mostly simple sentences.",
-    overview: "A fair B1 letter.",
+  rawRating: 4,
+  feedback: feedback({
+    sentenceVariety: "You answered the task.",
+    vocabulary: "Vocabulary is adequate.",
+    organization: "Ideas are ordered clearly.",
+    overview: "A fair email response.",
     nextFocus: "Use one complex sentence next time.",
-  },
+  }),
 };
 
 function serviceWith(overrides: {
   recentTypes?: string[];
+  recentPayloads?: Array<{ sceneId: string }>;
   attempt?: Record<string, unknown> | null;
   /** Sequential findFirst results (e.g. parent then existing-revision check). */
   findFirstResults?: Array<Record<string, unknown> | null>;
@@ -51,7 +62,9 @@ function serviceWith(overrides: {
     : undefined;
   const practiceAttempt = {
     findMany: jest.fn().mockResolvedValue(
-      (overrides.recentTypes ?? []).map((taskType) => ({ taskType })),
+      overrides.recentPayloads
+        ? overrides.recentPayloads.map((taskPayload) => ({ taskPayload }))
+        : (overrides.recentTypes ?? []).map((taskType) => ({ taskType })),
     ),
     findFirst: findFirstResults
       ? jest.fn().mockImplementation(async () =>
@@ -99,26 +112,25 @@ function serviceWith(overrides: {
 
 describe("PracticeService", () => {
   describe("create", () => {
-    it("skips a recently used task type and stores ideas plus vocabulary", async () => {
+    it("uses the requested task type and stores ideas plus vocabulary", async () => {
       const { service, prisma, complete } = serviceWith({
-        recentTypes: ["email"],
-        created: { id: "a1", taskType: "describe-experience" },
+        created: { id: "a1", taskType: "email-request" },
       });
 
-      await service.create("user-1", { level: "A2" });
+      await service.create("user-1", { taskType: "email-request" });
 
       expect(complete).toHaveBeenCalledWith(
         expect.objectContaining({
-          prompt: expect.stringContaining("Recount an experience"),
+          prompt: expect.stringContaining("Email response"),
         }),
       );
       expect(prisma.practiceAttempt.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             userId: "user-1",
-            level: "A2",
+            level: "TOEIC",
             scale: "toeic",
-            taskType: "describe-experience",
+            taskType: "email-request",
             ideas: generated.ideas,
             vocabulary: generated.vocabulary,
             prompt: expect.stringContaining(generated.prompt),
@@ -137,13 +149,42 @@ describe("PracticeService", () => {
     it("stores the situation alone, without the catalog instruction", async () => {
       const { service, prisma } = serviceWith({ recentTypes: [] });
 
-      await service.create("user-1", { level: "A2", taskType: "email" });
+      await service.create("user-1", { taskType: "email-request" });
 
       const data = prisma.practiceAttempt.create.mock.calls[0]![0].data as {
         prompt: string;
       };
       expect(data.prompt).toBe(generated.prompt);
-      expect(data.prompt).not.toContain("Write an email to a specific person");
+      expect(data.prompt).not.toContain("Read the email. Reply in 10 minutes.");
+    });
+
+    it("picks an unused picture scene and writes the two-word prompt on the server", async () => {
+      const used = TOEIC_SCENES[0]!;
+      const next = TOEIC_SCENES[1]!;
+      const { service, prisma, complete } = serviceWith({
+        recentPayloads: [{ sceneId: used.id }],
+      });
+
+      await service.create("user-1", { taskType: "picture-sentence" });
+
+      expect(complete.mock.calls[0]![0].prompt).toMatch(/do not invent/i);
+      expect(prisma.practiceAttempt.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            level: "TOEIC",
+            scale: "toeic",
+            taskType: "picture-sentence",
+            prompt: `Use "${next.wordA}" and "${next.wordB}" in one sentence about the picture.`,
+            taskPayload: {
+              imageUrl: next.imageUrl,
+              wordA: next.wordA,
+              wordB: next.wordB,
+              sceneId: next.id,
+              alt: next.alt,
+            },
+          }),
+        }),
+      );
     });
 
     it("passes review candidates into the generate prompt", async () => {
@@ -155,9 +196,9 @@ describe("PracticeService", () => {
         reviewCandidates: candidates,
       });
 
-      await service.create("user-1", { level: "A2", taskType: "email" });
+      await service.create("user-1", { taskType: "email-request" });
 
-      expect(vocab.reviewCandidates).toHaveBeenCalledWith("user-1", "A2");
+      expect(vocab.reviewCandidates).toHaveBeenCalledWith("user-1", "TOEIC");
       expect(complete.mock.calls[0]![0].prompt).toContain("lively");
       expect(complete.mock.calls[0]![0].prompt).toContain("Decide the topic FIRST");
     });
@@ -175,7 +216,7 @@ describe("PracticeService", () => {
       complete.mockResolvedValueOnce({ ...generated, vocabulary: aiVocab });
       vocab.reviewCandidates.mockResolvedValueOnce(candidates);
 
-      await service.create("user-1", { level: "A2", taskType: "email" });
+      await service.create("user-1", { taskType: "email-request" });
 
       expect(prisma.practiceAttempt.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -187,7 +228,7 @@ describe("PracticeService", () => {
           }),
         }),
       );
-      expect(vocab.recordSuggested).toHaveBeenCalledWith("user-1", "A2", aiVocab);
+      expect(vocab.recordSuggested).toHaveBeenCalledWith("user-1", "TOEIC", aiVocab);
     });
 
     it("still creates the attempt when reviewCandidates throws", async () => {
@@ -197,7 +238,7 @@ describe("PracticeService", () => {
         reviewCandidatesError: new Error("db down"),
       });
 
-      await expect(service.create("user-1", { level: "A2", taskType: "email" })).resolves.toEqual(
+      await expect(service.create("user-1", { taskType: "email-request" })).resolves.toEqual(
         expect.objectContaining({ id: "a1" }),
       );
 
@@ -215,7 +256,7 @@ describe("PracticeService", () => {
         recordSuggestedError: new Error("upsert failed"),
       });
 
-      await expect(service.create("user-1", { level: "A2", taskType: "email" })).resolves.toEqual(
+      await expect(service.create("user-1", { taskType: "email-request" })).resolves.toEqual(
         expect.objectContaining({ id: "a1" }),
       );
 
@@ -350,8 +391,8 @@ describe("PracticeService", () => {
     const editable = {
       id: "a1",
       userId: "user-1",
-      level: "A2",
-      taskType: "email",
+      level: "TOEIC",
+      taskType: "email-request",
       prompt: "Write to your teacher.",
       plainText: "Dear teacher, ...",
       wordCount: 95,
@@ -425,8 +466,8 @@ describe("PracticeService", () => {
     const draft = {
       id: "a1",
       userId: "user-1",
-      level: "A2",
-      taskType: "email",
+      level: "TOEIC",
+      taskType: "email-request",
       prompt: "Write to your teacher.",
       plainText: "Dear teacher, ...",
       wordCount: 95,
@@ -436,10 +477,10 @@ describe("PracticeService", () => {
       revisions: [] as { id: string; submittedAt: Date | null }[],
     };
 
-    it("computes overall band on the server from the four criteria", async () => {
+    it("stores TOEIC rawRating and practice scaled score, not an IELTS band", async () => {
       const { service, prisma, complete } = serviceWith({
-        attempt: { ...draft, parentAttemptId: null, parent: null },
-        updated: { id: "a1", band: 6 },
+        attempt: { ...draft, parentAttemptId: null, parent: null, scale: "toeic" },
+        updated: { id: "a1", rawRating: 4, estimatedScaled: 200, band: null },
       });
       // Registration order is extract, then grade (both fire synchronously
       // before either resolves), then verify (fires once extract resolves).
@@ -464,11 +505,16 @@ describe("PracticeService", () => {
         }),
       );
       expect(complete.mock.calls[1]![0].prompt).not.toContain("Previous feedback points to audit");
+      expect(complete.mock.calls[1]![0].prompt).not.toMatch(/IELTS/i);
       expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            band: overallBand(graded.scores),
-            scores: graded.scores,
+            band: null,
+            rawRating: 4,
+            estimatedScaled: 200,
+            cefrEstimate: "C1",
+            scale: "toeic",
+            scores: Prisma.DbNull,
             feedback: graded.feedback,
             styleSnapshot: { counts: { passives: 1 } },
             gradingStartedAt: null,
@@ -478,8 +524,15 @@ describe("PracticeService", () => {
       expect(prisma.practiceAttempt.update.mock.calls[0]![0].data).not.toHaveProperty(
         "feedbackAudit",
       );
-      expect(overallBand(graded.scores)).toBe(6);
     });
+
+    const parentGraded = {
+      feedback: graded.feedback,
+      band: null,
+      rawRating: 3,
+      scale: "toeic",
+      submittedAt: new Date("2026-08-25T10:05:00Z"),
+    };
 
     it("grades a revision with comparative prompt and saves feedbackAudit", async () => {
       const revisionDraft = {
@@ -489,20 +542,11 @@ describe("PracticeService", () => {
         revisionRound: 1,
         plainText: "Dear teacher, thank you for your help with complex sentences.",
         wordCount: 110,
-        parent: { band: 5.5 },
-      };
-      const parentGraded = {
-        feedback: graded.feedback,
-        band: 5.5,
+        parent: { band: null },
       };
       const revisionGraded = {
         ...graded,
-        scores: {
-          taskResponse: 6.5,
-          coherenceCohesion: 6.5,
-          lexicalResource: 6,
-          grammaticalRange: 6.5,
-        },
+        rawRating: 4,
         feedbackAudit: [
           { point: "Mostly simple sentences.", status: "resolved" },
           { point: "Use one complex sentence next time.", status: "partial" },
@@ -510,7 +554,7 @@ describe("PracticeService", () => {
       };
       const { service, prisma, complete } = serviceWith({
         findFirstResults: [revisionDraft, parentGraded],
-        updated: { id: "rev-1", band: 6.5 },
+        updated: { id: "rev-1", rawRating: 4, estimatedScaled: 200, band: null },
       });
       // Registration order is extract, then grade (both fire synchronously
       // before either resolves), then verify (fires once extract resolves).
@@ -525,7 +569,15 @@ describe("PracticeService", () => {
 
       expect(prisma.practiceAttempt.findFirst).toHaveBeenCalledWith({
         where: { id: "a1" },
-        select: { feedback: true, band: true, marks: true, plainText: true },
+        select: {
+          feedback: true,
+          band: true,
+          rawRating: true,
+          scale: true,
+          submittedAt: true,
+          marks: true,
+          plainText: true,
+        },
       });
       expect(complete).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -533,13 +585,16 @@ describe("PracticeService", () => {
           schema: REVISION_GRADE_SCHEMA,
         }),
       );
-      expect(complete.mock.calls[1]![0].prompt).toContain("band 5.5");
+      expect(complete.mock.calls[1]![0].prompt).toContain("raw rating 3");
+      expect(complete.mock.calls[1]![0].prompt).not.toMatch(/IELTS/i);
       expect(complete.mock.calls[1]![0].prompt).toContain(graded.feedback.nextFocus);
       expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            band: overallBand(revisionGraded.scores),
-            scores: revisionGraded.scores,
+            band: null,
+            rawRating: 4,
+            estimatedScaled: 200,
+            scores: Prisma.DbNull,
             feedback: revisionGraded.feedback,
             feedbackAudit: { criteria: revisionGraded.feedbackAudit, marksResolution: [] },
             gradingStartedAt: null,
@@ -555,23 +610,17 @@ describe("PracticeService", () => {
         id: "rev-1",
         parentAttemptId: "a1",
         revisionRound: 1,
-        parent: { band: 5.5 },
-      };
-      const scores = {
-        taskResponse: 6.5,
-        coherenceCohesion: 6.5,
-        lexicalResource: 6,
-        grammaticalRange: 6.5,
+        parent: { band: null },
       };
       const { service, prisma, complete } = serviceWith({
-        findFirstResults: [revisionDraft, { feedback: graded.feedback, band: 5.5 }],
-        updated: { id: "rev-1", band: 6.5 },
+        findFirstResults: [revisionDraft, parentGraded],
+        updated: { id: "rev-1", rawRating: 4, estimatedScaled: 200, band: null },
       });
       // Registration order is extract, then grade (both fire synchronously
       // before either resolves), then verify (fires once extract resolves).
       complete
         .mockResolvedValueOnce({ marks: [] })
-        .mockResolvedValueOnce({ scores, feedback: graded.feedback })
+        .mockResolvedValueOnce({ rawRating: 4, feedback: graded.feedback })
         .mockResolvedValueOnce({ marks: [] });
 
       await service.submit("user-1", "rev-1", { styleSnapshot: {} });
@@ -579,8 +628,10 @@ describe("PracticeService", () => {
       expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            band: overallBand(scores),
-            scores,
+            band: null,
+            rawRating: 4,
+            estimatedScaled: 200,
+            scores: Prisma.DbNull,
             feedback: graded.feedback,
             // Criteria drop to [] on invalid AI output, but marksResolution is
             // computed from the parent's marks in code — never dropped wholesale.
@@ -599,21 +650,15 @@ describe("PracticeService", () => {
         id: "rev-1",
         parentAttemptId: "a1",
         revisionRound: 1,
-        parent: { band: 5.5 },
+        parent: { band: null },
       };
       const revisionGraded = {
         ...graded,
-        scores: {
-          taskResponse: 6.5,
-          coherenceCohesion: 6.5,
-          lexicalResource: 6,
-          grammaticalRange: 6.5,
-        },
         feedbackAudit: "not-an-array",
       };
       const { service, prisma, complete } = serviceWith({
-        findFirstResults: [revisionDraft, { feedback: graded.feedback, band: 5.5 }],
-        updated: { id: "rev-1", band: 6.5 },
+        findFirstResults: [revisionDraft, parentGraded],
+        updated: { id: "rev-1", rawRating: 4, estimatedScaled: 200, band: null },
       });
       // Registration order is extract, then grade (both fire synchronously
       // before either resolves), then verify (fires once extract resolves).
@@ -627,8 +672,10 @@ describe("PracticeService", () => {
       expect(prisma.practiceAttempt.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            band: overallBand(revisionGraded.scores),
-            scores: revisionGraded.scores,
+            band: null,
+            rawRating: 4,
+            estimatedScaled: 200,
+            scores: Prisma.DbNull,
             feedback: revisionGraded.feedback,
             feedbackAudit: { criteria: [], marksResolution: [] },
           }),
@@ -647,7 +694,7 @@ describe("PracticeService", () => {
         // The register mark's quote ("Best,") is gone — replaced by the AI's own
         // suggested fix — while everything else about the parent essay is unchanged.
         plainText: "Dear teacher, ...\n\nBest regards,",
-        parent: { band: 5.5 },
+        parent: { band: null },
       };
       const parentMarks = [
         { start: 19, end: 24, category: "register", severity: "refinement", correction: "Best regards,", note: "More formal." },
@@ -655,7 +702,15 @@ describe("PracticeService", () => {
       const { service, prisma, complete } = serviceWith({
         findFirstResults: [
           revisionDraft,
-          { feedback: graded.feedback, band: 5.5, marks: parentMarks, plainText: "Dear teacher, ...\n\nBest," },
+          {
+            feedback: graded.feedback,
+            band: null,
+            rawRating: 3,
+            scale: "toeic",
+            submittedAt: new Date("2026-08-25T10:05:00Z"),
+            marks: parentMarks,
+            plainText: "Dear teacher, ...\n\nBest,",
+          },
         ],
         updated: { id: "rev-1", band: 6.5 },
       });
@@ -729,7 +784,10 @@ describe("PracticeService", () => {
       };
       const parentGraded = {
         feedback: graded.feedback,
-        band: 5.5,
+        band: null,
+        rawRating: 3,
+        scale: "toeic",
+        submittedAt: new Date("2026-08-25T10:05:00Z"),
       };
       const revisionGraded = {
         ...graded,
@@ -914,7 +972,9 @@ describe("PracticeService", () => {
       });
 
       const { data } = prisma.practiceAttempt.update.mock.calls[0][0];
-      expect(data.band).toBe(overallBand(graded.scores));
+      expect(data.band).toBeNull();
+      expect(data.rawRating).toBe(4);
+      expect(data.estimatedScaled).toBe(200);
       expect(data.marks).toBeUndefined();
     });
 
@@ -967,7 +1027,9 @@ describe("PracticeService", () => {
       });
 
       const { data } = prisma.practiceAttempt.update.mock.calls[0][0];
-      expect(data.band).toBe(overallBand(graded.scores));
+      expect(data.band).toBeNull();
+      expect(data.rawRating).toBe(4);
+      expect(data.estimatedScaled).toBe(200);
       expect(data.marks).toBeUndefined();
     });
 
@@ -1018,7 +1080,7 @@ describe("PracticeService", () => {
     const rootRow = {
       id: "root-1",
       level: "B1",
-      taskType: "email",
+      taskType: "email-request",
       band: 5.5,
       wordCount: 100,
       hintsOpened: false,
@@ -1161,8 +1223,8 @@ describe("PracticeService", () => {
     const gradedParent = {
       id: "a1",
       userId: "user-1",
-      level: "A2",
-      taskType: "email",
+      level: "TOEIC",
+      taskType: "email-request",
       prompt: "Write to your teacher.",
       ideas: ["who to thank", "what happened"],
       vocabulary: [{ word: "grateful", meaning: "thankful", example: "I am grateful." }],
@@ -1171,7 +1233,8 @@ describe("PracticeService", () => {
       plainText: "Dear teacher, thank you.",
       wordCount: 95,
       submittedAt: new Date("2026-08-25T10:05:00Z"),
-      band: 6,
+      band: null,
+      rawRating: 4,
       revisionRound: 0,
       parentAttemptId: null,
       scale: "toeic",
@@ -1194,12 +1257,25 @@ describe("PracticeService", () => {
       await expect(service.revise("user-1", "a1")).rejects.toBeInstanceOf(ConflictException);
     });
 
-    it("returns 409 when the attempt has no band", async () => {
+    it("returns 409 when a TOEIC attempt has no rawRating", async () => {
       const { service } = serviceWith({
-        findFirstResults: [{ ...gradedParent, band: null }],
+        findFirstResults: [{ ...gradedParent, band: null, rawRating: null }],
       });
 
       await expect(service.revise("user-1", "a1")).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("allows a legacy IELTS attempt graded by band", async () => {
+      const created = { id: "rev-1", parentAttemptId: "a1", revisionRound: 1 };
+      const { service } = serviceWith({
+        findFirstResults: [
+          { ...gradedParent, scale: "ielts", band: 6, rawRating: null },
+          null,
+        ],
+        created,
+      });
+
+      await expect(service.revise("user-1", "a1")).resolves.toEqual(created);
     });
 
     it("returns 409 when a revision already exists", async () => {
@@ -1236,9 +1312,9 @@ describe("PracticeService", () => {
       expect(prisma.practiceAttempt.create).toHaveBeenCalledWith({
         data: {
           userId: "user-1",
-          level: "A2",
+          level: "TOEIC",
           scale: "toeic",
-          taskType: "email",
+          taskType: "email-request",
           taskPayload: gradedParent.taskPayload,
           prompt: "Write to your teacher.",
           ideas: gradedParent.ideas,
@@ -1259,18 +1335,20 @@ describe("PracticeService", () => {
     const gradedAttempt = {
       id: "a1",
       userId: "user-1",
-      level: "B1",
-      taskType: "email",
+      level: "TOEIC",
+      scale: "toeic",
+      taskType: "email-request",
       prompt: "Write to your teacher.",
       submittedAt: new Date("2026-08-25T10:05:00Z"),
-      band: 6,
+      band: null,
+      rawRating: 4,
       sampleEssays: null,
       revisions: [] as { id: string; submittedAt: Date | null }[],
     };
 
     it("returns 409 when the attempt has not been graded", async () => {
       const { service, complete } = serviceWith({
-        attempt: { ...gradedAttempt, submittedAt: null, band: null },
+        attempt: { ...gradedAttempt, submittedAt: null, band: null, rawRating: null },
       });
 
       await expect(service.generateSamples("user-1", "a1")).rejects.toBeInstanceOf(
@@ -1317,7 +1395,7 @@ describe("PracticeService", () => {
           usage: { userId: "user-1", endpoint: "practice.samples" },
         }),
       );
-      expect(complete.mock.calls[0]![0].prompt).toContain("B1");
+      expect(complete.mock.calls[0]![0].prompt).toContain("TOEIC");
       expect(prisma.practiceAttempt.update).toHaveBeenCalledWith({
         where: { id: "a1" },
         data: { sampleEssays: ["Essay one.", "Essay two."] },
