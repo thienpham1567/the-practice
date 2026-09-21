@@ -540,8 +540,8 @@ export class PracticeService {
     }
   }
 
-  private async chooseTask(userId: string, level: Level, taskType?: TaskType): Promise<TaskSpec> {
-    if (taskType) return this.resolveTask(level, taskType);
+  private async chooseTask(userId: string, level: Level, taskType?: string): Promise<TaskSpec> {
+    if (taskType) return this.resolveTask(taskType);
 
     const recent = await this.prisma.practiceAttempt.findMany({
       where: { userId, level },
@@ -553,15 +553,11 @@ export class PracticeService {
     return pickTask(recent.map((row) => row.taskType as TaskType));
   }
 
-  private resolveTask(level: Level, taskType: TaskType): TaskSpec {
-    const task = this.taskByType(taskType);
-    if (!task.levels.includes(level)) {
-      throw new BadRequestException(`${taskType} is not available at level ${level}`);
-    }
-    return task;
+  private resolveTask(taskType: string): TaskSpec {
+    return this.taskByType(taskType);
   }
 
-  private taskByType(taskType: TaskType): TaskSpec {
+  private taskByType(taskType: string): TaskSpec {
     const task = TASK_CATALOG.find((item) => item.type === taskType);
     if (!task) throw new BadRequestException(`Unknown task type: ${taskType}`);
     return task;

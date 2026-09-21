@@ -1,7 +1,7 @@
 import { TASK_CATALOG } from "@writing-helper/practice";
 import { SAMPLE_ESSAY_SCHEMA, buildSampleEssayPrompt } from "./sample-essay-prompt";
 
-const emailTask = TASK_CATALOG.find((task) => task.type === "email")!;
+const emailTask = TASK_CATALOG.find((task) => task.type === "email-request")!;
 const promptText = "Your friend Alex is visiting. Write to Alex about what you can do together.";
 
 describe("buildSampleEssayPrompt", () => {

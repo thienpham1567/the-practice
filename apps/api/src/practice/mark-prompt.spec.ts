@@ -1,7 +1,7 @@
 import { MARK_CATEGORIES, TASK_CATALOG } from "@writing-helper/practice";
 import { EXTRACT_MARKS_SCHEMA, buildMarkPrompt } from "./mark-prompt";
 
-const emailTask = TASK_CATALOG.find((task) => task.type === "email")!;
+const emailTask = TASK_CATALOG.find((task) => task.type === "email-request")!;
 const promptText = "Your friend Alex is visiting. Write to Alex about what you can do together.";
 
 describe("buildMarkPrompt", () => {
