@@ -1,37 +1,60 @@
 import { TASK_CATALOG } from "@writing-helper/practice";
 import { SAMPLE_ESSAY_SCHEMA, buildSampleEssayPrompt } from "./sample-essay-prompt";
 
+const pictureTask = TASK_CATALOG.find((task) => task.type === "picture-sentence")!;
 const emailTask = TASK_CATALOG.find((task) => task.type === "email-request")!;
-const promptText = "Your friend Alex is visiting. Write to Alex about what you can do together.";
+const essayTask = TASK_CATALOG.find((task) => task.type === "opinion-essay")!;
+const emailPrompt = "Please reply with your availability and the documents you need.";
+const picturePrompt = 'Use "notebook" and "glass" in one sentence about the picture.';
+const essayPrompt = "Should offices require employees to work on site?";
 
 describe("buildSampleEssayPrompt", () => {
-  it("includes the task label, level, instruction, and prompt", () => {
-    const prompt = buildSampleEssayPrompt(emailTask, promptText, "B1");
+  it("includes the task label, instruction, and prompt without a CEFR level", () => {
+    const prompt = buildSampleEssayPrompt(emailTask, emailPrompt);
 
     expect(prompt).toContain(emailTask.label);
-    expect(prompt).toContain("B1");
     expect(prompt).toContain(emailTask.instruction);
-    expect(prompt).toContain(promptText);
+    expect(prompt).toContain(emailPrompt);
+    expect(prompt).not.toMatch(/CEFR/i);
+    expect(prompt).not.toMatch(/\bA2\b|\bB1\b|\bB2\b|\bC1\b/);
   });
 
-  it("states the task's word count range", () => {
-    const prompt = buildSampleEssayPrompt(emailTask, promptText, "B1");
+  it("asks for one picture sentence that uses both given words", () => {
+    const prompt = buildSampleEssayPrompt(pictureTask, picturePrompt).toLowerCase();
 
-    expect(prompt).toContain(`${emailTask.minWords}-${emailTask.maxWords}`);
+    expect(prompt).toMatch(/one sentence/);
+    expect(prompt).toMatch(/both/);
+    expect(prompt).toContain("notebook");
+    expect(prompt).toContain("glass");
+    expect(prompt.toLowerCase()).toMatch(/toeic/);
+    expect(prompt).not.toMatch(/two IELTS essays/i);
   });
 
-  it("asks for exactly two essays with different approaches", () => {
-    const prompt = buildSampleEssayPrompt(emailTask, promptText, "B1");
+  it("asks for one email that answers the requests", () => {
+    const prompt = buildSampleEssayPrompt(emailTask, emailPrompt).toLowerCase();
+
+    expect(prompt).toMatch(/email/);
+    expect(prompt).toMatch(/request/);
+    expect(prompt).toMatch(/toeic/);
+    expect(prompt).not.toMatch(/two IELTS essays/i);
+  });
+
+  it("asks for opinion essays of at least 300 words", () => {
+    const prompt = buildSampleEssayPrompt(essayTask, essayPrompt).toLowerCase();
+
+    expect(prompt).toMatch(/300/);
+    expect(prompt).toMatch(/essay/);
+    expect(prompt).toMatch(/toeic/);
+    expect(prompt).not.toMatch(/two IELTS essays/i);
+  });
+
+  it("asks for exactly two TOEIC model answers with different approaches", () => {
+    const prompt = buildSampleEssayPrompt(emailTask, emailPrompt);
 
     expect(prompt).toContain("two");
+    expect(prompt.toLowerCase()).toMatch(/toeic/);
     expect(prompt).toMatch(/different approaches/i);
-  });
-
-  it("pins the target level so samples don't overshoot a beginner's reach", () => {
-    const prompt = buildSampleEssayPrompt(emailTask, promptText, "A2");
-
-    expect(prompt).toContain("within level A2");
-    expect(prompt).not.toContain("within level B1");
+    expect(prompt).not.toMatch(/two IELTS essays/i);
   });
 });
 

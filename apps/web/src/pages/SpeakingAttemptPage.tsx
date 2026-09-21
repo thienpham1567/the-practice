@@ -565,6 +565,7 @@ function ResultView({ attempt }: { attempt: SpeakingAttemptDetail }) {
     revisionRound: attempt.revisionRound,
     hasRevision: attempt.hasRevision,
     pendingRevisionId: attempt.pendingRevisionId,
+    speakingType: attempt.cueCard.type ?? null,
   });
 
   const revise = useMutation({

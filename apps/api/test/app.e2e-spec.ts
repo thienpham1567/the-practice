@@ -472,7 +472,7 @@ describe("API (e2e)", () => {
         opinionSupport: "",
         overview: "A fair email response.",
         nextFocus: "Try one longer sentence next time.",
-        improvements: "Answer every request in its own short paragraph.",
+        improvements: ["Answer every request in its own short paragraph."],
       },
     };
 

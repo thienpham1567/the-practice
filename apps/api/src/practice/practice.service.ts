@@ -12,7 +12,6 @@ import {
   TASK_CATALOG,
   TOEIC_SCENES,
   type Enhancement,
-  type Level,
   type TaskSpec,
   type TaskType,
   type ToeicScene,
@@ -334,7 +333,7 @@ export class PracticeService {
 
     const task = this.taskByType(attempt.taskType as TaskType);
     const generated = await this.ai.complete<SampleEssayResult>({
-      prompt: buildSampleEssayPrompt(task, attempt.prompt, attempt.level as Level),
+      prompt: buildSampleEssayPrompt(task, attempt.prompt),
       schema: SAMPLE_ESSAY_SCHEMA,
       maxTokens: 3000,
       timeoutMs: PRACTICE_TIMEOUT_MS,

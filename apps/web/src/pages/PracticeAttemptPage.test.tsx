@@ -468,6 +468,8 @@ describe("PracticeAttemptPage catalog gate", () => {
     expect(screen.getByText("Next time")).toBeTruthy();
     expect(screen.getByText("A fair A2 email.")).toBeTruthy();
     expect(screen.queryByText(/no longer in the catalog/)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Revise this paper" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Resume revision" })).toBeNull();
   });
 
   it("blocks ExamRoom when an open attempt's task type is not in the catalog", async () => {
@@ -941,5 +943,47 @@ describe("PracticeAttemptPage TOEIC exam room", () => {
     expect(screen.getByText("Practice score, not an official TOEIC score")).toBeTruthy();
     expect(screen.queryByText(/Band 5\.5/)).toBeNull();
     expect(screen.queryByText(/Part 2/)).toBeNull();
+  });
+});
+
+describe("PracticeAttemptPage ResultView improvements", () => {
+  beforeEach(() => {
+    navigate.mockReset();
+    vi.mocked(getAttempt).mockReset();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders improvement suggestions without throwing", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...toeicGraded,
+      feedback: {
+        overview: "A usable essay.",
+        nextFocus: "Give a clearer example.",
+        improvements: ["Develop the second reason with a workplace example."],
+      },
+    });
+
+    expect(() => renderPage("a1")).not.toThrow();
+    expect(
+      await screen.findByText("Develop the second reason with a workplace example."),
+    ).toBeTruthy();
+  });
+
+  it("splits a leftover string of improvements instead of crashing", async () => {
+    vi.mocked(getAttempt).mockResolvedValue({
+      ...toeicGraded,
+      feedback: {
+        overview: "A usable essay.",
+        nextFocus: "Give a clearer example.",
+        improvements: "Add a workplace example.\nTighten the closing." as unknown as string[],
+      },
+    });
+
+    expect(() => renderPage("a1")).not.toThrow();
+    expect(await screen.findByText("Add a workplace example.")).toBeTruthy();
+    expect(screen.getByText("Tighten the closing.")).toBeTruthy();
   });
 });

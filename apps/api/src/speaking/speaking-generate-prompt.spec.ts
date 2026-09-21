@@ -103,15 +103,57 @@ describe("buildSpeakingGeneratePrompt", () => {
     expect(prompt.toLowerCase()).toMatch(/do not write a sample|not.*sample answer/);
   });
 
-  it("asks for five glanceable talking beats and spoken vocabulary chunks", () => {
+  it("asks opinion for stance → reason → example → close, not Part 2 cue beats", () => {
     const prompt = buildSpeakingGeneratePrompt(opinionSeed, opinionSpec);
-    expect(prompt.toLowerCase()).toMatch(/5|five/);
-    expect(prompt.toLowerCase()).toMatch(/opening|open/);
+    expect(prompt.toLowerCase()).toMatch(/stance/);
+    expect(prompt.toLowerCase()).toMatch(/reason/);
+    expect(prompt.toLowerCase()).toMatch(/example/);
     expect(prompt.toLowerCase()).toMatch(/close|closing/);
     expect(prompt.toLowerCase()).toMatch(/phrase|beat|glance/);
     expect(prompt.toLowerCase()).toMatch(/not a full sentence to read aloud/);
     expect(prompt).toMatch(/6–8|6-8/);
     expect(prompt.toLowerCase()).toMatch(/spoken|collocation|chunk/);
+    expect(prompt).not.toMatch(/Part 2/i);
+    expect(prompt.toLowerCase()).not.toMatch(/one beat per cue/);
+  });
+
+  it("asks describe-picture for overall → people → place → close", () => {
+    const seed: SpeakingSeed = { type: "describe-picture", key: "scene-office-desk", sceneId: "office-desk" };
+    const prompt = buildSpeakingGeneratePrompt(seed, pickSpeakingSpec(seed.type)).toLowerCase();
+
+    expect(prompt).toMatch(/overall/);
+    expect(prompt).toMatch(/people/);
+    expect(prompt).toMatch(/place/);
+    expect(prompt).toMatch(/close/);
+    expect(prompt).not.toMatch(/one beat per cue/);
+    expect(prompt).not.toMatch(/part 2/);
+  });
+
+  it("asks other types for type-appropriate talking beats", () => {
+    const readAloud = buildSpeakingGeneratePrompt(
+      { type: "read-aloud", key: "cafeteria-hours", passage: "The cafeteria opens at seven." },
+      pickSpeakingSpec("read-aloud"),
+    ).toLowerCase();
+    const question = buildSpeakingGeneratePrompt(
+      { type: "respond-question", key: "start-work-time", question: "What time do you start work?" },
+      pickSpeakingSpec("respond-question"),
+    ).toLowerCase();
+    const info = buildSpeakingGeneratePrompt(
+      {
+        type: "respond-with-info",
+        key: "conference-keynote",
+        info: "9:15 Keynote",
+        question: "What time does the keynote begin?",
+      },
+      pickSpeakingSpec("respond-with-info"),
+    ).toLowerCase();
+
+    expect(readAloud).toMatch(/beat/);
+    expect(question).toMatch(/answer|reason|example|close/);
+    expect(info).toMatch(/fact|info|detail|close/);
+    expect(readAloud).not.toMatch(/one beat per cue/);
+    expect(question).not.toMatch(/one beat per cue/);
+    expect(info).not.toMatch(/one beat per cue/);
   });
 
   it("when reviewWords is omitted or empty, prompt is byte-identical to the base prompt", () => {
@@ -146,12 +188,12 @@ describe("SPEAKING_GENERATE_SCHEMA", () => {
     );
   });
 
-  it("requires exactly five structure beats", () => {
+  it("requires four to five structure beats", () => {
     const properties = SPEAKING_GENERATE_SCHEMA.schema.properties as Record<
       string,
       { minItems?: number; maxItems?: number }
     >;
-    expect(properties.structure?.minItems).toBe(5);
+    expect(properties.structure?.minItems).toBe(4);
     expect(properties.structure?.maxItems).toBe(5);
   });
 });

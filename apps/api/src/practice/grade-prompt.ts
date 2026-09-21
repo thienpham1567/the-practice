@@ -15,7 +15,22 @@ const FEEDBACK_KEYS = [
 
 export type GradeFeedbackKey = (typeof FEEDBACK_KEYS)[number];
 
-export type GradeFeedback = Record<GradeFeedbackKey, string>;
+export type GradeFeedback = {
+  grammar: string;
+  relevance: string;
+  sentenceVariety: string;
+  vocabulary: string;
+  organization: string;
+  opinionSupport: string;
+  overview: string;
+  nextFocus: string;
+  improvements: string[];
+};
+
+const FEEDBACK_PROPERTY = (key: GradeFeedbackKey) =>
+  key === "improvements"
+    ? { type: "array", items: { type: "string" } }
+    : { type: "string" };
 
 export const GRADE_TASK_SCHEMA: JsonSchemaSpec = {
   name: "practice_grade",
@@ -30,7 +45,7 @@ export const GRADE_TASK_SCHEMA: JsonSchemaSpec = {
         additionalProperties: false,
         required: [...FEEDBACK_KEYS],
         properties: Object.fromEntries(
-          FEEDBACK_KEYS.map((key) => [key, { type: "string" }]),
+          FEEDBACK_KEYS.map((key) => [key, FEEDBACK_PROPERTY(key)]),
         ),
       },
     },

@@ -97,7 +97,28 @@ describe("GRADE_TASK_SCHEMA", () => {
       ]),
     );
     for (const key of feedback.required) {
-      expect(feedback.properties[key]?.type).toBe("string");
+      if (key === "improvements") {
+        expect(feedback.properties[key]).toEqual({
+          type: "array",
+          items: { type: "string" },
+        });
+      } else {
+        expect(feedback.properties[key]?.type).toBe("string");
+      }
     }
+  });
+});
+
+describe("buildGradePrompt improvements", () => {
+  it("still asks for 2–3 improvement suggestions", () => {
+    const prompt = buildGradePrompt({
+      task: essay,
+      promptText: "Should offices require employees to work on site?",
+      essay: "I think so because collaboration is easier.",
+      wordCount: 8,
+    });
+
+    expect(prompt).toMatch(/2-3|2–3/);
+    expect(prompt.toLowerCase()).toContain("improvements");
   });
 });

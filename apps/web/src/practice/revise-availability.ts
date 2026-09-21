@@ -1,3 +1,5 @@
+import { SPEAKING_TASKS, TASK_CATALOG } from "@writing-helper/practice";
+
 export type ReviseAttempt = {
   band: number | null;
   scale?: "toeic" | "ielts";
@@ -9,6 +11,10 @@ export type ReviseAttempt = {
   hasRevision?: boolean;
   /** Unsubmitted child revision id, when one exists. Defaults to null. */
   pendingRevisionId?: string | null;
+  /** Writing task type. Legacy IELTS strings are not in TASK_CATALOG. */
+  taskType?: string | null;
+  /** Speaking cue card type. Null/unknown means the cue is not a TOEIC task. */
+  speakingType?: string | null;
 };
 
 function isGraded(attempt: ReviseAttempt): boolean {
@@ -21,14 +27,33 @@ export type ReviseAction =
   | { kind: "resume"; attemptId: string }
   | { kind: "none" };
 
+function inWritingCatalog(taskType: string): boolean {
+  return TASK_CATALOG.some((task) => task.type === taskType);
+}
+
+function inSpeakingCatalog(speakingType: string): boolean {
+  return SPEAKING_TASKS.some((task) => task.type === speakingType);
+}
+
+/** Legacy IELTS rows, or a speaking cue without a TOEIC type, are read-only. */
+function isCataloged(attempt: ReviseAttempt): boolean {
+  if (attempt.speakingType !== undefined) {
+    return typeof attempt.speakingType === "string" && inSpeakingCatalog(attempt.speakingType);
+  }
+  if (attempt.taskType != null) {
+    return inWritingCatalog(attempt.taskType);
+  }
+  return true;
+}
+
 /**
  * What the result UI should offer for this attempt:
  * - revise: no child yet → start a new revision
  * - resume: unsubmitted child exists → open that attempt
- * - none: max rounds, or a submitted child already closes the slot
+ * - none: max rounds, catalog-missing legacy, or a submitted child already closes the slot
  */
 export function reviseAction(attempt: ReviseAttempt): ReviseAction {
-  if (!isGraded(attempt) || attempt.submittedAt == null) {
+  if (!isGraded(attempt) || attempt.submittedAt == null || !isCataloged(attempt)) {
     return { kind: "none" };
   }
 

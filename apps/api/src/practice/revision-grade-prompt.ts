@@ -102,9 +102,13 @@ const FEEDBACK_LABELS: Array<[keyof GradeFeedback, string]> = [
   ["improvements", "Improvements"],
 ];
 
+function formatFeedbackValue(value: string | string[]): string {
+  return Array.isArray(value) ? value.join("; ") : value;
+}
+
 function formatFeedbackPoints(feedback: GradeFeedback): string {
-  return FEEDBACK_LABELS.filter(([key]) => (feedback[key] ?? "").trim().length > 0)
-    .map(([key, label]) => `- ${label}: ${feedback[key]}`)
+  return FEEDBACK_LABELS.filter(([key]) => formatFeedbackValue(feedback[key] ?? "").trim().length > 0)
+    .map(([key, label]) => `- ${label}: ${formatFeedbackValue(feedback[key])}`)
     .join("\n");
 }
 

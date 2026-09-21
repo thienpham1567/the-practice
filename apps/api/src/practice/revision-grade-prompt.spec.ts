@@ -17,7 +17,7 @@ const parentFeedback: GradeResult["feedback"] = {
   opinionSupport: "Address both sides of the argument more clearly.",
   overview: "Solid structure but limited development.",
   nextFocus: "Expand each body paragraph with one concrete example.",
-  improvements: "Add a concrete example to the second body paragraph.",
+  improvements: ["Add a concrete example to the second body paragraph."],
 };
 
 describe("buildRevisionGradePrompt", () => {
@@ -117,6 +117,14 @@ describe("REVISION_GRADE_SCHEMA", () => {
     expect(feedbackAudit.items.properties.status.enum).toEqual(
       expect.arrayContaining(["resolved", "partial", "unresolved"]),
     );
+
+    const feedback = properties.feedback as {
+      properties: { improvements: { type: string; items: { type: string } } };
+    };
+    expect(feedback.properties.improvements).toEqual({
+      type: "array",
+      items: { type: "string" },
+    });
   });
 });
 

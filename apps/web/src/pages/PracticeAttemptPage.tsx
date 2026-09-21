@@ -41,6 +41,7 @@ import { WriteBetter } from "../practice/WriteBetter";
 import { promptBody } from "../practice/prompt-body";
 import { RevisionChecklist } from "../practice/RevisionChecklist";
 import { formatBandDelta, reviseAction } from "../practice/revise-availability";
+import { asImprovementList } from "../practice/improvements";
 import { StyleProfile } from "../practice/StyleProfile";
 import { SidePanel } from "../SidePanel";
 
@@ -478,8 +479,10 @@ function ResultView({
     revisionRound: attempt.revisionRound,
     hasRevision: attempt.hasRevision,
     pendingRevisionId: attempt.pendingRevisionId,
+    taskType: attempt.taskType,
   });
 
+  const improvements = asImprovementList(attempt.feedback?.improvements);
   const revise = useMutation({
     mutationFn: () => reviseAttempt(attempt.id),
     onSuccess: (created) => {
@@ -620,9 +623,9 @@ function ResultView({
                 </h2>
                 <p className="mt-3 font-display text-lg leading-snug">{attempt.feedback.nextFocus}</p>
                 <p className="mt-3 text-sm leading-relaxed text-ink-soft">{attempt.feedback.overview}</p>
-                {attempt.feedback.improvements && attempt.feedback.improvements.length > 0 && (
+                {improvements.length > 0 && (
                   <ul className="mt-3 list-disc space-y-1 pl-4 text-sm leading-relaxed text-ink-soft">
-                    {attempt.feedback.improvements.map((point) => (
+                    {improvements.map((point) => (
                       <li key={point}>{point}</li>
                     ))}
                   </ul>

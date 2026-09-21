@@ -96,6 +96,45 @@ describe("reviseAction", () => {
       }),
     ).toEqual({ kind: "resume", attemptId: "rev-2-draft" });
   });
+
+  it("returns none for a legacy IELTS email type not in TASK_CATALOG", () => {
+    expect(
+      reviseAction({
+        ...graded,
+        taskType: "email",
+      }),
+    ).toEqual({ kind: "none" });
+  });
+
+  it("hides resume when the type is not in TASK_CATALOG", () => {
+    expect(
+      reviseAction({
+        ...graded,
+        taskType: "email",
+        hasRevision: true,
+        pendingRevisionId: "rev-pending",
+      }),
+    ).toEqual({ kind: "none" });
+  });
+
+  it("returns none when a speaking cue lacks a TOEIC type", () => {
+    expect(
+      reviseAction({
+        band: 6.0,
+        scale: "ielts",
+        rawRating: null,
+        submittedAt: "2026-08-27T10:00:00Z",
+        revisionRound: 0,
+        hasRevision: false,
+        pendingRevisionId: null,
+        speakingType: null,
+      }),
+    ).toEqual({ kind: "none" });
+  });
+
+  it("returns revise for a catalog writing type", () => {
+    expect(reviseAction({ ...graded, taskType: "email-request" })).toEqual({ kind: "revise" });
+  });
 });
 
 describe("canRevise", () => {

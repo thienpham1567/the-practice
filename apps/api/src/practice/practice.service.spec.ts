@@ -26,7 +26,7 @@ function feedback(overrides: Partial<GradeFeedback> = {}): GradeFeedback {
     opinionSupport: "",
     overview: "",
     nextFocus: "",
-    improvements: "",
+    improvements: [],
     ...overrides,
   };
 }
@@ -1532,7 +1532,7 @@ describe("PracticeService", () => {
       expect(complete).not.toHaveBeenCalled();
     });
 
-    it("generates and saves two samples, sized to the task level, when none exist yet", async () => {
+    it("generates and saves two TOEIC samples when none exist yet", async () => {
       const { service, prisma, complete } = serviceWith({
         attempt: gradedAttempt,
         updated: { id: "a1", sampleEssays: ["Essay one.", "Essay two."] },
@@ -1551,6 +1551,8 @@ describe("PracticeService", () => {
         }),
       );
       expect(complete.mock.calls[0]![0].prompt).toContain("TOEIC");
+      expect(complete.mock.calls[0]![0].prompt).not.toMatch(/CEFR/i);
+      expect(complete.mock.calls[0]![0].prompt).not.toMatch(/within level/i);
       expect(prisma.practiceAttempt.update).toHaveBeenCalledWith({
         where: { id: "a1" },
         data: { sampleEssays: ["Essay one.", "Essay two."] },

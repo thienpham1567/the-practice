@@ -1,4 +1,4 @@
-import type { SpeakingSeed, SpeakingTaskSpec } from "@writing-helper/practice";
+import type { SpeakingSeed, SpeakingTaskSpec, SpeakingTaskType } from "@writing-helper/practice";
 import type { JsonSchemaSpec } from "../ai/ai.service";
 import type { VocabSuggestItem } from "../practice/vocab.service";
 
@@ -15,7 +15,7 @@ export const SPEAKING_GENERATE_SCHEMA: JsonSchemaSpec = {
       structure: {
         type: "array",
         items: { type: "string" },
-        minItems: 5,
+        minItems: 4,
         maxItems: 5,
       },
       vocabulary: {
@@ -64,8 +64,7 @@ function payloadInstructions(seed: SpeakingSeed): string {
     case "describe-picture":
       return (
         `Do not invent an image — the server already selected a photograph. ` +
-        `Leave passage, question, and info empty. Invent 5 short talking beats for describing ` +
-        `a workplace or daily picture.`
+        `Leave passage, question, and info empty.`
       );
     case "respond-question":
       return (
@@ -82,6 +81,24 @@ function payloadInstructions(seed: SpeakingSeed): string {
         `Invent a specific, original workplace or daily-life opinion question. ` +
         `Put it in the question field. Leave passage and info empty.`
       );
+  }
+}
+
+function structureInstructions(type: SpeakingTaskType): string {
+  const glance =
+    `Give short talking beats the candidate can glance at during prep. ` +
+    `Each beat is a phrase, not a full sentence to read aloud.`;
+  switch (type) {
+    case "describe-picture":
+      return `${glance} Structure them overall → people → place → close.`;
+    case "express-opinion":
+      return `${glance} Structure them stance → reason → example → close.`;
+    case "read-aloud":
+      return `${glance} Structure them opening → key fact → extra detail → close.`;
+    case "respond-question":
+      return `${glance} Structure them answer → reason → example → close.`;
+    case "respond-with-info":
+      return `${glance} Structure them find the fact → state it → extra detail from the info → close.`;
   }
 }
 
@@ -102,9 +119,7 @@ export function buildSpeakingGeneratePrompt(
     `Task type: ${spec.label} (${spec.type})\n` +
     `Prep: ${spec.prepSeconds} seconds. Speak: ${spec.speakSeconds} seconds.\n\n` +
     `${payloadInstructions(seed)} ` +
-    `Give exactly 5 short talking beats the candidate can glance at during prep: ` +
-    `(1) a one-line opening, (2–4) one beat per cue, (5) a one-line close. ` +
-    `Each beat is a phrase, not a full sentence to read aloud.\n` +
+    `${structureInstructions(seed.type)}\n` +
     `Give 6–8 useful spoken chunks (collocations or short phrases a candidate would actually say) ` +
     `with meaning and a short example sentence they could speak.\n` +
     `Write everything in English. Do not write a sample answer or transcript.`;
