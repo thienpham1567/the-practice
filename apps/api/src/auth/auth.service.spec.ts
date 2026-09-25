@@ -1,10 +1,10 @@
-import { Logger, UnauthorizedException } from "@nestjs/common";
+import { ConflictException, Logger, UnauthorizedException } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
 import type { JwtService } from "@nestjs/jwt";
 import { Prisma } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
 import type { PrismaService } from "../prisma/prisma.service";
-import { AuthService, DUMMY_PASSWORD_PLAINTEXT } from "./auth.service";
+import { AuthService, DUMMY_PASSWORD_PLAINTEXT, PASSWORD_ACCOUNT_MESSAGE } from "./auth.service";
 
 type StoredUser = {
   id: string;
@@ -320,7 +320,8 @@ describe("AuthService", () => {
       expect(loggedText()).toContain("existing-id");
     });
 
-    it("links googleId onto an existing email user without changing id or passwordHash", async () => {
+    it("refuses to attach Google to a password account on its own (pre-hijack guard)", async () => {
+      // Ai đó có thể đã đăng ký email này bằng mật khẩu của họ — đăng ký không xác minh email.
       const existing: StoredUser = {
         id: "password-user",
         email: "writer@example.com",
@@ -329,19 +330,17 @@ describe("AuthService", () => {
       };
       const { service, prisma, users } = googleService({ users: [existing] });
 
-      const result = await service.loginWithGoogle(verifiedProfile());
+      const error = await service
+        .loginWithGoogle(verifiedProfile())
+        .catch((caught: unknown) => caught);
 
-      expect(result.user).toEqual({ id: "password-user", email: "writer@example.com" });
-      expect(users[0]?.id).toBe("password-user");
-      expect(users[0]?.passwordHash).toBe("existing-bcrypt-hash");
-      expect(users[0]?.googleId).toBe("google-sub-1");
+      expect(error).toBeInstanceOf(ConflictException);
+      expect((error as ConflictException).message).toBe(PASSWORD_ACCOUNT_MESSAGE);
+      expect(users[0]?.googleId).toBeNull();
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
       expect(prisma.user.create).not.toHaveBeenCalled();
-      expect(prisma.user.updateMany).toHaveBeenCalledWith({
-        where: { id: "password-user", googleId: null },
-        data: { googleId: "google-sub-1" },
-      });
-      expect(loggedText()).toContain("google_link");
-      expect(loggedText()).toContain("password-user");
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(loggedText()).toContain("password_account");
       expect(loggedText()).not.toContain("existing-bcrypt-hash");
     });
 
@@ -394,7 +393,7 @@ describe("AuthService", () => {
       expect(prisma.user.updateMany).not.toHaveBeenCalled();
     });
 
-    it("links googleId when P2002 recovery finds an email user without googleId", async () => {
+    it("refuses the link when P2002 recovery finds a password user without googleId", async () => {
       const raced: StoredUser = {
         id: "password-winner",
         email: "writer@example.com",
@@ -411,18 +410,15 @@ describe("AuthService", () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(raced);
 
-      const result = await service.loginWithGoogle(verifiedProfile());
+      const error = await service
+        .loginWithGoogle(verifiedProfile())
+        .catch((caught: unknown) => caught);
 
-      expect(prisma.user.updateMany).toHaveBeenCalledWith({
-        where: { id: "password-winner", googleId: null },
-        data: { googleId: "google-sub-1" },
-      });
-      expect(users[0]?.id).toBe("password-winner");
-      expect(users[0]?.passwordHash).toBe("existing-bcrypt-hash");
-      expect(users[0]?.googleId).toBe("google-sub-1");
-      expect(result.user).toEqual({ id: "password-winner", email: "writer@example.com" });
-      expect(loggedText()).toContain("google_link");
-      expect(loggedText()).toContain("p2002_recovered");
+      expect(error).toBeInstanceOf(ConflictException);
+      expect(prisma.user.updateMany).not.toHaveBeenCalled();
+      expect(users[0]?.googleId).toBeNull();
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+      expect(loggedText()).toContain("password_account");
     });
 
     it("signs in when email lookup finds this same googleId after a googleId miss", async () => {
@@ -447,7 +443,7 @@ describe("AuthService", () => {
       const existing: StoredUser = {
         id: "password-user",
         email: "writer@example.com",
-        passwordHash: "existing-bcrypt-hash",
+        passwordHash: await bcrypt.hash("password1", 4),
         googleId: null,
       };
       const { service, prisma, users } = googleService({ users: [existing] });
@@ -456,7 +452,7 @@ describe("AuthService", () => {
         return { count: 0 };
       });
 
-      const result = await service.loginWithGoogle(verifiedProfile());
+      const result = await service.linkGoogleWithPassword(verifiedProfile(), "password1");
 
       expect(result.user).toEqual({ id: "password-user", email: "writer@example.com" });
       expect(prisma.refreshToken.create).toHaveBeenCalledTimes(1);
@@ -468,7 +464,7 @@ describe("AuthService", () => {
       const existing: StoredUser = {
         id: "password-user",
         email: "writer@example.com",
-        passwordHash: "existing-bcrypt-hash",
+        passwordHash: await bcrypt.hash("password1", 4),
         googleId: null,
       };
       const { service, prisma, users } = googleService({ users: [existing] });
@@ -478,7 +474,7 @@ describe("AuthService", () => {
       });
 
       const error = await service
-        .loginWithGoogle(verifiedProfile())
+        .linkGoogleWithPassword(verifiedProfile(), "password1")
         .catch((caught: unknown) => caught);
 
       expect(error).toBeInstanceOf(UnauthorizedException);
@@ -486,6 +482,98 @@ describe("AuthService", () => {
       expect(prisma.refreshToken.create).not.toHaveBeenCalled();
       expect(users[0]?.googleId).toBe("other-sub");
       expect(loggedText()).toContain("google_denied");
+    });
+  });
+
+  describe("linkGoogleWithPassword", () => {
+    beforeEach(() => {
+      jest.spyOn(Logger.prototype, "log").mockImplementation();
+      jest.spyOn(Logger.prototype, "warn").mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    async function passwordUser(overrides: Partial<StoredUser> = {}): Promise<StoredUser> {
+      return {
+        id: "password-user",
+        email: "writer@example.com",
+        passwordHash: await bcrypt.hash("password1", 4),
+        googleId: null,
+        ...overrides,
+      };
+    }
+
+    it("links Google once the password proves the account, keeping the password", async () => {
+      const existing = await passwordUser();
+      const hash = existing.passwordHash;
+      const { service, prisma, users } = googleService({ users: [existing] });
+
+      const result = await service.linkGoogleWithPassword(verifiedProfile(), "password1");
+
+      expect(result.user).toEqual({ id: "password-user", email: "writer@example.com" });
+      expect(result.accessToken).toBe("access-token");
+      expect(users[0]?.googleId).toBe("google-sub-1");
+      expect(users[0]?.passwordHash).toBe(hash);
+      expect(prisma.user.updateMany).toHaveBeenCalledWith({
+        where: { id: "password-user", googleId: null },
+        data: { googleId: "google-sub-1" },
+      });
+      expect(loggedText()).toContain("password_confirmed");
+    });
+
+    it("does not link with a wrong password", async () => {
+      const { service, prisma, users } = googleService({ users: [await passwordUser()] });
+
+      const error = await service
+        .linkGoogleWithPassword(verifiedProfile(), "not-the-password")
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect((error as UnauthorizedException).message).toBe("Invalid email or password");
+      expect(users[0]?.googleId).toBeNull();
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it("answers an unknown email exactly like a wrong password", async () => {
+      const { service } = googleService();
+
+      const error = await service
+        .linkGoogleWithPassword(verifiedProfile(), "password1")
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect((error as UnauthorizedException).message).toBe("Invalid email or password");
+    });
+
+    it("refuses an unverified Google email before touching the account", async () => {
+      const { service, prisma } = googleService({ users: [await passwordUser()] });
+
+      const error = await service
+        .linkGoogleWithPassword(verifiedProfile({ emailVerified: false }), "password1")
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("refuses a googleId that already belongs to another account", async () => {
+      const other: StoredUser = {
+        id: "other-user",
+        email: "someone@example.com",
+        passwordHash: null,
+        googleId: "google-sub-1",
+      };
+      const { service, users } = googleService({ users: [await passwordUser(), other] });
+
+      const error = await service
+        .linkGoogleWithPassword(verifiedProfile(), "password1")
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(UnauthorizedException);
+      expect((error as UnauthorizedException).message).toBe("Invalid Google credential");
+      expect(users[0]?.googleId).toBeNull();
     });
   });
 

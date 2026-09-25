@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiJson, ApiError } from "../api/client";
 import { useAuthStore, type SessionUser } from "../api/auth-store";
@@ -49,6 +49,14 @@ export function AuthPage({ mode }: AuthPageProps) {
   const formBusy = pending || google.status === "submitting";
   const api = useApiReady();
   const blocked = api.status !== "ready";
+  const pendingLink = google.pendingLink;
+
+  // Google trả 409: email này đã có mật khẩu — điền sẵn email, chờ mật khẩu để liên kết.
+  useEffect(() => {
+    if (!pendingLink) return;
+    if (pendingLink.email) setEmail(pendingLink.email);
+    setPassword("");
+  }, [pendingLink]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -57,11 +65,15 @@ export function AuthPage({ mode }: AuthPageProps) {
     setPending(true);
 
     try {
-      const result = await apiJson<{ accessToken: string; user: SessionUser }>(
-        copy.path,
-        "POST",
-        { email, password },
-      );
+      const result = pendingLink
+        ? await apiJson<{ accessToken: string; user: SessionUser }>("/auth/google/link", "POST", {
+            credential: pendingLink.credential,
+            password,
+          })
+        : await apiJson<{ accessToken: string; user: SessionUser }>(copy.path, "POST", {
+            email,
+            password,
+          });
 
       setSession(result.accessToken, result.user);
       void navigate(afterAuthPath());
@@ -129,7 +141,7 @@ export function AuthPage({ mode }: AuthPageProps) {
                   disabled={formBusy}
                   className="w-full bg-ink px-4 py-3 font-mono text-sm uppercase tracking-[0.15em] text-paper transition-colors hover:bg-vermilion active:scale-[0.99] disabled:opacity-50"
                 >
-                  {pending ? "Working…" : copy.action}
+                  {pending ? "Working…" : pendingLink ? "Connect Google" : copy.action}
                 </button>
               </form>
 

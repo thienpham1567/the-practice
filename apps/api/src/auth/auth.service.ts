@@ -30,6 +30,15 @@ export const DUMMY_PASSWORD_PLAINTEXT =
 /** Hash bcrypt 12 vòng có sẵn — compare giả trên tài khoản không mật khẩu. */
 const DUMMY_PASSWORD_HASH = "$2b$12$NXX.aAVdMUS6dzfbpjqg..L7YTdOtGpq1SXmH.755v4rpH456moE2";
 
+/**
+ * Đăng ký bằng mật khẩu không xác minh email, nên tài khoản mật khẩu có thể do
+ * người khác tạo trước bằng email của nạn nhân. Tự gắn Google vào đó sẽ cho kẻ
+ * tạo trước (vẫn giữ mật khẩu) đọc được mọi thứ nạn nhân làm sau này — nên
+ * phải nhập mật khẩu một lần qua `linkGoogleWithPassword`.
+ */
+export const PASSWORD_ACCOUNT_MESSAGE =
+  "This email already has a password. Enter it once to connect Google.";
+
 export type GoogleProfile = {
   googleId: string;
   email: string;
@@ -111,6 +120,10 @@ export class AuthService {
         );
         throw new UnauthorizedException("Invalid Google credential");
       }
+      if (byEmail.passwordHash !== null) {
+        this.logger.warn(`event=google_denied reason=password_account userId=${byEmail.id}`);
+        throw new ConflictException(PASSWORD_ACCOUNT_MESSAGE);
+      }
 
       return this.linkGoogleId(byEmail, googleId);
     }
@@ -134,6 +147,12 @@ export class AuthService {
             throw new UnauthorizedException("Invalid Google credential");
           }
           if (recovered.googleId === null) {
+            if (recovered.passwordHash !== null) {
+              this.logger.warn(
+                `event=google_denied reason=password_account userId=${recovered.id}`,
+              );
+              throw new ConflictException(PASSWORD_ACCOUNT_MESSAGE);
+            }
             return this.linkGoogleId(recovered, googleId, "p2002_recovered");
           }
           this.logger.log(
@@ -144,6 +163,36 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Cách duy nhất gắn Google vào tài khoản mật khẩu: Google chứng minh sở hữu
+   * email, mật khẩu chứng minh là chủ tài khoản. Người tạo trước bằng email của
+   * người khác không có Google của email đó; chủ email thật không có mật khẩu
+   * người kia đặt — không ai một mình liên kết được.
+   */
+  async linkGoogleWithPassword(profile: GoogleProfile, password: string): Promise<AuthResult> {
+    const email = profile.email.trim().toLowerCase();
+    if (!profile.emailVerified) {
+      this.logger.warn(`event=google_denied reason=unverified_email email=${email}`);
+      throw new UnauthorizedException("Your Google account's email is not verified.");
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    // Cùng thông báo và cùng một lần bcrypt như login: không lộ email nào có mật khẩu.
+    const matches = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
+    if (!user || user.passwordHash === null || !matches) {
+      throw new UnauthorizedException("Invalid email or password");
+    }
+
+    if (user.googleId === profile.googleId) return this.sessionFor(user);
+    const owner = await this.prisma.user.findUnique({ where: { googleId: profile.googleId } });
+    if (user.googleId !== null || (owner && owner.id !== user.id)) {
+      this.logger.warn(`event=google_denied reason=google_id_mismatch userId=${user.id}`);
+      throw new UnauthorizedException("Invalid Google credential");
+    }
+
+    return this.linkGoogleId(user, profile.googleId, "password_confirmed");
   }
 
   /**

@@ -9,15 +9,27 @@ import { loadGsi } from "./load-gsi";
 
 export type GoogleSignInStatus = "hidden" | "loading" | "ready" | "submitting";
 
+/**
+ * Email đã có tài khoản mật khẩu: API không tự gắn Google (chống chiếm trước),
+ * mà chờ form mật khẩu gửi credential này kèm mật khẩu tới /auth/google/link.
+ */
+export interface PendingGoogleLink {
+  credential: string;
+  /** Chỉ để điền sẵn form — server tự đọc email từ credential đã xác minh. */
+  email: string;
+}
+
 export function useGoogleSignIn(options?: { formPending?: boolean }): {
   containerRef: RefObject<HTMLDivElement>;
   status: GoogleSignInStatus;
   error: string | null;
+  pendingLink: PendingGoogleLink | null;
 } {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<GoogleSignInStatus>("loading");
   const [error, setError] = useState<string | null>(null);
+  const [pendingLink, setPendingLink] = useState<PendingGoogleLink | null>(null);
 
   const cancelledRef = useRef(false);
   const submittingRef = useRef(false);
@@ -120,6 +132,7 @@ export function useGoogleSignIn(options?: { formPending?: boolean }): {
     submittingRef.current = true;
     setStatus("submitting");
     setError(null);
+    setPendingLink(null);
 
     try {
       const result = await apiJson<{ accessToken: string; user: SessionUser }>(
@@ -135,7 +148,18 @@ export function useGoogleSignIn(options?: { formPending?: boolean }): {
       submittingRef.current = false;
       if (cancelledRef.current || isAbortError(caught)) return;
       setError(caught instanceof ApiError ? caught.message : "Something went wrong");
-      if (caught instanceof ApiError && caught.status === 401 && clientIdRef.current) {
+      if (caught instanceof ApiError && caught.status === 409) {
+        setPendingLink({
+          credential: response.credential,
+          email: emailFromCredential(response.credential),
+        });
+      }
+      // 401 và 409 đều đã đốt nonce phía server; cần nonce mới để nút Google dùng lại được.
+      if (
+        caught instanceof ApiError &&
+        (caught.status === 401 || caught.status === 409) &&
+        clientIdRef.current
+      ) {
         try {
           const { nonce } = await apiFetch<{ nonce: string }>("/auth/google/nonce", {
             signal: abortRef.current?.signal,
@@ -150,7 +174,19 @@ export function useGoogleSignIn(options?: { formPending?: boolean }): {
     }
   }
 
-  return { containerRef, status, error };
+  return { containerRef, status, error, pendingLink };
+}
+
+/** Đọc `email` từ phần payload của ID token Google (không xác minh — chỉ để hiển thị). */
+export function emailFromCredential(credential: string): string {
+  try {
+    const payload = credential.split(".")[1] ?? "";
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    const email = (JSON.parse(json) as { email?: unknown }).email;
+    return typeof email === "string" ? email : "";
+  } catch {
+    return "";
+  }
 }
 
 function isAbortError(error: unknown): boolean {

@@ -15,7 +15,7 @@ import { ConfigService } from "@nestjs/config";
 import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { AuthService, REFRESH_TOKEN_TTL_MS } from "./auth.service";
-import { GoogleCredentialDto, LoginDto, RegisterDto } from "./dto/credentials.dto";
+import { GoogleCredentialDto, GoogleLinkDto, LoginDto, RegisterDto } from "./dto/credentials.dto";
 import { GoogleTokenVerifier } from "./google-token-verifier";
 import { NonceService } from "./nonce.service";
 
@@ -115,6 +115,23 @@ export class AuthController {
     }
     await this.nonce.consume(profile.nonce);
     const { refreshToken, ...rest } = await this.auth.loginWithGoogle(profile);
+    this.setRefreshCookie(res, refreshToken);
+    return rest;
+  }
+
+  /**
+   * Không đòi nonce: credential ở đây là cái vừa bị `/auth/google` trả 409 (nonce
+   * đã dùng). Mật khẩu mới là thứ chặn phát lại — ai có mật khẩu thì vốn đã
+   * đăng nhập được bằng `/auth/login`.
+   */
+  @Post("google/link")
+  @HttpCode(HttpStatus.OK)
+  async googleLink(
+    @Body() dto: GoogleLinkDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ accessToken: string; user: { id: string; email: string } }> {
+    const profile = await this.googleVerifier.verify(dto.credential);
+    const { refreshToken, ...rest } = await this.auth.linkGoogleWithPassword(profile, dto.password);
     this.setRefreshCookie(res, refreshToken);
     return rest;
   }

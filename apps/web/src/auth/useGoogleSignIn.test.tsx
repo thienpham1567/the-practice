@@ -37,6 +37,7 @@ function Probe({ formPending = false }: { formPending?: boolean }) {
       <span data-testid="status">{google.status}</span>
       <div data-testid="google-button" ref={google.containerRef} />
       {google.error ? <p role="alert">{google.error}</p> : null}
+      <span data-testid="pending-link">{google.pendingLink?.email ?? ""}</span>
     </div>
   );
 }
@@ -284,6 +285,37 @@ describe("useGoogleSignIn", () => {
     expect(screen.getByRole("alert").textContent).toBe(
       "Sign-in session expired. Please try again.",
     );
+  });
+
+  it("keeps the credential for a password link after a 409, with a fresh nonce", async () => {
+    let nonceCalls = 0;
+    vi.mocked(apiFetch).mockImplementation(async (path: string) => {
+      if (path === "/auth/providers") {
+        return { google: { enabled: true, clientId: "test-client-id" } };
+      }
+      if (path === "/auth/google/nonce") {
+        nonceCalls += 1;
+        return { nonce: `nonce-${nonceCalls}` };
+      }
+      throw new Error(`unexpected apiFetch ${path}`);
+    });
+    vi.mocked(apiJson).mockRejectedValue(
+      new ApiError(409, "This email already has a password. Enter it once to connect Google."),
+    );
+    const payload = btoa(JSON.stringify({ email: "writer@example.com" }))
+      .replace(/=+$/, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+
+    renderHarness();
+    await waitFor(() => expect(initialize).toHaveBeenCalledTimes(1));
+    credentialCallback!(googleCredential(`header.${payload}.sig`));
+
+    await waitFor(() => expect(screen.getByTestId("pending-link").textContent).toBe("writer@example.com"));
+    await waitFor(() => expect(initialize).toHaveBeenCalledTimes(2));
+    expect(initialize.mock.calls[1]?.[0]).toEqual(expect.objectContaining({ nonce: "nonce-2" }));
+    expect(useAuthStore.getState().accessToken).toBeNull();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("ignores a GIS callback while the password form is pending", async () => {

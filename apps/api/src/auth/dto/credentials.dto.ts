@@ -27,3 +27,15 @@ export class GoogleCredentialDto {
   @MaxLength(4096)
   credential!: string;
 }
+
+/** Google + mật khẩu: cách duy nhất gắn Google vào tài khoản mật khẩu (xem AuthService). */
+export class GoogleLinkDto {
+  @IsJWT()
+  @IsString()
+  @MaxLength(4096)
+  credential!: string;
+
+  @IsString()
+  @MaxLength(200)
+  password!: string;
+}

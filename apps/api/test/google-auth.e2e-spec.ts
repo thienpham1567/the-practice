@@ -75,6 +75,52 @@ describe("Google sign-in HTTP (e2e)", () => {
     expect(googleVerifier.verify).toHaveBeenCalledWith(VALID_CREDENTIAL);
   });
 
+  it("không tự gắn Google vào tài khoản mật khẩu; chỉ gắn khi nhập đúng mật khẩu", async () => {
+    // Kịch bản chiếm trước: ai đó đăng ký email này bằng mật khẩu của họ.
+    await server()
+      .post("/auth/register")
+      .send({ email: "shared@example.com", password: "creator-password" })
+      .expect(201);
+    const googleProfile = {
+      googleId: "google-sub-owner",
+      email: "shared@example.com",
+      emailVerified: true,
+    };
+
+    const nonce = await issueNonce();
+    googleVerifier.verify.mockResolvedValue({ ...googleProfile, nonce });
+    const conflict = await server()
+      .post("/auth/google")
+      .send({ credential: VALID_CREDENTIAL })
+      .expect(409);
+    expect(conflict.body.message).toBe(
+      "This email already has a password. Enter it once to connect Google.",
+    );
+    expect(conflict.headers["set-cookie"]).toBeUndefined();
+
+    // Chủ email thật không biết mật khẩu kia → không liên kết được.
+    googleVerifier.verify.mockResolvedValue(googleProfile);
+    await server()
+      .post("/auth/google/link")
+      .send({ credential: VALID_CREDENTIAL, password: "guessing" })
+      .expect(401);
+    const stillUnlinked = await prisma.user.findUnique({ where: { email: "shared@example.com" } });
+    expect(stillUnlinked?.googleId).toBeNull();
+
+    // Có cả Google lẫn mật khẩu → liên kết và vào phiên.
+    const linked = await server()
+      .post("/auth/google/link")
+      .send({ credential: VALID_CREDENTIAL, password: "creator-password" })
+      .expect(200);
+    expect(linked.body.user).toMatchObject({ email: "shared@example.com" });
+    expect(String(linked.headers["set-cookie"])).toContain("refresh_token=");
+
+    // Từ giờ Google đăng nhập thẳng.
+    const nextNonce = await issueNonce();
+    googleVerifier.verify.mockResolvedValue({ ...googleProfile, nonce: nextNonce });
+    await server().post("/auth/google").send({ credential: VALID_CREDENTIAL }).expect(200);
+  });
+
   it("từ chối credential rỗng hoặc không phải JWT", async () => {
     await server().post("/auth/google").send({ credential: "" }).expect(400);
     await server().post("/auth/google").send({ credential: "not-a-jwt" }).expect(400);

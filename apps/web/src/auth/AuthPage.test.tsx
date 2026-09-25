@@ -22,6 +22,7 @@ const googleSignIn = {
   containerRef: { current: null },
   status: "hidden" as GoogleSignInStatus,
   error: null as string | null,
+  pendingLink: null as { credential: string; email: string } | null,
 };
 
 let lastFormPending = false;
@@ -59,6 +60,7 @@ describe("AuthPage", () => {
   beforeEach(() => {
     googleSignIn.status = "hidden";
     googleSignIn.error = null;
+    googleSignIn.pendingLink = null;
     lastFormPending = false;
     navigate.mockReset();
     vi.mocked(apiJson).mockReset();
@@ -138,6 +140,28 @@ describe("AuthPage", () => {
     expect(screen.getByRole("alert").textContent).toContain(
       "Sign-in session expired. Please try again.",
     );
+  });
+
+  it("asks for the password once to connect Google to an existing password account", async () => {
+    vi.mocked(apiJson).mockResolvedValue({
+      accessToken: "tok",
+      user: { id: "u1", email: "writer@example.com" },
+    });
+    googleSignIn.status = "ready";
+    googleSignIn.error = "This email already has a password. Enter it once to connect Google.";
+    googleSignIn.pendingLink = { credential: "google-jwt", email: "writer@example.com" };
+    renderAuth();
+
+    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("writer@example.com");
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password1" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Connect Google" }).closest("form")!);
+
+    await waitFor(() => expect(navigate).toHaveBeenCalled());
+    expect(apiJson).toHaveBeenCalledWith("/auth/google/link", "POST", {
+      credential: "google-jwt",
+      password: "password1",
+    });
+    expect(useAuthStore.getState().accessToken).toBe("tok");
   });
 
   it("disables the password form while Google is submitting", () => {
