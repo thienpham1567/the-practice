@@ -134,6 +134,26 @@ function serviceWith(
   return { service, prisma, complete, vocab };
 }
 
+/** 15 s WAV câm 16 kHz mono — submit đo thời lượng thật từ header. */
+const VALID_WAV_BASE64 = (() => {
+  const dataBytes = 15 * 16_000 * 2;
+  const wav = Buffer.alloc(44 + dataBytes);
+  wav.write("RIFF", 0, "ascii");
+  wav.writeUInt32LE(36 + dataBytes, 4);
+  wav.write("WAVE", 8, "ascii");
+  wav.write("fmt ", 12, "ascii");
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20);
+  wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(16_000, 24);
+  wav.writeUInt32LE(32_000, 28);
+  wav.writeUInt16LE(2, 32);
+  wav.writeUInt16LE(16, 34);
+  wav.write("data", 36, "ascii");
+  wav.writeUInt32LE(dataBytes, 40);
+  return wav.toString("base64");
+})();
+
 describe("SpeakingService", () => {
   describe("create", () => {
     it("picks a seed, calls speaking.generate, and stores a TOEIC cue card plus prep notes", async () => {
@@ -386,7 +406,7 @@ describe("SpeakingService", () => {
       complete.mockResolvedValueOnce(graded);
 
       await service.submit("user-1", "s1", {
-        audioBase64: "QUFB",
+        audioBase64: VALID_WAV_BASE64,
         format: "wav",
         durationMs: 30_000,
       });
@@ -394,7 +414,7 @@ describe("SpeakingService", () => {
       expect(complete).toHaveBeenCalledWith(
         expect.objectContaining({
           schema: SPEAKING_GRADE_SCHEMA,
-          audio: { base64: "QUFB", format: "wav" },
+          audio: { base64: VALID_WAV_BASE64, format: "wav" },
           usage: { userId: "user-1", endpoint: "speaking.grade" },
         }),
       );
@@ -442,7 +462,7 @@ describe("SpeakingService", () => {
       });
 
       await service.submit("user-1", "s1", {
-        audioBase64: "QUFB",
+        audioBase64: VALID_WAV_BASE64,
         format: "wav",
         durationMs: 20_000,
       });
@@ -475,12 +495,12 @@ describe("SpeakingService", () => {
 
       const results = await Promise.allSettled([
         service.submit("user-1", "s1", {
-          audioBase64: "QUFB",
+          audioBase64: VALID_WAV_BASE64,
           format: "wav",
           durationMs: 20_000,
         }),
         service.submit("user-1", "s1", {
-          audioBase64: "QUFB",
+          audioBase64: VALID_WAV_BASE64,
           format: "wav",
           durationMs: 20_000,
         }),
@@ -499,7 +519,7 @@ describe("SpeakingService", () => {
 
       await expect(
         service.submit("user-1", "s1", {
-          audioBase64: "QUFB",
+          audioBase64: VALID_WAV_BASE64,
           format: "wav",
           durationMs: 20_000,
         }),
@@ -523,7 +543,7 @@ describe("SpeakingService", () => {
 
       await expect(
         service.submit("user-1", "s1", {
-          audioBase64: "QUFB",
+          audioBase64: VALID_WAV_BASE64,
           format: "wav",
           durationMs: 15_000,
         }),
@@ -547,7 +567,7 @@ describe("SpeakingService", () => {
       complete.mockResolvedValueOnce({ ...graded, rawRating: 9 });
 
       await service.submit("user-1", "s1", {
-        audioBase64: "QUFB",
+        audioBase64: VALID_WAV_BASE64,
         format: "wav",
         durationMs: 20_000,
       });
@@ -570,7 +590,7 @@ describe("SpeakingService", () => {
         complete.mockResolvedValueOnce({ ...graded, rawRating });
 
         await service.submit("user-1", "s1", {
-          audioBase64: "QUFB",
+          audioBase64: VALID_WAV_BASE64,
           format: "wav",
           durationMs: 20_000,
         });
@@ -593,7 +613,7 @@ describe("SpeakingService", () => {
       complete.mockResolvedValueOnce({ ...graded, rawRating: 0 });
 
       await service.submit("user-1", "s1", {
-        audioBase64: "QUFB",
+        audioBase64: VALID_WAV_BASE64,
         format: "wav",
         durationMs: 20_000,
       });

@@ -8,8 +8,16 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from "class-validator";
+
+/**
+ * Bài viết được đưa nguyên vào prompt chấm AI. Không giới hạn thì một request
+ * ~1 MB (giới hạn body) là ~250k token. 20 000 ký tự gấp ~10 lần một bài
+ * opinion essay TOEIC (~300 từ).
+ */
+export const MAX_ESSAY_CHARS = 20_000;
 
 const WRITING_TASK_TYPES = [
   "picture-sentence",
@@ -29,6 +37,7 @@ export class UpdateAttemptDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(MAX_ESSAY_CHARS)
   plainText?: string;
 
   @IsOptional()
@@ -57,6 +66,7 @@ export class SubmitAttemptDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(MAX_ESSAY_CHARS)
   plainText?: string;
 
   @IsOptional()

@@ -6,6 +6,27 @@ import { configureApp } from "../src/configure-app";
 import { configureBodyParser } from "../src/configure-body-parser";
 import { PrismaService } from "../src/prisma/prisma.service";
 
+/** WAV câm (PCM mono) — server đọc thời lượng thật từ header này. */
+function silentWavBase64(seconds: number, sampleRate = 16_000, bitsPerSample = 16): string {
+  const blockAlign = bitsPerSample / 8;
+  const dataBytes = Math.round(seconds * sampleRate) * blockAlign;
+  const wav = Buffer.alloc(44 + dataBytes);
+  wav.write("RIFF", 0, "ascii");
+  wav.writeUInt32LE(36 + dataBytes, 4);
+  wav.write("WAVE", 8, "ascii");
+  wav.write("fmt ", 12, "ascii");
+  wav.writeUInt32LE(16, 16);
+  wav.writeUInt16LE(1, 20);
+  wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(sampleRate, 24);
+  wav.writeUInt32LE(sampleRate * blockAlign, 28);
+  wav.writeUInt16LE(blockAlign, 32);
+  wav.writeUInt16LE(bitsPerSample, 34);
+  wav.write("data", 36, "ascii");
+  wav.writeUInt32LE(dataBytes, 40);
+  return wav.toString("base64");
+}
+
 describe("API (e2e)", () => {
   let app: NestExpressApplication;
   let prisma: PrismaService;
@@ -550,6 +571,28 @@ describe("API (e2e)", () => {
         .set(auth)
         .send({ taskType: "report" })
         .expect(400);
+    });
+
+    it("từ chối bài viết dài hơn 20 000 ký tự — không gọi AI chấm", async () => {
+      const fetchSpy = mockPracticeAi();
+      const { accessToken } = await registerUser("practice-too-long@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+      const created = await server()
+        .post("/practice/attempts")
+        .set(auth)
+        .send({ taskType: "opinion-essay" })
+        .expect(201);
+      const id = created.body.id as string;
+      const aiCalls = fetchSpy.mock.calls.length;
+      const essay = "word ".repeat(4_001); // 20 005 ký tự
+
+      await server().patch(`/practice/attempts/${id}`).set(auth).send({ plainText: essay }).expect(400);
+      await server()
+        .post(`/practice/attempts/${id}/submit`)
+        .set(auth)
+        .send({ styleSnapshot: {}, plainText: essay })
+        .expect(400);
+      expect(fetchSpy.mock.calls.length).toBe(aiCalls);
     });
 
     it("user khác nhận 404 với mọi route trên bài của mình", async () => {
@@ -1417,6 +1460,39 @@ describe("API (e2e)", () => {
       expect(fetchSpy.mock.calls.length).toBe(generateCalls);
     });
 
+    it("từ chối audio không phải WAV, MP3, hoặc dài hơn khai báo — không gọi AI", async () => {
+      const fetchSpy = mockSpeakingAi();
+      const { accessToken } = await registerUser("speaking-audio-guard@example.com");
+      const auth = { Authorization: `Bearer ${accessToken}` };
+      const created = await server()
+        .post("/speaking/attempts")
+        .set(auth)
+        .send({ taskType: "express-opinion" })
+        .expect(201);
+      const submitUrl = `/speaking/attempts/${created.body.id}/submit`;
+      const aiCalls = fetchSpy.mock.calls.length;
+
+      await server()
+        .post(submitUrl)
+        .set(auth)
+        .send({ audioBase64: "QUFBQUFB", format: "wav", durationMs: 15_000 })
+        .expect(400);
+      await server()
+        .post(submitUrl)
+        .set(auth)
+        .send({ audioBase64: silentWavBase64(15), format: "mp3", durationMs: 15_000 })
+        .expect(400);
+      // 3 phút ở 8 kHz 8-bit vẫn nằm gọn dưới giới hạn độ dài base64, nhưng khai 60 s.
+      const tooLong = await server()
+        .post(submitUrl)
+        .set(auth)
+        .send({ audioBase64: silentWavBase64(180, 8_000, 8), format: "wav", durationMs: 60_000 })
+        .expect(400);
+      expect(tooLong.body.message).toBe("Recording is too long");
+
+      expect(fetchSpy.mock.calls.length).toBe(aiCalls);
+    });
+
     it("nộp đủ dài → transcript, marks, practice score; revise → 201 rồi 409", async () => {
       mockSpeakingAi();
       const { accessToken } = await registerUser("speaking-flow@example.com");
@@ -1432,7 +1508,7 @@ describe("API (e2e)", () => {
       const submitted = await server()
         .post(`/speaking/attempts/${id}/submit`)
         .set(auth)
-        .send({ audioBase64: "QUFBQUFB", format: "wav", durationMs: 15_000 })
+        .send({ audioBase64: silentWavBase64(15), format: "wav", durationMs: 15_000 })
         .expect(201);
 
       expect(submitted.body.band).toBeNull();
@@ -1505,7 +1581,7 @@ describe("API (e2e)", () => {
       await server()
         .post(`/speaking/attempts/${id}/submit`)
         .set(auth)
-        .send({ audioBase64: "QUFBQUFB", format: "wav", durationMs: 15_000 })
+        .send({ audioBase64: silentWavBase64(15), format: "wav", durationMs: 15_000 })
         .expect(201);
 
       await server()

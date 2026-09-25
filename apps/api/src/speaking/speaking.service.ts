@@ -18,11 +18,13 @@ import {
 import { AiService, PRACTICE_DEADLINE_MS, PRACTICE_TIMEOUT_MS } from "../ai/ai.service";
 import { DEFAULT_PAGE_SIZE, toCursorPage } from "../common/cursor-page";
 import { PrismaService } from "../prisma/prisma.service";
-import type {
-  CreateSpeakingAttemptDto,
-  SubmitSpeakingAttemptDto,
-  UpdateSpeakingAttemptDto,
+import {
+  MAX_AUDIO_MS,
+  type CreateSpeakingAttemptDto,
+  type SubmitSpeakingAttemptDto,
+  type UpdateSpeakingAttemptDto,
 } from "./dto/speaking.dto";
+import { wavDurationMs } from "./wav-duration";
 import { locateMarks } from "./locate-marks";
 import { VocabService, type VocabSuggestItem } from "../practice/vocab.service";
 import { tagReviewVocabulary } from "../practice/vocab-tag";
@@ -442,6 +444,14 @@ export class SpeakingService {
     }
     if (dto.durationMs < 3_000) {
       throw new BadRequestException("Recording must be at least 3 seconds");
+    }
+    // Đo lại từ chính file: durationMs do client khai, còn chi phí AI tính theo audio thật.
+    const actualMs = wavDurationMs(Buffer.from(dto.audioBase64, "base64"));
+    if (actualMs === null) {
+      throw new BadRequestException("Audio must be a WAV recording");
+    }
+    if (actualMs > MAX_AUDIO_MS) {
+      throw new BadRequestException("Recording is too long");
     }
 
     const attempt = await this.findOne(userId, id);

@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
 const SPEAKING_TASK_TYPES = [
   "read-aloud",
@@ -8,7 +8,15 @@ const SPEAKING_TASK_TYPES = [
   "respond-with-info",
   "express-opinion",
 ] as const;
-const AUDIO_FORMATS = ["wav", "mp3"] as const;
+/**
+ * Chỉ WAV: server đọc được thời lượng thật từ header (xem wav-duration.ts).
+ * MP3 bitrate thấp nhét hàng chục phút vào vài MB mà không kiểm được rẻ.
+ */
+const AUDIO_FORMATS = ["wav"] as const;
+/** Giây nói dài nhất server chấp nhận (tối đa 75 s + 1 s dư). */
+export const MAX_AUDIO_MS = 76_000;
+/** WAV 16 kHz mono 16-bit mà web ghi: 32 000 B/s → 76 s ≈ 2,43 MB ≈ 3,24 MB base64. */
+const MAX_AUDIO_BASE64_CHARS = 3_300_000;
 const SPEAK_SECONDS = [15, 30] as const;
 
 export class CreateSpeakingAttemptDto {
@@ -31,6 +39,7 @@ export class UpdateSpeakingAttemptDto {
 
 export class SubmitSpeakingAttemptDto {
   @IsString()
+  @MaxLength(MAX_AUDIO_BASE64_CHARS)
   audioBase64!: string;
 
   @IsIn(AUDIO_FORMATS)

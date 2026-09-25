@@ -103,7 +103,8 @@ export interface CreateSpeakingAttemptInput {
 
 export interface SubmitSpeakingInput {
   audioBase64: string;
-  format: "wav" | "mp3";
+  /** API chỉ nhận WAV (đọc thời lượng thật từ header). */
+  format: "wav";
   durationMs: number;
 }
 
