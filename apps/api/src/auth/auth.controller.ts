@@ -12,7 +12,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Throttle } from "@nestjs/throttler";
+import { SkipThrottle, Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 import { AuthService, REFRESH_TOKEN_TTL_MS } from "./auth.service";
 import { GoogleCredentialDto, GoogleLinkDto, LoginDto, RegisterDto } from "./dto/credentials.dto";
@@ -69,6 +69,13 @@ export class AuthController {
    * trang chủ không ghi 401 vào console của mọi lượt truy cập đầu tiên.
    * Cookie có mà sai/hết hạn thì vẫn 401 như cũ.
    */
+  /**
+   * Không rate limit: mọi lượt tải trang đều gọi route này, và 10/phút của
+   * nhóm auth từng làm người dùng thật bị "đăng xuất" khi nhiều người chung một
+   * IP (proxy). Refresh token là 256 bit ngẫu nhiên nên không dò được; không có
+   * cookie thì trả 204 trước khi chạm DB.
+   */
+  @SkipThrottle()
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
   async refresh(

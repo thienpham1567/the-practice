@@ -2,6 +2,7 @@ import { ValidationPipe } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
+import { configureProxyTrust } from "./common/proxy-trust";
 import { RequestAwareLogger } from "./common/request-aware-logger";
 import { requestIdMiddleware } from "./common/request-id.middleware";
 
@@ -11,6 +12,8 @@ import { requestIdMiddleware } from "./common/request-id.middleware";
  */
 export function configureApp(app: NestExpressApplication): void {
   app.useLogger(new RequestAwareLogger());
+  // Trước mọi middleware đọc req.ip (rate limit) — xem proxy-trust.ts.
+  configureProxyTrust(app);
   app.use(requestIdMiddleware);
   // API returns JSON only; GIS loads on the separate web origin. Disable CSP so
   // a default helmet policy never blocks accounts.google.com if this process

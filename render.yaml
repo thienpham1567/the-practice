@@ -29,6 +29,13 @@ services:
       # Bỏ trống → Sentry tắt. Release lấy từ RENDER_GIT_COMMIT (Render tự đặt).
       - key: SENTRY_DSN
         sync: false
+      # Số tầng proxy trước API — xem src/common/proxy-trust.ts. Chưa đặt thì
+      # req.ip là IP của proxy và rate limit gộp mọi người dùng. Xác minh bằng
+      # LOG_FORWARDED_IPS=true trước, rồi đặt con số và tắt log.
+      - key: TRUST_PROXY_HOPS
+        sync: false
+      - key: LOG_FORWARDED_IPS
+        sync: false
 
   - type: web
     name: the-practice
