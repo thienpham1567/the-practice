@@ -86,7 +86,7 @@ describe("Rate limiting sau proxy (e2e)", () => {
 
   beforeAll(async () => {
     process.env.DISABLE_RATE_LIMIT = "false";
-    process.env.TRUST_PROXY_HOPS = "1";
+    process.env.TRUST_PROXY = "loopback";
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
     app = moduleRef.createNestApplication<NestExpressApplication>();
@@ -95,7 +95,7 @@ describe("Rate limiting sau proxy (e2e)", () => {
   });
 
   afterAll(async () => {
-    delete process.env.TRUST_PROXY_HOPS;
+    delete process.env.TRUST_PROXY;
     await app.close();
   });
 
