@@ -126,8 +126,8 @@ describe("API (e2e)", () => {
       await server().post("/auth/refresh").set("Cookie", cookies).expect(401);
     });
 
-    it("refresh không có cookie trả 401", async () => {
-      await server().post("/auth/refresh").expect(401);
+    it("refresh không có cookie trả 204 (khách chưa đăng nhập, không phải lỗi)", async () => {
+      await server().post("/auth/refresh").expect(204);
     });
 
     it("cấp nonce Google khi chưa đăng nhập", async () => {

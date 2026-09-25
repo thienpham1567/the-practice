@@ -64,13 +64,23 @@ export class AuthController {
     return rest;
   }
 
+  /**
+   * Không có cookie = khách chưa từng đăng nhập, không phải lỗi: trả 204 để
+   * trang chủ không ghi 401 vào console của mọi lượt truy cập đầu tiên.
+   * Cookie có mà sai/hết hạn thì vẫn 401 như cũ.
+   */
   @Post("refresh")
   @HttpCode(HttpStatus.OK)
   async refresh(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<{ accessToken: string; user: { id: string; email: string } }> {
-    const { refreshToken, ...rest } = await this.auth.refresh(readRefreshCookie(req));
+  ): Promise<{ accessToken: string; user: { id: string; email: string } } | undefined> {
+    const presented = readRefreshCookie(req);
+    if (!presented) {
+      res.status(HttpStatus.NO_CONTENT);
+      return undefined;
+    }
+    const { refreshToken, ...rest } = await this.auth.refresh(presented);
     this.setRefreshCookie(res, refreshToken);
     return rest;
   }

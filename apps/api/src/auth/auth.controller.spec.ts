@@ -1,6 +1,6 @@
 import { Logger, UnauthorizedException } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import { AuthController } from "./auth.controller";
 import type { AuthService } from "./auth.service";
 import type { GoogleTokenVerifier } from "./google-token-verifier";
@@ -62,6 +62,29 @@ describe("AuthController", () => {
       expect(loggedText()).toContain("unverified_email");
       expect(loggedText()).toContain("writer@example.com");
       expect(loggedText()).not.toMatch(/issued-nonce|credential|jwt/i);
+    });
+  });
+
+  describe("refresh", () => {
+    it("answers 204 without touching the service when no refresh cookie is sent", async () => {
+      const auth = { refresh: jest.fn() };
+      const controller = new AuthController(
+        auth as unknown as AuthService,
+        {} as NonceService,
+        { get: jest.fn() } as unknown as ConfigService,
+        {} as GoogleTokenVerifier,
+      );
+      const res = { status: jest.fn(), cookie: jest.fn() };
+
+      const body = await controller.refresh(
+        { cookies: {} } as unknown as Request,
+        res as unknown as Response,
+      );
+
+      expect(body).toBeUndefined();
+      expect(res.status).toHaveBeenCalledWith(204);
+      expect(res.cookie).not.toHaveBeenCalled();
+      expect(auth.refresh).not.toHaveBeenCalled();
     });
   });
 
