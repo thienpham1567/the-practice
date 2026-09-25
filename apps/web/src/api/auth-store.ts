@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { setSessionHint } from "./session-hint";
 
 export interface SessionUser {
   id: string;
@@ -20,8 +21,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   user: null,
   status: "loading",
-  setSession: (accessToken, user) => set({ accessToken, user, status: "ready" }),
-  clearSession: () => set({ accessToken: null, user: null, status: "ready" }),
+  setSession: (accessToken, user) => {
+    setSessionHint(true);
+    set({ accessToken, user, status: "ready" });
+  },
+  clearSession: () => {
+    setSessionHint(false);
+    set({ accessToken: null, user: null, status: "ready" });
+  },
   markReady: () => set({ status: "ready" }),
 }));
 

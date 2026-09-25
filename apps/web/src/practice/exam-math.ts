@@ -34,6 +34,17 @@ export function formatClock(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
+/**
+ * Câu cho live region của đồng hồ. Chỉ đổi ở vài mốc, để trình đọc màn hình
+ * báo đúng lúc cần thay vì đọc từng giây.
+ */
+export function timeWarning(remaining: number, totalSeconds: number): string {
+  if (remaining <= 0) return "Time is up. You can still submit.";
+  if (remaining <= 60 && totalSeconds > 60) return "One minute left.";
+  if (remaining <= 300 && totalSeconds > 300) return "Five minutes left.";
+  return "";
+}
+
 export function countWords(text: string): number {
   const trimmed = text.trim();
   if (!trimmed) return 0;

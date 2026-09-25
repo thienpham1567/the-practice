@@ -248,6 +248,10 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
 
       <div className="relative z-10 mx-auto flex w-full min-w-0 max-w-2xl flex-1 flex-col px-4 pb-16 pt-2 sm:px-6">
         <div className="speaking-sheet relative">
+        {/* Một live region cố định: phase đổi (và mic tự bật) phải được đọc lên. */}
+        <p role="status" className="sr-only">
+          {phaseAnnouncement(phase, cue, recordingMs)}
+        </p>
         {phase === "info" && (
           <InfoPhase cue={cue} secondsLeft={infoLeft} onSkip={() => setPhase("prep")} />
         )}
@@ -293,6 +297,21 @@ function SpeakingSession({ attempt }: { attempt: SpeakingAttemptDetail }) {
       </div>
     </div>
   );
+}
+
+function phaseAnnouncement(phase: Phase, cue: SpeakingCueCard, recordingMs: number): string {
+  switch (phase) {
+    case "info":
+      return `Information. Read the passage. ${cue.infoSeconds ?? 0} seconds.`;
+    case "prep":
+      return `Preparation. ${cue.prepSeconds ?? 45} seconds.`;
+    case "record": {
+      const left = (cue.speakSeconds ?? 60) - Math.floor(recordingMs / 1000);
+      return left <= 10 ? "Ten seconds left." : "Recording. Microphone live. Speak now.";
+    }
+    case "review":
+      return "Recording finished. Listen back, record again, or submit.";
+  }
 }
 
 function CueBody({ cue, phase }: { cue: SpeakingCueCard; phase: Phase }) {
@@ -471,6 +490,7 @@ function RecordPhase({
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-ink-faint">Recording</p>
       <p
         className="mt-4 font-display text-5xl tabular-nums tracking-tight"
+        role="timer"
         aria-label="Time remaining"
       >
         {formatClock(remaining)}

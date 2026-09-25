@@ -1,4 +1,5 @@
 import { useAuthStore, type SessionUser } from "./auth-store";
+import { setSessionHint } from "./session-hint";
 
 /**
  * Một cửa duy nhất ra API.
@@ -65,7 +66,11 @@ export async function tryRefreshSession(): Promise<boolean> {
       signal: controller.signal,
     });
 
-    if (!response.ok) return false;
+    if (!response.ok) {
+      // 401 = phiên đã hết thật; lỗi mạng/timeout thì giữ cờ để lần sau vẫn chờ.
+      if (response.status === 401) setSessionHint(false);
+      return false;
+    }
 
     const body = (await response.json()) as { accessToken: string; user: SessionUser };
     useAuthStore.getState().setSession(body.accessToken, body.user);

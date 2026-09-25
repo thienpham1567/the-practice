@@ -3,6 +3,7 @@ import {
   countWords,
   formatClock,
   lastFourteenDays,
+  timeWarning,
   remainingSeconds,
   remainingSecondsFromDuration,
   wordCountTone,
@@ -66,5 +67,20 @@ describe("word count", () => {
   it("flags a count under the minimum", () => {
     expect(wordCountTone(79, 80)).toBe("under");
     expect(wordCountTone(80, 80)).toBe("met");
+  });
+});
+
+describe("timeWarning", () => {
+  it("stays quiet until a threshold, then names it", () => {
+    expect(timeWarning(1200, 1800)).toBe("");
+    expect(timeWarning(300, 1800)).toBe("Five minutes left.");
+    expect(timeWarning(61, 1800)).toBe("Five minutes left.");
+    expect(timeWarning(60, 1800)).toBe("One minute left.");
+    expect(timeWarning(0, 1800)).toBe("Time is up. You can still submit.");
+  });
+
+  it("skips thresholds longer than the paper itself", () => {
+    expect(timeWarning(240, 240)).toBe("");
+    expect(timeWarning(60, 60)).toBe("");
   });
 });

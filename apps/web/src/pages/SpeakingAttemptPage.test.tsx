@@ -707,7 +707,7 @@ describe("SpeakingAttemptPage TOEIC exam room", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Skip$/i }));
 
-    expect(await screen.findByText(/Preparation/)).toBeTruthy();
+    expect(await screen.findByText(/Preparation ·/)).toBeTruthy();
     expect(
       screen.getByText("What time does the keynote speech begin, and where is it held?"),
     ).toBeTruthy();

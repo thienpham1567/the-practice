@@ -30,6 +30,7 @@ import { CriteriaBars, IeltsCriteriaBars, criteriaEntries } from "../practice/Cr
 import {
   countWords,
   formatClock,
+  timeWarning,
   remainingSecondsFromDuration,
   wordCountTone,
 } from "../practice/exam-math";
@@ -205,6 +206,7 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
         ) : (
           <span
             className={`font-mono text-sm tabular-nums ${timedOut ? "text-vermilion" : "text-ink"}`}
+            role="timer"
             aria-label="Time remaining"
           >
             {formatClock(remaining)}
@@ -255,6 +257,12 @@ function ExamRoom({ attempt, spec }: { attempt: PracticeAttemptDetail; spec: Tas
           </button>
         </div>
       </header>
+
+      {!isRevision && (
+        <p role="status" className="sr-only">
+          {timeWarning(remaining, spec.timeSeconds)}
+        </p>
+      )}
 
       {timedOut && (
         <p className="relative z-10 border-b border-vermilion/40 bg-vermilion-soft px-6 py-2 text-sm text-vermilion">

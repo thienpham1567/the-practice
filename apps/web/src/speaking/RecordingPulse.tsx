@@ -18,12 +18,9 @@ export function RecordingPulse({ level }: { level: number }) {
           <span key={index} className="recording-voice__bar" />
         ))}
       </div>
-      <p className="mb-0.5 flex items-center gap-2 font-mono text-[0.7rem] uppercase tracking-[0.22em] text-vermilion">
+      <p aria-hidden="true" className="mb-0.5 flex items-center gap-2 font-mono text-[0.7rem] uppercase tracking-[0.22em] text-vermilion">
         <span className="recording-pulse__dot" />
         Rec
-      </p>
-      <p role="status" className="sr-only">
-        Recording. Microphone live
       </p>
     </div>
   );

@@ -7,9 +7,10 @@ describe("RecordingPulse", () => {
     cleanup();
   });
 
-  it("announces that recording is live", () => {
+  it("shows the live mark without its own live region", () => {
     render(<RecordingPulse level={0} />);
-    expect(screen.getByRole("status").textContent).toMatch(/Recording. Microphone live/);
+    // SpeakingAttemptPage owns the announcement, so the pulse must not add a second one.
+    expect(screen.queryByRole("status")).toBeNull();
     expect(screen.getByText("Rec")).toBeTruthy();
     expect(document.querySelectorAll(".recording-voice__bar")).toHaveLength(5);
   });

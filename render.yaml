@@ -33,6 +33,12 @@ services:
     rootDir: .
     buildCommand: pnpm install --frozen-lockfile && pnpm --filter @writing-helper/web build
     staticPublishPath: apps/web/dist
+    # Vite gắn hash nội dung vào tên file trong /assets, nên cache vĩnh viễn an toàn;
+    # index.html giữ mặc định (max-age=0) để bản deploy mới tới ngay.
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
     routes:
       - type: rewrite
         source: /api/*
