@@ -1,3 +1,5 @@
+// Sentry trước mọi thứ khác — xem instrument.ts.
+import "./instrument";
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";

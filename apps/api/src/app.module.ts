@@ -1,7 +1,8 @@
 import { Module } from "@nestjs/common";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { ConfigModule } from "@nestjs/config";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 import { AiModule } from "./ai/ai.module";
 import { AuthModule } from "./auth/auth.module";
 import { DocumentsModule } from "./documents/documents.module";
@@ -12,6 +13,7 @@ import { SpeakingModule } from "./speaking/speaking.module";
 
 @Module({
   imports: [
+    SentryModule.forRoot(),
     ConfigModule.forRoot({ isGlobal: true }),
     // Ngưỡng mặc định rộng rãi; route auth và AI rewrite siết riêng bằng @Throttle.
     // `global: true`: forRoot() không tự global hóa provider của nó, mà
@@ -35,6 +37,10 @@ import { SpeakingModule } from "./speaking/speaking.module";
     AiModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Chỉ báo lỗi ngoài dự kiến; HttpException (401, 404, 429…) đi thẳng qua.
+    { provide: APP_FILTER, useClass: SentryGlobalFilter },
+  ],
 })
 export class AppModule {}

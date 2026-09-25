@@ -26,6 +26,9 @@ services:
         value: anthropic/claude-haiku-4.5
       - key: WEB_ORIGIN
         value: https://the-practice.onrender.com
+      # Bỏ trống → Sentry tắt. Release lấy từ RENDER_GIT_COMMIT (Render tự đặt).
+      - key: SENTRY_DSN
+        sync: false
 
   - type: web
     name: the-practice
@@ -33,6 +36,17 @@ services:
     rootDir: .
     buildCommand: pnpm install --frozen-lockfile && pnpm --filter @writing-helper/web build
     staticPublishPath: apps/web/dist
+    # Biến build-time. Bỏ trống VITE_SENTRY_DSN → không có dòng Sentry nào trong
+    # bundle. Có SENTRY_AUTH_TOKEN → upload source map rồi xoá .map khỏi dist.
+    envVars:
+      - key: VITE_SENTRY_DSN
+        sync: false
+      - key: SENTRY_AUTH_TOKEN
+        sync: false
+      - key: SENTRY_ORG
+        sync: false
+      - key: SENTRY_PROJECT
+        sync: false
     # Vite gắn hash nội dung vào tên file trong /assets, nên cache vĩnh viễn an toàn;
     # index.html giữ mặc định (max-age=0) để bản deploy mới tới ngay.
     headers:

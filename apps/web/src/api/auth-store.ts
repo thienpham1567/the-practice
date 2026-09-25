@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { setSentryUser } from "../sentry";
 import { setSessionHint } from "./session-hint";
 
 export interface SessionUser {
@@ -23,10 +24,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   status: "loading",
   setSession: (accessToken, user) => {
     setSessionHint(true);
+    setSentryUser(user.id);
     set({ accessToken, user, status: "ready" });
   },
   clearSession: () => {
     setSessionHint(false);
+    setSentryUser(null);
     set({ accessToken: null, user: null, status: "ready" });
   },
   markReady: () => set({ status: "ready" }),

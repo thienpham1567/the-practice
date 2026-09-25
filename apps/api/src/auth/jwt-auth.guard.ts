@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
+import * as Sentry from "@sentry/nestjs";
 import type { Request } from "express";
 
 export interface AuthenticatedUser {
@@ -36,6 +37,8 @@ export class JwtAuthGuard implements CanActivate {
       });
 
       (request as AuthenticatedRequest).user = { id: payload.sub };
+      // Chỉ id, không email: đủ để gom lỗi theo người dùng trên Sentry.
+      Sentry.setUser({ id: payload.sub });
       return true;
     } catch {
       throw new UnauthorizedException("Invalid or expired access token");
