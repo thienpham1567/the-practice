@@ -39,6 +39,11 @@ describe("web CSP", () => {
     expect(scriptSrc).not.toContain("'unsafe-eval'");
   });
 
+  it("enforces the policy rather than only reporting it", () => {
+    expect(renderYaml).toMatch(/name: Content-Security-Policy\s+value:/);
+    expect(renderYaml).not.toContain("Content-Security-Policy-Report-Only");
+  });
+
   it("forbids framing the app", () => {
     expect(cspValue()).toContain("frame-ancestors 'none'");
     expect(renderYaml).toMatch(/name: X-Frame-Options\s+value: DENY/);
