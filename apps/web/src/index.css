@@ -145,7 +145,7 @@
 
 .auth-ambient {
   background-color: #cbb89a;
-  background-image: url("./assets/auth-desk-day.jpg");
+  background-image: url("./assets/auth-desk-day.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -153,7 +153,7 @@
 
 html[data-theme="dark"] .auth-ambient {
   background-color: #1a1610;
-  background-image: url("./assets/auth-desk-night.jpg");
+  background-image: url("./assets/auth-desk-night.webp");
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -574,7 +574,7 @@ html[data-theme="dark"] .cursor-lamp__bloom {
 
 .page-atm--folio {
   background-color: #c4b09a;
-  background-image: url("./assets/landing-desk-day.jpg");
+  background-image: url("./assets/landing-desk-day.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -582,12 +582,12 @@ html[data-theme="dark"] .cursor-lamp__bloom {
 
 html[data-theme="dark"] .page-atm--folio {
   background-color: #141210;
-  background-image: url("./assets/landing-desk-night.jpg");
+  background-image: url("./assets/landing-desk-night.webp");
 }
 
 .page-atm--manuscript {
   background-color: #c4b09a;
-  background-image: url("./assets/editor-desk-day.jpg");
+  background-image: url("./assets/editor-desk-day.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -595,7 +595,7 @@ html[data-theme="dark"] .page-atm--folio {
 
 html[data-theme="dark"] .page-atm--manuscript {
   background-color: #141210;
-  background-image: url("./assets/editor-desk-night.jpg");
+  background-image: url("./assets/editor-desk-night.webp");
 }
 
 .page-atm--drafts {
@@ -608,7 +608,7 @@ html[data-theme="dark"] .page-atm--manuscript {
 
 .page-atm--practice {
   background-color: #b89a7a;
-  background-image: url("./assets/practice-desk-day.jpg");
+  background-image: url("./assets/practice-desk-day.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -616,7 +616,7 @@ html[data-theme="dark"] .page-atm--manuscript {
 
 html[data-theme="dark"] .page-atm--practice {
   background-color: #141210;
-  background-image: url("./assets/practice-desk-night.jpg");
+  background-image: url("./assets/practice-desk-night.webp");
 }
 
 .page-atm--exam {
@@ -644,7 +644,7 @@ html[data-theme="dark"] .page-atm--practice {
 
 .page-atm--speaking {
   background-color: #c4b09a;
-  background-image: url("./assets/speaking-desk-day.jpg");
+  background-image: url("./assets/speaking-desk-day.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -652,7 +652,7 @@ html[data-theme="dark"] .page-atm--practice {
 
 html[data-theme="dark"] .page-atm--speaking {
   background-color: #141210;
-  background-image: url("./assets/speaking-desk-night.jpg");
+  background-image: url("./assets/speaking-desk-night.webp");
 }
 
 .page-atm--talk {
@@ -664,7 +664,7 @@ html[data-theme="dark"] .page-atm--speaking {
 
 .page-atm--progress {
   background-color: #c4b09a;
-  background-image: url("./assets/progress-desk-day.jpg");
+  background-image: url("./assets/progress-desk-day.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -672,12 +672,12 @@ html[data-theme="dark"] .page-atm--speaking {
 
 html[data-theme="dark"] .page-atm--progress {
   background-color: #141210;
-  background-image: url("./assets/progress-desk-night.jpg");
+  background-image: url("./assets/progress-desk-night.webp");
 }
 
 .page-atm--vocab {
   background-color: #c4b09a;
-  background-image: url("./assets/vocab-desk-day.jpg");
+  background-image: url("./assets/vocab-desk-day.webp");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -685,8 +685,102 @@ html[data-theme="dark"] .page-atm--progress {
 
 html[data-theme="dark"] .page-atm--vocab {
   background-color: #141210;
-  background-image: url("./assets/vocab-desk-night.jpg");
+  background-image: url("./assets/vocab-desk-night.webp");
 }
+
+/*
+  Ảnh nền bàn viết: WebP ở rule gốc (~67% nhẹ hơn JPG cũ, Safari 14+). Trình
+  duyệt hiểu image-set(type()) thì lấy AVIF (~40% nhẹ hơn nữa). Không dùng
+  cách khai báo url() rồi image-set() trong cùng rule: Lightning CSS gộp hai
+  dòng lại và bỏ mất dòng dự phòng.
+*/
+@supports (background-image: image-set("a.avif" type("image/avif"))) {
+  .auth-ambient {
+    background-image: image-set(
+      url("./assets/auth-desk-day.avif") type("image/avif"),
+      url("./assets/auth-desk-day.webp") type("image/webp")
+    );
+  }
+  html[data-theme="dark"] .auth-ambient {
+    background-image: image-set(
+      url("./assets/auth-desk-night.avif") type("image/avif"),
+      url("./assets/auth-desk-night.webp") type("image/webp")
+    );
+  }
+  .page-atm--folio {
+    background-image: image-set(
+      url("./assets/landing-desk-day.avif") type("image/avif"),
+      url("./assets/landing-desk-day.webp") type("image/webp")
+    );
+  }
+  html[data-theme="dark"] .page-atm--folio {
+    background-image: image-set(
+      url("./assets/landing-desk-night.avif") type("image/avif"),
+      url("./assets/landing-desk-night.webp") type("image/webp")
+    );
+  }
+  .page-atm--manuscript {
+    background-image: image-set(
+      url("./assets/editor-desk-day.avif") type("image/avif"),
+      url("./assets/editor-desk-day.webp") type("image/webp")
+    );
+  }
+  html[data-theme="dark"] .page-atm--manuscript {
+    background-image: image-set(
+      url("./assets/editor-desk-night.avif") type("image/avif"),
+      url("./assets/editor-desk-night.webp") type("image/webp")
+    );
+  }
+  .page-atm--practice {
+    background-image: image-set(
+      url("./assets/practice-desk-day.avif") type("image/avif"),
+      url("./assets/practice-desk-day.webp") type("image/webp")
+    );
+  }
+  html[data-theme="dark"] .page-atm--practice {
+    background-image: image-set(
+      url("./assets/practice-desk-night.avif") type("image/avif"),
+      url("./assets/practice-desk-night.webp") type("image/webp")
+    );
+  }
+  .page-atm--speaking {
+    background-image: image-set(
+      url("./assets/speaking-desk-day.avif") type("image/avif"),
+      url("./assets/speaking-desk-day.webp") type("image/webp")
+    );
+  }
+  html[data-theme="dark"] .page-atm--speaking {
+    background-image: image-set(
+      url("./assets/speaking-desk-night.avif") type("image/avif"),
+      url("./assets/speaking-desk-night.webp") type("image/webp")
+    );
+  }
+  .page-atm--progress {
+    background-image: image-set(
+      url("./assets/progress-desk-day.avif") type("image/avif"),
+      url("./assets/progress-desk-day.webp") type("image/webp")
+    );
+  }
+  html[data-theme="dark"] .page-atm--progress {
+    background-image: image-set(
+      url("./assets/progress-desk-night.avif") type("image/avif"),
+      url("./assets/progress-desk-night.webp") type("image/webp")
+    );
+  }
+  .page-atm--vocab {
+    background-image: image-set(
+      url("./assets/vocab-desk-day.avif") type("image/avif"),
+      url("./assets/vocab-desk-day.webp") type("image/webp")
+    );
+  }
+  html[data-theme="dark"] .page-atm--vocab {
+    background-image: image-set(
+      url("./assets/vocab-desk-night.avif") type("image/avif"),
+      url("./assets/vocab-desk-night.webp") type("image/webp")
+    );
+  }
+}
+
 
 .page-atm-marks {
   position: absolute;
